@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Subscription Confirmation</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .header {
+      text-align: center;
+      padding: 20px 0;
+      background-color: #f8f9fa;
+    }
+    .content {
+      padding: 20px 0;
+    }
+    .subscription-details {
+      background-color: #f8f9fa;
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 5px;
+    }
+    .footer {
+      text-align: center;
+      padding: 20px 0;
+      font-size: 12px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Subscription Confirmation</h1>
+    </div>
+    <div class="content">
+      <p>Dear {{name}},</p>
+      <p>Thank you for subscribing to Dance Realm!</p>
+      
+      <div class="subscription-details">
+        <h2>Subscription Details</h2>
+        <p><strong>Plan:</strong> {{tier}}</p>
+        <p><strong>Start Date:</strong> {{startDate}}</p>
+        <p><strong>End Date:</strong> {{endDate}}</p>
+      </div>
+
+      <p>With your subscription, you now have access to:</p>
+      <ul>
+        <li>All premium courses</li>
+        <li>Priority booking for lessons</li>
+        <li>Exclusive content and features</li>
+        <li>24/7 support</li>
+      </ul>
+
+      <p>Enjoy your subscription!</p>
+    </div>
+    <div class="footer">
+      <p>© 2024 Dance Realm. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html> 

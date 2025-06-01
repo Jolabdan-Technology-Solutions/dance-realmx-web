@@ -1,0 +1,1175 @@
+// DanceRealmX Prisma Schema
+// This schema represents the complete database structure for the educational dance marketplace platform
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =====================================
+// User Management & Authentication
+// =====================================
+
+model User {
+  id                              Int       @id @default(autoincrement())
+  username                        String    @unique
+  password                        String?   // Nullable for OAuth users
+  firstName                       String?
+  lastName                        String?
+  email                           String?
+  role                            String    @default("student") // Legacy single role
+  roles                           String[]  @default(["student"]) // Multi-role support
+  bio                             String?
+  profileImageUrl                 String?
+  socialLinks                     Json?     // {instagram?, facebook?, youtube?, twitter?, website?}
+  danceStyles                     String[]? // Array of dance styles
+  experienceYears                 Int?
+  teachingCredentials             String?
+  sellerBio                       String?
+  isApprovedSeller                Boolean   @default(false)
+  approvedSellerAt                DateTime?
+  googleId                        String?   @unique
+  authProvider                    String?   // "local", "google", etc.
+  stripeCustomerId                String?
+  stripeSubscriptionId            String?
+  stripeConnectAccountId          String?
+  stripeConnectOnboardingComplete Boolean   @default(false)
+  subscriptionPlan                String    @default("free")
+  subscriptionStatus              String?
+  subscriptionExpiresAt           DateTime?
+
+  // Relationships
+  coursesCreated              Course[]
+  enrollments                 Enrollment[]
+  courseProgress              CourseProgress[]
+  lessonProgress              LessonProgress[]
+  quizAttempts                QuizAttempt[]
+  courseAccesses              CourseAccess[]
+  learningActivities          LearningActivity[]
+  knowledgeCheckAttempts      KnowledgeCheckAttempt[]
+  competenciesAchieved        UserCompetency[]
+  learningPathsCreated        LearningPath[]
+  learningPathEnrollments     LearningPathEnrollment[]
+  forumDiscussionsCreated     ForumDiscussion[]
+  forumPostsCreated           ForumPost[]
+  certificateTemplatesCreated CertificateTemplate[]
+  certificatesEarned          Certificate[]
+  badgesCreated               Badge[]
+  badgesEarned                UserBadge[]
+  resourcesCreated            Resource[]
+  resourceReviews             ResourceReview[]
+  resourceOrders              ResourceOrder[]
+  resourceOrdersSold          ResourceOrder[]       @relation("ResourceSeller")
+  resourceCommentsCreated     ResourceComment[]
+  bookingProfile              BookingProfile?
+  bookingRequestsAsClient     BookingRequest[]      @relation("BookingClient")
+  bookingRequestsAsProvider   BookingRequest[]      @relation("BookingProvider")
+  bookingAppointmentsAsClient BookingAppointment[]  @relation("AppointmentClient")
+  bookingAppointmentsAsProvider BookingAppointment[] @relation("AppointmentProvider")
+  bookingReviewsGiven         BookingReview[]       @relation("BookingReviewer")
+  bookingReviewsReceived      BookingReview[]       @relation("BookingReviewee")
+  subscriptions               Subscription[]
+  cartItems                   CartItem[]
+  orders                      Order[]
+  filesUploaded               File[]
+  eventsCreated               Event[]
+  testimonialsCreated         Testimonial[]
+  frameworksCreated           CompetencyFramework[]
+  resourcesApproved           Resource[]            @relation("ResourceApprover")
+
+  @@map("users")
+}
+
+// =====================================
+// Course Certification Module
+// =====================================
+
+model Course {
+  id                      Int       @id @default(autoincrement())
+  title                   String
+  shortName               String
+  description             String?
+  detailedDescription     String?
+  imageUrl                String?
+  previewVideoUrl         String?   // Preview video visible before purchase
+  fullVideoUrl            String?   // Full video available after purchase
+  price                   Decimal   @default(0) @db.Decimal(10, 2)
+  pricePremium            Decimal?  @db.Decimal(10, 2)
+  priceRoyalty            Decimal?  @db.Decimal(10, 2)
+  stripeProductId         String?
+  stripePriceId           String?
+  stripePricePremiumId    String?
+  stripePriceRoyaltyId    String?
+  categoryId              Int?
+  instructorId            Int
+  duration                String?
+  level                   String?
+  requirements            String?
+  objectives              String?
+  visible                 Boolean   @default(true)
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime?
+
+  // Relationships
+  category                Category?               @relation(fields: [categoryId], references: [id])
+  instructor              User                    @relation(fields: [instructorId], references: [id])
+  modules                 Module[]
+  lessons                 Lesson[]
+  enrollments             Enrollment[]
+  courseProgress          CourseProgress[]
+  courseAccesses          CourseAccess[]
+  learningActivities      LearningActivity[]
+  learningPathCourses     LearningPathCourse[]
+  forumDiscussions        ForumDiscussion[]
+  courseResources         CourseResource[]
+  courseEvents            CourseEvent[]
+  competencies            CourseCompetency[]
+  completionSettings      CourseCompletionSetting?
+  certificates            Certificate[]
+  resources               Resource[]              @relation("RelatedCourse")
+
+  @@map("courses")
+}
+
+model Category {
+  id          Int     @id @default(autoincrement())
+  name        String  @unique
+  description String?
+  imageUrl    String?
+
+  // Relationships
+  courses Course[]
+
+  @@map("categories")
+}
+
+model Module {
+  id          Int    @id @default(autoincrement())
+  courseId    Int
+  title       String
+  description String?
+  orderIndex  Int
+
+  // Relationships
+  course              Course             @relation(fields: [courseId], references: [id])
+  lessons             Lesson[]
+  quizzes             Quiz[]
+  forumDiscussions    ForumDiscussion[]
+  courseResources     CourseResource[]
+  learningActivities  LearningActivity[]
+
+  @@map("modules")
+}
+
+model Lesson {
+  id           Int      @id @default(autoincrement())
+  moduleId     Int
+  courseId     Int
+  title        String
+  content      String?
+  videoUrl     String?
+  thumbnailUrl String?
+  duration     Int?     // in minutes
+  orderIndex   Int
+  attachments  String[] // Array of downloadable resources
+
+  // Relationships
+  module              Module                @relation(fields: [moduleId], references: [id])
+  course              Course                @relation(fields: [courseId], references: [id])
+  quizzes             Quiz[]
+  knowledgeChecks     KnowledgeCheck[]
+  lessonProgress      LessonProgress[]
+  courseResources     CourseResource[]
+  lessonActivities    LessonActivity[]
+  learningActivities  LearningActivity[]
+
+  @@map("lessons")
+}
+
+model Quiz {
+  id           Int    @id @default(autoincrement())
+  lessonId     Int?
+  moduleId     Int?
+  title        String
+  description  String?
+  passingScore Int    @default(70)
+
+  // Relationships
+  lesson        Lesson?       @relation(fields: [lessonId], references: [id])
+  module        Module?       @relation(fields: [moduleId], references: [id])
+  questions     QuizQuestion[]
+  attempts      QuizAttempt[]
+  learningActivities LearningActivity[]
+
+  @@map("quizzes")
+}
+
+model QuizQuestion {
+  id            Int      @id @default(autoincrement())
+  quizId        Int
+  question      String
+  orderIndex    Int
+  type          String   // multiple_choice, true_false, etc.
+  options       String[]
+  correctAnswer String
+  points        Int      @default(1)
+
+  // Relationships
+  quiz Quiz @relation(fields: [quizId], references: [id])
+
+  @@map("quiz_questions")
+}
+
+// =====================================
+// Progress Tracking & Enrollment
+// =====================================
+
+model Enrollment {
+  id             Int       @id @default(autoincrement())
+  userId         Int
+  courseId       Int
+  enrolledAt     DateTime  @default(now())
+  lastAccessedAt DateTime?
+  progress       Int       @default(0) // percentage complete
+  completed      Boolean   @default(false)
+  completedAt    DateTime?
+  certificateId  String?
+  certificateUrl String?
+
+  // Relationships
+  user           User             @relation(fields: [userId], references: [id])
+  course         Course           @relation(fields: [courseId], references: [id])
+  courseProgress CourseProgress[]
+  lessonProgress LessonProgress[]
+
+  @@unique([userId, courseId])
+  @@map("enrollments")
+}
+
+model CourseProgress {
+  id                     Int      @id @default(autoincrement())
+  userId                 Int
+  courseId               Int
+  lastAccessedAt         DateTime?
+  percentComplete        Decimal   @default(0) @db.Decimal(5, 2)
+  moduleCount            Int       @default(0)
+  modulesCompleted       Int       @default(0)
+  lessonCount            Int       @default(0)
+  lessonsCompleted       Int       @default(0)
+  quizCount              Int       @default(0)
+  quizzesCompleted       Int       @default(0)
+  lastCompletedResource  Json?     // {type: string, id: number}
+  enrollmentId           Int?
+  updatedAt              DateTime?
+
+  // Relationships
+  user       User        @relation(fields: [userId], references: [id])
+  course     Course      @relation(fields: [courseId], references: [id])
+  enrollment Enrollment? @relation(fields: [enrollmentId], references: [id])
+
+  @@unique([userId, courseId])
+  @@map("course_progress")
+}
+
+model LessonProgress {
+  id           Int       @id @default(autoincrement())
+  userId       Int
+  lessonId     Int
+  completed    Boolean   @default(false)
+  completedAt  DateTime?
+  lastViewed   DateTime?
+  viewCount    Int       @default(0)
+  enrollmentId Int?
+
+  // Relationships
+  user       User        @relation(fields: [userId], references: [id])
+  lesson     Lesson      @relation(fields: [lessonId], references: [id])
+  enrollment Enrollment? @relation(fields: [enrollmentId], references: [id])
+
+  @@unique([userId, lessonId])
+  @@map("lesson_progress")
+}
+
+model QuizAttempt {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  quizId      Int
+  score       Int?
+  passed      Boolean   @default(false)
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  answers     Json?     // Record<string, string>
+  feedback    Json?     // Record<number, boolean>
+
+  // Relationships
+  user User @relation(fields: [userId], references: [id])
+  quiz Quiz @relation(fields: [quizId], references: [id])
+
+  @@map("quiz_attempts")
+}
+
+// =====================================
+// Knowledge Assessment System
+// =====================================
+
+model KnowledgeCheck {
+  id                    Int    @id @default(autoincrement())
+  lessonId              Int
+  title                 String
+  description           String?
+  orderIndex            Int    @default(0)
+  passingScore          Int    @default(70)
+  allowMultipleAttempts Boolean @default(true)
+  maxAttempts           Int    @default(3)
+  timeLimit             Int?   // in minutes
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime?
+
+  // Relationships
+  lesson    Lesson                   @relation(fields: [lessonId], references: [id])
+  questions KnowledgeCheckQuestion[]
+  attempts  KnowledgeCheckAttempt[]
+
+  @@map("knowledge_checks")
+}
+
+model KnowledgeCheckQuestion {
+  id               Int      @id @default(autoincrement())
+  knowledgeCheckId Int
+  text             String
+  type             String   // multiple_choice, true_false, short_answer
+  options          String[]
+  correctAnswer    String
+  explanation      String?
+  points           Int      @default(1)
+  orderIndex       Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime?
+
+  // Relationships
+  knowledgeCheck KnowledgeCheck @relation(fields: [knowledgeCheckId], references: [id])
+
+  @@map("knowledge_check_questions")
+}
+
+model KnowledgeCheckAttempt {
+  id               Int     @id @default(autoincrement())
+  knowledgeCheckId Int
+  userId           Int
+  answers          Json?   // User's answers as {questionId: answer}
+  score            Decimal
+  passed           Boolean
+  timeTaken        Int?    // in seconds
+  createdAt        DateTime @default(now())
+
+  // Relationships
+  knowledgeCheck KnowledgeCheck @relation(fields: [knowledgeCheckId], references: [id])
+  user           User           @relation(fields: [userId], references: [id])
+
+  @@map("knowledge_check_attempts")
+}
+
+// =====================================
+// Certification System
+// =====================================
+
+model CertificateTemplate {
+  id          Int       @id @default(autoincrement())
+  name        String
+  description String?
+  imageUrl    String?
+  html        String
+  css         String?
+  createdById Int
+  isDefault   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime?
+
+  // Relationships
+  createdBy    User          @relation(fields: [createdById], references: [id])
+  certificates Certificate[]
+
+  @@map("certificate_templates")
+}
+
+model Certificate {
+  id              Int      @id @default(autoincrement())
+  userId          Int
+  courseId        Int
+  certificateId   String   @unique
+  issuedAt        DateTime @default(now())
+  pdfUrl          String?
+  verificationUrl String?
+  templateId      Int?
+
+  // Relationships
+  user     User                 @relation(fields: [userId], references: [id])
+  course   Course               @relation(fields: [courseId], references: [id])
+  template CertificateTemplate? @relation(fields: [templateId], references: [id])
+
+  @@map("certificates")
+}
+
+// =====================================
+// Learning Analytics
+// =====================================
+
+model CourseAccess {
+  id             Int      @id @default(autoincrement())
+  userId         Int
+  courseId       Int
+  accessedAt     DateTime @default(now())
+  activityType   String   // "view", "complete_lesson", "attempt_quiz", etc.
+  resourceId     Int?     // Can be a lessonId, quizId, etc.
+  additionalData Json?
+
+  // Relationships
+  user   User   @relation(fields: [userId], references: [id])
+  course Course @relation(fields: [courseId], references: [id])
+
+  @@map("course_accesses")
+}
+
+model LearningActivity {
+  id              Int      @id @default(autoincrement())
+  userId          Int
+  courseId        Int
+  moduleId        Int?
+  lessonId        Int?
+  quizId          Int?
+  activityType    String   // "LESSON_VIEW", "LESSON_COMPLETE", "QUIZ_PASS", "QUIZ_FAIL", etc.
+  activityTime    DateTime @default(now())
+  durationSeconds Int?
+  resourceId      Int?     // Generic resource ID
+  additionalData  Json?
+  ipAddress       String?
+  userAgent       String?
+
+  // Relationships
+  user   User    @relation(fields: [userId], references: [id])
+  course Course  @relation(fields: [courseId], references: [id])
+  module Module? @relation(fields: [moduleId], references: [id])
+  lesson Lesson? @relation(fields: [lessonId], references: [id])
+  quiz   Quiz?   @relation(fields: [quizId], references: [id])
+
+  @@map("learning_activity")
+}
+
+// =====================================
+// Competency Framework
+// =====================================
+
+model CompetencyFramework {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  createdById Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime?
+
+  // Relationships
+  createdBy    User         @relation(fields: [createdById], references: [id])
+  competencies Competency[]
+
+  @@map("competency_frameworks")
+}
+
+model Competency {
+  id          Int      @id @default(autoincrement())
+  frameworkId Int
+  name        String
+  description String?
+  parentId    Int?     // Self-referential for hierarchy
+  level       Int      @default(1)
+  createdAt   DateTime @default(now())
+
+  // Relationships
+  framework         CompetencyFramework @relation(fields: [frameworkId], references: [id])
+  parent            Competency?         @relation("CompetencyHierarchy", fields: [parentId], references: [id])
+  children          Competency[]        @relation("CompetencyHierarchy")
+  courseCompetencies CourseCompetency[]
+  userCompetencies  UserCompetency[]
+
+  @@map("competencies")
+}
+
+model CourseCompetency {
+  id           Int @id @default(autoincrement())
+  courseId     Int
+  competencyId Int
+
+  // Relationships
+  course     Course     @relation(fields: [courseId], references: [id])
+  competency Competency @relation(fields: [competencyId], references: [id])
+
+  @@unique([courseId, competencyId])
+  @@map("course_competencies")
+}
+
+model UserCompetency {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  competencyId Int
+  achievedAt   DateTime @default(now())
+  evidence     Json?
+
+  // Relationships
+  user       User       @relation(fields: [userId], references: [id])
+  competency Competency @relation(fields: [competencyId], references: [id])
+
+  @@unique([userId, competencyId])
+  @@map("user_competencies")
+}
+
+// =====================================
+// Learning Paths
+// =====================================
+
+model LearningPath {
+  id          Int       @id @default(autoincrement())
+  title       String
+  description String?
+  imageUrl    String?
+  createdById Int
+  visible     Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime?
+
+  // Relationships
+  createdBy   User                     @relation(fields: [createdById], references: [id])
+  courses     LearningPathCourse[]
+  enrollments LearningPathEnrollment[]
+
+  @@map("learning_paths")
+}
+
+model LearningPathCourse {
+  id         Int     @id @default(autoincrement())
+  pathId     Int
+  courseId   Int
+  orderIndex Int
+  required   Boolean @default(true)
+
+  // Relationships
+  path   LearningPath @relation(fields: [pathId], references: [id])
+  course Course       @relation(fields: [courseId], references: [id])
+
+  @@unique([pathId, courseId])
+  @@map("learning_path_courses")
+}
+
+model LearningPathEnrollment {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  pathId      Int
+  enrolledAt  DateTime  @default(now())
+  completedAt DateTime?
+  progress    Int       @default(0)
+
+  // Relationships
+  user User         @relation(fields: [userId], references: [id])
+  path LearningPath @relation(fields: [pathId], references: [id])
+
+  @@unique([userId, pathId])
+  @@map("learning_path_enrollments")
+}
+
+// =====================================
+// Gamification System
+// =====================================
+
+model Badge {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  imageUrl    String?
+  criteria    Json     // Achievement criteria
+  createdById Int
+  createdAt   DateTime @default(now())
+
+  // Relationships
+  createdBy  User        @relation(fields: [createdById], references: [id])
+  userBadges UserBadge[]
+
+  @@map("badges")
+}
+
+model UserBadge {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  badgeId   Int
+  awardedAt DateTime @default(now())
+
+  // Relationships
+  user  User  @relation(fields: [userId], references: [id])
+  badge Badge @relation(fields: [badgeId], references: [id])
+
+  @@unique([userId, badgeId])
+  @@map("user_badges")
+}
+
+// =====================================
+// Forum & Discussion
+// =====================================
+
+model ForumDiscussion {
+  id          Int       @id @default(autoincrement())
+  courseId    Int
+  moduleId    Int?
+  title       String
+  createdById Int
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime?
+  pinned      Boolean   @default(false)
+  locked      Boolean   @default(false)
+
+  // Relationships
+  course    Course      @relation(fields: [courseId], references: [id])
+  module    Module?     @relation(fields: [moduleId], references: [id])
+  createdBy User        @relation(fields: [createdById], references: [id])
+  posts     ForumPost[]
+
+  @@map("forum_discussions")
+}
+
+model ForumPost {
+  id           Int       @id @default(autoincrement())
+  discussionId Int
+  parentId     Int?      // Self-referential for threading
+  content      String
+  createdById  Int
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime?
+  likes        Int       @default(0)
+
+  // Relationships
+  discussion ForumDiscussion @relation(fields: [discussionId], references: [id])
+  parent     ForumPost?      @relation("PostHierarchy", fields: [parentId], references: [id])
+  replies    ForumPost[]     @relation("PostHierarchy")
+  createdBy  User            @relation(fields: [createdById], references: [id])
+
+  @@map("forum_posts")
+}
+
+// =====================================
+// Resource Marketplace
+// =====================================
+
+model Resource {
+  id                     Int      @id @default(autoincrement())
+  sellerId               Int
+  title                  String
+  description            String?
+  detailedDescription    String?
+  tags                   String[]
+  danceStyle             String?  // ballet, jazz, contemporary, hip-hop, etc.
+  ageRange               String?  // kids, teens, adults, seniors
+  difficultyLevel        String?  // beginner, intermediate, advanced, professional
+  imageUrl               String?
+  thumbnailUrl           String?
+  filePath               String?
+  fileUrl                String?
+  fileType               String?
+  fileSize               Int?
+  resourceType           String   @default("document") // document, video, audio, text, bundle, image
+  previewUrl             String?
+  previewVideoUrl        String?
+  fullVideoUrl           String?
+  price                  Decimal  @default(0) @db.Decimal(10, 2)
+  pricePremium           Decimal? @db.Decimal(10, 2)
+  priceRoyalty           Decimal? @db.Decimal(10, 2)
+  stripeProductId        String?
+  stripePriceId          String?
+  stripePricePremiumId   String?
+  stripePriceRoyaltyId   String?
+  isFeatured             Boolean  @default(false)
+  isApproved             Boolean  @default(false)
+  approvedById           Int?
+  approvedAt             DateTime?
+  status                 String   @default("draft") // draft, pending_review, published, rejected, archived
+  downloadCount          Int      @default(0)
+  saleCount              Int      @default(0)
+  viewCount              Int      @default(0)
+  rating                 Decimal? @db.Decimal(3, 2)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime?
+  publishedAt            DateTime?
+  relatedCourseId        Int?
+
+  // Relationships
+  seller         User                   @relation(fields: [sellerId], references: [id])
+  approvedBy     User?                  @relation("ResourceApprover", fields: [approvedById], references: [id])
+  relatedCourse  Course?                @relation("RelatedCourse", fields: [relatedCourseId], references: [id])
+  categories     ResourceCategoryMap[]
+  reviews        ResourceReview[]
+  files          ResourceFile[]
+  comments       ResourceComment[]
+  orders         ResourceOrder[]
+
+  @@map("resources")
+}
+
+model ResourceCategory {
+  id          Int    @id @default(autoincrement())
+  name        String @unique
+  description String?
+
+  // Relationships
+  resources ResourceCategoryMap[]
+
+  @@map("resource_categories")
+}
+
+model ResourceCategoryMap {
+  id         Int @id @default(autoincrement())
+  resourceId Int
+  categoryId Int
+
+  // Relationships
+  resource Resource         @relation(fields: [resourceId], references: [id])
+  category ResourceCategory @relation(fields: [categoryId], references: [id])
+
+  @@unique([resourceId, categoryId])
+  @@map("resource_category_map")
+}
+
+model ResourceReview {
+  id         Int      @id @default(autoincrement())
+  resourceId Int
+  userId     Int
+  rating     Int?     // 1-5 star rating
+  comment    String?
+  createdAt  DateTime @default(now())
+
+  // Relationships
+  resource Resource @relation(fields: [resourceId], references: [id])
+  user     User     @relation(fields: [userId], references: [id])
+
+  @@unique([resourceId, userId])
+  @@map("resource_reviews")
+}
+
+model ResourceFile {
+  id          Int      @id @default(autoincrement())
+  resourceId  Int
+  fileName    String
+  filePath    String
+  fileUrl     String?
+  fileType    String?
+  fileSize    Int?
+  isPreview   Boolean  @default(false)
+  isPrimary   Boolean  @default(false)
+  description String?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  // Relationships
+  resource Resource @relation(fields: [resourceId], references: [id])
+
+  @@map("resource_files")
+}
+
+model ResourceComment {
+  id              Int       @id @default(autoincrement())
+  resourceId      Int
+  userId          Int
+  comment         String
+  parentCommentId Int?      // Self-referential for threading
+  isHidden        Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime?
+
+  // Relationships
+  resource      Resource          @relation(fields: [resourceId], references: [id])
+  user          User              @relation(fields: [userId], references: [id])
+  parentComment ResourceComment?  @relation("CommentHierarchy", fields: [parentCommentId], references: [id])
+  replies       ResourceComment[] @relation("CommentHierarchy")
+
+  @@map("resource_comments")
+}
+
+model ResourceOrder {
+  id               Int      @id @default(autoincrement())
+  userId           Int
+  resourceId       Int
+  sellerId         Int?
+  orderedAt        DateTime @default(now())
+  price            Decimal? @db.Decimal(10, 2)
+  status           String   @default("completed")
+  paymentIntentId  String?
+  stripeSessionId  String?
+  isDownloadable   Boolean  @default(true)
+
+  // Relationships
+  user     User      @relation(fields: [userId], references: [id])
+  resource Resource  @relation(fields: [resourceId], references: [id])
+  seller   User?     @relation("ResourceSeller", fields: [sellerId], references: [id])
+
+  @@map("resource_orders")
+}
+
+// =====================================
+// Booking System
+// =====================================
+
+model BookingProfile {
+  id               Int      @id @default(autoincrement())
+  userId           Int      @unique
+  professionalType String[] // Array of professional categories
+  danceStyles      String[] // Array of dance styles
+  location         String?
+  zipcode          String?
+  bio              String?
+  hourlyRate       Decimal? @db.Decimal(10, 2)
+  availability     Json?    // Weekly availability schedule
+  education        Json[]   // Education history array
+  experience       Json[]   // Work experience array
+  certifications   Json[]   // Certification array
+  profileImageUrl  String?
+  galleryImages    String[]
+  socialLinks      Json?    // Social media links
+  isVerified       Boolean  @default(false)
+  verificationDate DateTime?
+  averageRating    Decimal? @db.Decimal(3, 2)
+  totalReviews     Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime?
+
+  // Relationships
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("booking_profiles")
+}
+
+model BookingRequest {
+  id              Int       @id @default(autoincrement())
+  clientId        Int
+  providerId      Int?
+  serviceCategory String[]
+  danceStyles     String[]
+  location        String?
+  zipcode         String?
+  date            DateTime?
+  startTime       String?
+  endTime         String?
+  duration        Int?     // in minutes
+  budget          Decimal? @db.Decimal(10, 2)
+  notes           String?
+  status          String   @default("pending") // pending, accepted, declined, completed, cancelled
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime?
+
+  // Relationships
+  client       User                 @relation("BookingClient", fields: [clientId], references: [id])
+  provider     User?                @relation("BookingProvider", fields: [providerId], references: [id])
+  appointments BookingAppointment[]
+
+  @@map("booking_requests")
+}
+
+model BookingAppointment {
+  id              Int      @id @default(autoincrement())
+  requestId       Int?
+  clientId        Int
+  providerId      Int
+  date            DateTime
+  startTime       String
+  endTime         String
+  location        String
+  serviceCategory String[]
+  danceStyles     String[]
+  price           Decimal  @db.Decimal(10, 2)
+  status          String   @default("confirmed") // confirmed, cancelled, completed
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime?
+
+  // Relationships
+  request  BookingRequest?  @relation(fields: [requestId], references: [id])
+  client   User             @relation("AppointmentClient", fields: [clientId], references: [id])
+  provider User             @relation("AppointmentProvider", fields: [providerId], references: [id])
+  reviews  BookingReview[]
+
+  @@map("booking_appointments")
+}
+
+model BookingReview {
+  id            Int      @id @default(autoincrement())
+  appointmentId Int?
+  reviewerId    Int
+  revieweeId    Int
+  rating        Int
+  review        String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime?
+
+  // Relationships
+  appointment BookingAppointment? @relation(fields: [appointmentId], references: [id])
+  reviewer    User                @relation("BookingReviewer", fields: [reviewerId], references: [id])
+  reviewee    User                @relation("BookingReviewee", fields: [revieweeId], references: [id])
+
+  @@map("booking_reviews")
+}
+
+// =====================================
+// Subscription Management
+// =====================================
+
+model SubscriptionPlan {
+  id                   Int      @id @default(autoincrement())
+  name                 String   @unique
+  slug                 String   @unique
+  description          String?
+  features             String[]
+  priceMonthly         Decimal  @db.Decimal(10, 2)
+  priceYearly          Decimal  @db.Decimal(10, 2)
+  stripePriceIdMonthly String?
+  stripePriceIdYearly  String?
+  isPopular            Boolean  @default(false)
+  isActive             Boolean  @default(true)
+  isStandalone         Boolean  @default(false)
+  planType             String   @default("main") // main, seller, booking
+  featureDetails       Json?    // Detailed feature descriptions
+
+  // Relationships
+  subscriptions Subscription[]
+
+  @@map("subscription_plans")
+}
+
+model Subscription {
+  id                  Int       @id @default(autoincrement())
+  userId              Int
+  planId              Int
+  stripeSubscriptionId String?
+  status              String    @default("active") // active, canceled, past_due, unpaid
+  currentPeriodStart  DateTime?
+  currentPeriodEnd    DateTime?
+  cancelAtPeriodEnd   Boolean   @default(false)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime?
+  billingCycle        String    @default("monthly") // monthly, yearly
+  priceId             String?   // Stripe price ID
+  quantity            Int       @default(1)
+  lastPaymentError    String?
+  nextPaymentAttempt  DateTime?
+
+  // Relationships
+  user User             @relation(fields: [userId], references: [id])
+  plan SubscriptionPlan @relation(fields: [planId], references: [id])
+
+  @@map("subscriptions")
+}
+
+// =====================================
+// Shopping Cart & Orders
+// =====================================
+
+model CartItem {
+  id       Int      @id @default(autoincrement())
+  userId   Int
+  itemType String   // "course", "resource", or "certification"
+  itemId   Int
+  quantity Int      @default(1)
+  addedAt  DateTime @default(now())
+
+  // Relationships
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, itemType, itemId])
+  @@map("cart_items")
+}
+
+model Order {
+  id              Int       @id @default(autoincrement())
+  userId          Int
+  orderNumber     String    @unique
+  totalAmount     Decimal   @db.Decimal(10, 2)
+  status          String    @default("pending") // pending, completed, cancelled, refunded
+  paymentIntentId String?
+  paymentMethod   String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime?
+
+  // Relationships
+  user  User        @relation(fields: [userId], references: [id])
+  items OrderItem[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id       Int     @id @default(autoincrement())
+  orderId  Int
+  itemType String  // "course", "resource", or "certification"
+  itemId   Int
+  title    String
+  price    Decimal @db.Decimal(10, 2)
+  quantity Int     @default(1)
+
+  // Relationships
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@map("order_items")
+}
+
+// =====================================
+// Additional Features
+// =====================================
+
+model CourseResource {
+  id          Int       @id @default(autoincrement())
+  courseId    Int
+  moduleId    Int?
+  lessonId    Int?
+  title       String
+  description String?
+  resourceType String
+  filePath    String?
+  fileUrl     String?
+  fileType    String?
+  fileSize    Int?
+  createdById Int?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime?
+
+  // Relationships
+  course    Course  @relation(fields: [courseId], references: [id])
+  module    Module? @relation(fields: [moduleId], references: [id])
+  lesson    Lesson? @relation(fields: [lessonId], references: [id])
+  createdBy User?   @relation(fields: [createdById], references: [id])
+
+  @@map("course_resources")
+}
+
+model LessonActivity {
+  id                     Int      @id @default(autoincrement())
+  lessonId               Int
+  title                  String
+  description            String?
+  activityType           String
+  config                 Json?
+  requiredForCompletion  Boolean  @default(false)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime?
+
+  // Relationships
+  lesson      Lesson               @relation(fields: [lessonId], references: [id])
+  completions ActivityCompletion[]
+
+  @@map("lesson_activities")
+}
+
+model ActivityCompletion {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  activityId  Int
+  completedAt DateTime @default(now())
+  result      Json?
+
+  // Relationships
+  user     User           @relation(fields: [userId], references: [id])
+  activity LessonActivity @relation(fields: [activityId], references: [id])
+
+  @@unique([userId, activityId])
+  @@map("activity_completions")
+}
+
+model CourseEvent {
+  id          Int       @id @default(autoincrement())
+  courseId    Int
+  title       String
+  description String?
+  startTime   DateTime
+  endTime     DateTime?
+  allDay      Boolean   @default(false)
+  locationUrl String?
+  createdById Int?
+  createdAt   DateTime  @default(now())
+
+  // Relationships
+  course    Course @relation(fields: [courseId], references: [id])
+  createdBy User?  @relation(fields: [createdById], references: [id])
+
+  @@map("course_events")
+}
+
+model CourseCompletionSetting {
+  id                   Int       @id @default(autoincrement())
+  courseId             Int       @unique
+  requireAllModules    Boolean   @default(true)
+  requireQuizPassing   Boolean   @default(true)
+  minModulesRequired   Int?
+  minLessonsRequired   Int?
+  autoIssuesCertificate Boolean  @default(false)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime?
+
+  // Relationships
+  course Course @relation(fields: [courseId], references: [id])
+
+  @@map("course_completion_settings")
+}
+
+model Event {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  imageUrl    String?
+  location    String?
+  startDate   DateTime
+  endDate     DateTime?
+  createdById Int?
+  isPublic    Boolean  @default(true)
+  capacity    Int?
+  price       Decimal  @default(0) @db.Decimal(10, 2)
+
+  // Relationships
+  createdBy User? @relation(fields: [createdById], references: [id])
+
+  @@map("events")
+}
+
+model File {
+  id               Int      @id @default(autoincrement())
+  filename         String
+  originalFilename String
+  path             String
+  url              String
+  mimeType         String
+  size             Int
+  type             String   // profile, course, resource, etc.
+  entityId         Int?     // ID of the related entity
+  entityType       String?  // users, courses, resources, etc.
+  uploadedById     Int?
+  uploadedAt       DateTime @default(now())
+  isActive         Boolean  @default(true)
+  data             String?  // Base64 encoded file data for in-memory storage
+
+  // Relationships
+  uploadedBy User? @relation(fields: [uploadedById], references: [id])
+
+  @@map("files")
+}
+
+model Testimonial {
+  id                     Int       @id @default(autoincrement())
+  userId                 Int
+  text                   String
+  isVerifiedProfessional Boolean   @default(false)
+  resourceType           String?   // 'course', 'resource', or null for general
+  resourceName           String?
+  resourceId             Int?      // ID of the course or resource if applicable
+  isApproved             Boolean   @default(true)
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime?
+
+  // Relationships
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("testimonials")
+}
