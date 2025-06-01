@@ -1,0 +1,257 @@
+/* PDF Styling for Documentation Export */
+
+/* Base styles */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+body {
+  font-family: 'Inter', sans-serif;
+  line-height: 1.6;
+  color: #1f2937;
+  padding: 2cm;
+  font-size: 11pt;
+}
+
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+  margin-top: 2em;
+  margin-bottom: 0.5em;
+  page-break-after: avoid;
+  color: #111827;
+}
+
+h1 {
+  font-size: 24pt;
+  font-weight: 700;
+  margin-top: 0;
+  padding-bottom: 0.5em;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: center;
+}
+
+h2 {
+  font-size: 18pt;
+  font-weight: 600;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+h3 {
+  font-size: 14pt;
+  font-weight: 600;
+}
+
+h4 {
+  font-size: 12pt;
+  font-weight: 600;
+}
+
+/* Paragraphs */
+p {
+  margin-bottom: 1em;
+  text-align: justify;
+}
+
+/* Lists */
+ul, ol {
+  margin-bottom: 1em;
+  padding-left: 2em;
+}
+
+ul li, ol li {
+  margin-bottom: 0.5em;
+}
+
+/* Links */
+a {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+/* Code */
+code {
+  font-family: monospace;
+  background-color: #f3f4f6;
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+
+pre {
+  background-color: #f3f4f6;
+  padding: 1em;
+  border-radius: 5px;
+  overflow-x: auto;
+  margin-bottom: 1em;
+}
+
+pre code {
+  background-color: transparent;
+  padding: 0;
+}
+
+/* Blockquotes */
+blockquote {
+  border-left: 4px solid #e5e7eb;
+  padding-left: 1em;
+  margin-left: 0;
+  font-style: italic;
+  color: #4b5563;
+}
+
+/* Tables */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-bottom: 1em;
+}
+
+th {
+  background-color: #f3f4f6;
+  font-weight: 600;
+  text-align: left;
+}
+
+th, td {
+  border: 1px solid #e5e7eb;
+  padding: 0.5em 0.75em;
+}
+
+/* Images */
+img {
+  max-width: 100%;
+  height: auto;
+  margin-bottom: 1em;
+}
+
+/* Horizontal rule */
+hr {
+  border: none;
+  height: 1px;
+  background-color: #e5e7eb;
+  margin: 2em 0;
+}
+
+/* Page breaks */
+.page-break {
+  page-break-after: always;
+}
+
+/* Footer with page numbers */
+@page {
+  @bottom-center {
+    content: "Page " counter(page) " of " counter(pages);
+    font-size: 9pt;
+    color: #6b7280;
+  }
+}
+
+/* First page special styling */
+.title-page {
+  text-align: center;
+  margin-top: 40%;
+}
+
+.title-page h1 {
+  font-size: 28pt;
+  border-bottom: none;
+}
+
+.title-page p {
+  font-size: 14pt;
+  text-align: center;
+}
+
+/* Strong emphasis */
+strong {
+  font-weight: 600;
+  color: #111827;
+}
+
+/* DanceRealmX branding */
+.dance-realm-branding {
+  text-align: center;
+  margin-top: 2em;
+  margin-bottom: 2em;
+}
+
+.dance-realm-logo {
+  max-width: 200px;
+}
+
+/* Section for better organization */
+.section {
+  margin-bottom: 2em;
+}
+
+/* Definition list */
+dl {
+  margin-bottom: 1em;
+}
+
+dt {
+  font-weight: 600;
+  margin-top: 1em;
+}
+
+dd {
+  margin-left: 2em;
+  margin-bottom: 0.5em;
+}
+
+/* Notes and warnings */
+.note, .warning, .tip {
+  padding: 1em;
+  margin-bottom: 1em;
+  border-radius: 5px;
+}
+
+.note {
+  background-color: #dbeafe;
+  border-left: 4px solid #3b82f6;
+}
+
+.warning {
+  background-color: #fee2e2;
+  border-left: 4px solid #ef4444;
+}
+
+.tip {
+  background-color: #d1fae5;
+  border-left: 4px solid #10b981;
+}
+
+/* Table of contents */
+.toc {
+  margin-bottom: 2em;
+  page-break-after: always;
+}
+
+.toc h2 {
+  text-align: center;
+}
+
+.toc ul {
+  list-style-type: none;
+  padding-left: 0;
+}
+
+.toc li {
+  margin-bottom: 0.25em;
+}
+
+.toc a {
+  text-decoration: none;
+  color: #1f2937;
+}
+
+.toc .toc-h2 {
+  padding-left: 0;
+}
+
+.toc .toc-h3 {
+  padding-left: 1.5em;
+}
+
+.toc .toc-h4 {
+  padding-left: 3em;
+}
