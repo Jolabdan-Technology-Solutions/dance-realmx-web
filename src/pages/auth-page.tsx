@@ -26,7 +26,7 @@ import { AuthWrapper } from "../lib/auth-wrapper";
 import { FcGoogle } from "react-icons/fc";
 import { Separator } from "../components/ui/separator";
 import { Checkbox } from "../components/ui/checkbox";
-import { USER_ROLES } from "../../../shared/schema";
+import { UserRoles } from "../../../shared/schema";
 
 // Define form schemas
 const loginSchema = z.object({
@@ -155,10 +155,8 @@ function AuthPageWithAuth() {
       const trimmedData = {
         username: data.username.trim(),
         password: data.password.trim(),
-        firstName: data.firstName.trim(),
-        lastName: data.lastName.trim(),
         email: data.email.trim(),
-        selectedRoles: data.selectedRoles, // Pass selected roles to the backend
+        role: "STUDENT", // Default role, adjust as needed
       };
 
       console.log("Register form submission:", {
@@ -422,7 +420,7 @@ function AuthPageWithAuth() {
                                 </FormDescription>
                               </div>
                               <div className="space-y-2">
-                                {Object.entries(USER_ROLES).map(
+                                {Object.entries(UserRoles).map(
                                   ([key, value]) => (
                                     <FormField
                                       key={key}

@@ -1,15 +1,19 @@
 import { createContext, ReactNode, useContext, useEffect } from "react";
+import { useLocation } from "wouter";
 import {
   useQuery,
   useMutation,
   UseMutationResult,
 } from "@tanstack/react-query";
-import { InsertUser, User } from "@shared/schema";
+import { User } from "@/types/user";
 import { getQueryFn, apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 // Define types for our context
-type LoginData = Pick<InsertUser, "username" | "password">;
+type LoginData = {
+  username: string;
+  password: string;
+};
 
 type AuthContextType = {
   user: User | null;
@@ -17,7 +21,7 @@ type AuthContextType = {
   error: Error | null;
   loginMutation: UseMutationResult<User, Error, LoginData>;
   logoutMutation: UseMutationResult<void, Error, void>;
-  registerMutation: UseMutationResult<User, Error, InsertUser>;
+  registerMutation: UseMutationResult<User, Error, Omit<User, 'id' | 'created_at' | 'updated_at'>>;
 };
 
 // Create the context with a default value
@@ -26,6 +30,7 @@ export { AuthContext };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
+  const [, navigate] = useLocation();
   const {
     data: user,
     error,
@@ -64,47 +69,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     mutationFn: async (credentials: LoginData) => {
       console.log("Login attempt with credentials:", credentials);
       
-      // Make a direct fetch request for better control and debugging
-      const response = await fetch('/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(credentials),
-        credentials: 'include'
-      });
+      const response = await apiRequest('POST', '/api/login', credentials);
+      const data = await response.json();
       
-      if (!response.ok) {
-        const errorData = await response.text();
-        let errorMessage = "Login failed";
-        
-        try {
-          // Try to parse as JSON for structured error messages
-          const parsedError = JSON.parse(errorData);
-          errorMessage = parsedError.message || errorMessage;
-          console.error("Login error details:", parsedError);
-        } catch (e) {
-          // If not JSON, use the raw error text
-          errorMessage = errorData || `Login failed: ${response.status} ${response.statusText}`;
-          console.error("Login raw error:", errorData);
-        }
-        
-        throw new Error(errorMessage);
+      // Store the access token in localStorage
+      if (data.access_token) {
+        localStorage.setItem('access_token', data.access_token);
       }
       
-      return await response.json();
+      // Return the user data from the nested response
+      return data.user;
     },
-    onSuccess: (user: User) => {
-      console.log("Login mutation succeeded, setting user data:", user);
+    onSuccess: (data) => {
+      console.log("Login mutation succeeded, setting user data:", data);
       
       // Update user data in the query cache
-      queryClient.setQueryData(["/api/user"], user);
+      queryClient.setQueryData(["/api/user"], data);
       
       toast({
         title: "Login successful",
-        description: `Welcome back, ${user.username}!`,
+        description: `Welcome back, ${data.username}!`,
       });
       
-      // Manually redirect to dashboard after successful login
-      window.location.href = '/dashboard';
+      // Use wouter's navigate function for redirection
+      navigate('/dashboard');
     },
     onError: (error: Error) => {
       console.error("Login mutation error:", error);
@@ -129,7 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   const registerMutation = useMutation({
-    mutationFn: async (credentials: InsertUser) => {
+    mutationFn: async (credentials: Omit<User, 'id' | 'created_at' | 'updated_at'>) => {
       console.log("Registration attempt with credentials:", { ...credentials, password: "[REDACTED]" });
       
       // Use a direct fetch approach for better error handling
@@ -191,6 +179,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await apiRequest("POST", "/api/logout");
     },
     onSuccess: () => {
+      // Clear the access token from localStorage
+      localStorage.removeItem('access_token');
+      
       // Clear all query cache to ensure proper state update
       queryClient.clear();
       

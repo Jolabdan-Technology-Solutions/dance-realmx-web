@@ -249,7 +249,7 @@ export default function HomePage() {
             <div className="z-10 text-center px-4 max-w-5xl">
               <h1 className="text-4xl font-bold mb-2 text-white">
                 Welcome {isInstructor ? "Instructor" : ""}{" "}
-                {user.firstName || user.username}!
+                {user?.first_name || user?.firstName || user?.username}!
               </h1>
 
               <p className="text-xl mb-6 text-white max-w-2xl mx-auto">

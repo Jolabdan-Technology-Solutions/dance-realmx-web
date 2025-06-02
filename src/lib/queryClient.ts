@@ -1,8 +1,6 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
 // Backend server configuration
-const API_BASE_URL = "http://localhost:6000";
-
 async function throwIfResNotOk(res: Response, urlPath?: string) {
   if (!res.ok) {
     // Special handling for resource and course-related endpoints when status is 401
@@ -45,12 +43,8 @@ function getFullApiUrl(endpoint: string): string {
   }
 
   console.log("endpoint", endpoint);
-  // If the endpoint starts with /api, prepend the base URL
-  if (endpoint.startsWith("/api")) {
-    return `${API_BASE_URL}${endpoint}`;
-  }
-  // Otherwise, assume it's a relative path and prepend base URL + /api
-  return `${API_BASE_URL}/api${endpoint.startsWith("/") ? endpoint : "/" + endpoint}`;
+  // Return the endpoint as is, letting Vite handle the proxy
+  return endpoint;
 }
 
 export async function apiRequest(
@@ -63,10 +57,19 @@ export async function apiRequest(
   console.log(`Making ${method} request to ${fullUrl}`, data ? { data } : "");
 
   const isFormData = options?.isFormData || false;
+  
+  // Get the access token from localStorage
+  const accessToken = localStorage.getItem('access_token');
+  
+  // Prepare headers
+  const headers: HeadersInit = {
+    ...(data && !isFormData ? { "Content-Type": "application/json" } : {}),
+    ...(accessToken ? { "Authorization": `Bearer ${accessToken}` } : {})
+  };
 
   const res = await fetch(fullUrl, {
     method,
-    headers: data && !isFormData ? { "Content-Type": "application/json" } : {},
+    headers,
     body: data
       ? isFormData
         ? (data as FormData)

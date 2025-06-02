@@ -7,6 +7,7 @@ import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { User } from "@/types/user";
 import {
   Card,
   CardContent,
@@ -30,16 +31,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { FileUpload } from "@/components/ui/file-upload";
 import { CachedAvatar } from "@/components/ui/cached-avatar";
 import { CachedImage } from "@/components/ui/cached-image";
-import { Loader2, ArrowLeft, Save, User, KeyRound } from "lucide-react";
+import { Loader2, ArrowLeft, Save, User as UserIcon, KeyRound } from "lucide-react";
 import { AuthWrapper } from "@/lib/auth-wrapper";
 
 // Form validation schemas
 const userProfileSchema = z.object({
-  firstName: z.string().optional().nullable(),
-  lastName: z.string().optional().nullable(),
+  first_name: z.string().optional().nullable(),
+  last_name: z.string().optional().nullable(),
   email: z.string().email().optional().nullable(),
   bio: z.string().optional().nullable(),
-  profileImageUrl: z.string().optional().nullable(),
+  profile_image_url: z.string().optional().nullable(),
 });
 
 const userPasswordSchema = z.object({
@@ -60,11 +61,11 @@ function ProfileEditContent() {
   const profileForm = useForm<z.infer<typeof userProfileSchema>>({
     resolver: zodResolver(userProfileSchema),
     defaultValues: {
-      firstName: "",
-      lastName: "",
+      first_name: "",
+      last_name: "",
       email: "",
       bio: "",
-      profileImageUrl: "",
+      profile_image_url: "",
     }
   });
 
@@ -81,11 +82,11 @@ function ProfileEditContent() {
   useEffect(() => {
     if (user) {
       profileForm.reset({
-        firstName: user.firstName,
-        lastName: user.lastName,
+        first_name: user.first_name,
+        last_name: user.last_name,
         email: user.email,
         bio: user.bio,
-        profileImageUrl: user.profileImageUrl,
+        profile_image_url: user.profile_image_url,
       });
       setIsLoading(false);
     }
@@ -102,7 +103,7 @@ function ProfileEditContent() {
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       
       // Also update the form with the new image URL
-      profileForm.setValue("profileImageUrl", customEvent.detail.url);
+      profileForm.setValue("profile_image_url", customEvent.detail.url);
     };
     
     // Add event listener
@@ -186,25 +187,25 @@ function ProfileEditContent() {
     // Ensure we're correctly handling the profile image URL
     const formData = {
       ...data,
-      // Make sure we're passing the profileImageUrl exactly as it was set by the FileUpload component
-      profileImageUrl: data.profileImageUrl || null
+      // Make sure we're passing the profile_image_url exactly as it was set by the FileUpload component
+      profile_image_url: data.profile_image_url || null
     };
     
-    console.log("Final formData with profileImageUrl:", formData.profileImageUrl);
+    console.log("Final formData with profile_image_url:", formData.profile_image_url);
     
     updateProfileMutation.mutate(formData, {
       onSuccess: (updatedUser) => {
         console.log("Profile updated successfully, user data:", updatedUser);
         
         // Add timestamp to image URL to force refresh in UI
-        if (updatedUser.profileImageUrl) {
+        if (updatedUser.profile_image_url) {
           // Update the user in cache with timestamped image URL for immediate UI refresh
           // First, clean any existing timestamp parameter
-          const baseUrl = updatedUser.profileImageUrl.split('?')[0];
+          const baseUrl = updatedUser.profile_image_url.split('?')[0];
           const userWithTimestampedImage = {
             ...updatedUser,
             // Apply cleaned URL with new timestamp for proper cache busting
-            profileImageUrl: `${baseUrl}?t=${Date.now()}`
+            profile_image_url: `${baseUrl}?t=${Date.now()}`
           };
           queryClient.setQueryData(["/api/user"], userWithTimestampedImage);
           
@@ -264,7 +265,7 @@ function ProfileEditContent() {
         <Tabs defaultValue="profile" className="w-full">
           <TabsList className="mb-4">
             <TabsTrigger value="profile">
-              <User className="h-4 w-4 mr-2" />
+              <UserIcon className="h-4 w-4 mr-2" />
               Profile
             </TabsTrigger>
             <TabsTrigger value="security">
@@ -287,7 +288,7 @@ function ProfileEditContent() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <FormField
                         control={profileForm.control}
-                        name="firstName"
+                        name="first_name"
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>First Name</FormLabel>
@@ -301,7 +302,7 @@ function ProfileEditContent() {
                       
                       <FormField
                         control={profileForm.control}
-                        name="lastName"
+                        name="last_name"
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Last Name</FormLabel>
@@ -352,7 +353,7 @@ function ProfileEditContent() {
                     
                     <FormField
                       control={profileForm.control}
-                      name="profileImageUrl"
+                      name="profile_image_url"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Profile Image</FormLabel>
@@ -374,9 +375,9 @@ function ProfileEditContent() {
                                   <div className="w-24 h-24">
                                     <CachedAvatar
                                       src={field.value}
-                                      alt={`${user?.firstName || user?.username || "User"}'s Profile`}
+                                      alt={`${user?.first_name || user?.username || "User"}'s Profile`}
                                       className="w-full h-full border-2 border-primary/30"
-                                      fallbackText={user?.firstName?.[0] || user?.username?.[0] || "U"}
+                                      fallbackText={user?.first_name?.[0] || user?.username?.[0] || "U"}
                                       forceCacheBusting={true}
                                     />
                                   </div>

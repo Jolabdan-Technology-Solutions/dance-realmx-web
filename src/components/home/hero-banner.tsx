@@ -31,7 +31,7 @@ export default function HeroBanner() {
         {/* Personalized greeting for logged in users */}
         {isLoggedIn ? (
           <h1 className="text-4xl font-bold mb-2 text-white">
-            Welcome {isInstructor ? "Instructor" : ""} {user.first_name || user.username}!
+            Welcome {isInstructor ? "Instructor" : ""} {user.first_name || user.firstName || user.username}!
           </h1>
         ) : (
           <h1 className="text-4xl font-bold mb-2 text-white">Discover the Realm of Possibilities</h1>
