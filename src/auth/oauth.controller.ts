@@ -1,15 +1,26 @@
-import { Controller, Get, UseGuards, Req, Res } from '@nestjs/common';
+import { Controller, Get, UseGuards, Req, Res, Post, Body } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Response } from 'express';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { AuthService, LoginResponse } from './auth.service';
 
 @Controller('auth')
 export class OAuthController {
   constructor(
     private jwtService: JwtService,
     private configService: ConfigService,
+    private authService: AuthService,
   ) {}
+
+  @Post('login')
+  async login(@Body() body: { email: string; password: string }): Promise<LoginResponse> {
+    const user = await this.authService.validateUser(body.email, body.password);
+    if (!user) {
+      throw new Error('Invalid credentials');
+    }
+    return this.authService.login(user);
+  }
 
   @Get('google')
   @UseGuards(AuthGuard('google'))

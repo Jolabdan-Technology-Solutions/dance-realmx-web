@@ -13,13 +13,14 @@ import { PrismaService } from '../prisma/prisma.service';
 import { MailModule } from '../mail/mail.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PermissionsModule } from '../permissions/permissions.module';
+import { JwtStrategy } from './strategies/jwt.strategy';
 
 @Module({
   imports: [
-    PassportModule,
+    PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
+      useFactory: (configService: ConfigService) => ({
         secret: configService.get<string>('JWT_SECRET'),
         signOptions: {
           expiresIn: configService.get<string>('JWT_EXPIRES_IN', '1d'),
@@ -41,6 +42,7 @@ import { PermissionsModule } from '../permissions/permissions.module';
     BookingsService,
     SubscriptionsService,
     PrismaService,
+    JwtStrategy,
   ],
   exports: [
     JwtAuthGuard,

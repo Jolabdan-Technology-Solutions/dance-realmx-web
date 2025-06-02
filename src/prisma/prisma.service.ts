@@ -9,18 +9,28 @@ export class PrismaService
   constructor() {
     super({
       log: ['query', 'info', 'warn', 'error'],
+      datasources: {
+        db: {
+          url: process.env.DATABASE_URL,
+        },
+      },
     });
   }
 
   async onModuleInit() {
-    await this.$connect();
+    try {
+      await this.$connect();
+    } catch (error) {
+      console.error('Failed to connect to database:', error);
+      throw error;
+    }
   }
 
   async onModuleDestroy() {
     await this.$disconnect();
   }
 
-  // Expose models
+  // Expose models with proper typing
   get category() {
     return this.category;
   }
