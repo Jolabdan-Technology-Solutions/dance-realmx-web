@@ -26,7 +26,7 @@ import { AuthWrapper } from "../lib/auth-wrapper";
 import { FcGoogle } from "react-icons/fc";
 import { Separator } from "../components/ui/separator";
 import { Checkbox } from "../components/ui/checkbox";
-import { UserRoles } from "../../../shared/schema";
+import { UserRoles } from "@shared/schema";
 
 // Define form schemas
 const loginSchema = z.object({
@@ -440,14 +440,14 @@ function AuthPageWithAuth() {
                                                 onCheckedChange={(checked) => {
                                                   return checked
                                                     ? field.onChange([
-                                                        ...field.value,
-                                                        value,
-                                                      ])
+                                                      ...field.value,
+                                                      value,
+                                                    ])
                                                     : field.onChange(
-                                                        field.value?.filter(
-                                                          (val) => val !== value
-                                                        )
-                                                      );
+                                                      field.value?.filter(
+                                                        (val) => val !== value
+                                                      )
+                                                    );
                                                 }}
                                               />
                                             </FormControl>
