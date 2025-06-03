@@ -9,9 +9,12 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
       '@shared': path.resolve(__dirname, '../shared'),
+      '@shared/schema': '/src/shared/schema',
+      '#shared/schema': '/src/shared/schema',
     },
   },
   server: {
+    allowedHosts: ["livetestdomain.com"],
     proxy: {
       '/api/register': {
         target: 'http://localhost:3000',
@@ -26,4 +29,4 @@ export default defineConfig({
       // Add more proxies as needed
     },
   },
-}); 
+});

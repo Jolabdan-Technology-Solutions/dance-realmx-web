@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link, useLocation, useParams } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Search, Filter, FileText, BarChart, FilePlus, 
@@ -25,7 +25,6 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CachedAvatar } from "@/components/ui/cached-avatar";
 import { CachedImage } from "@/components/ui/cached-image";
 import { Badge } from "@/components/ui/badge";
@@ -39,14 +38,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 import {
   Dialog,
   DialogContent,
@@ -63,26 +54,26 @@ interface Resource {
   id: number;
   title: string;
   description: string;
-  imageUrl?: string;
+  image_url?: string;
   price: string;
-  danceStyle?: string;
-  ageRange?: string;
-  difficultyLevel?: string;
-  downloadCount: number;
-  saleCount: number;
-  createdAt: string;
-  isFeatured?: boolean;
+  dance_style?: string;
+  age_range?: string;
+  difficulty_level?: string;
+  download_count: number;
+  sale_count: number;
+  created_at: string;
+  is_featured?: boolean;
 }
 
 // User type definition (simplified from schema.ts)
 interface User {
   id: number;
   username: string;
-  firstName: string;
-  lastName: string;
+  first_name: string;
+  last_name: string;
   email: string;
   bio?: string;
-  profileImageUrl?: string;
+  profile_image_url?: string;
   role: string;
 }
 
@@ -151,19 +142,16 @@ export default function SellerStorePage() {
   );
   
   // Get featured resources
-  const featuredResources = resources.filter(resource => resource.isFeatured);
+  const featuredResources = resources.filter(resource => resource.is_featured);
   
   // Get recent uploads (last 3)
   const recentUploads = [...resources]
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 3);
   
   // Calculate total sales and downloads
-  const totalSales = resources.reduce((sum, resource) => sum + resource.saleCount, 0);
-  const totalDownloads = resources.reduce((sum, resource) => sum + resource.downloadCount, 0);
-  
-  // Analytics data by month for chart
-  const [analyticsData, setAnalyticsData] = useState<any[]>([]);
+  const totalSales = resources.reduce((sum, resource) => sum + resource.sale_count, 0);
+  const totalDownloads = resources.reduce((sum, resource) => sum + resource.download_count, 0);
   
   // Toggle Featured Resource mutation
   const toggleFeatureMutation = useMutation({
@@ -196,25 +184,6 @@ export default function SellerStorePage() {
     }
   });
   
-  useEffect(() => {
-    // Process resources to create monthly analytics data
-    if (resources.length > 0) {
-      const last6Months = new Array(6).fill(0).map((_, i) => {
-        const date = new Date();
-        date.setMonth(date.getMonth() - i);
-        return {
-          month: date.toLocaleString('default', { month: 'short' }),
-          year: date.getFullYear(),
-          sales: 0,
-          downloads: 0
-        };
-      }).reverse();
-      
-      // This is simplified - in a real app, you'd need server-side data for accurate analytics
-      setAnalyticsData(last6Months);
-    }
-  }, [resources]);
-  
   const isLoading = isLoadingSeller || isLoadingResources || toggleFeatureMutation.isPending;
 
   if (isLoading) {
@@ -244,14 +213,14 @@ export default function SellerStorePage() {
         <div className="flex flex-col md:flex-row items-center justify-between">
           <div className="flex flex-col md:flex-row items-center mb-4 md:mb-0">
             <CachedAvatar
-              src={seller.profileImageUrl || DEFAULT_SELLER_IMAGE}
-              alt={`${seller.firstName} ${seller.lastName}`}
+              src={seller.profile_image_url || DEFAULT_SELLER_IMAGE}
+              alt={`${seller.first_name} ${seller.last_name}`}
               className="h-24 w-24 border-4 border-white mb-4 md:mb-0 md:mr-6"
               fallbackClassName="text-4xl"
-              fallbackText={`${seller.firstName?.[0]}${seller.lastName?.[0]}`}
+              fallbackText={`${seller.first_name?.[0]}${seller.last_name?.[0]}`}
             />
             <div className="text-center md:text-left text-white">
-              <h1 className="text-3xl font-bold mb-1">{seller.firstName} {seller.lastName}</h1>
+              <h1 className="text-3xl font-bold mb-1">{seller.first_name} {seller.last_name}</h1>
               <div className="flex flex-col md:flex-row md:items-center space-y-1 md:space-y-0 md:space-x-4">
                 <div className="flex items-center justify-center md:justify-start">
                   <Badge variant="secondary" className="bg-white/20 text-white border-0">Verified Seller</Badge>
@@ -369,9 +338,9 @@ export default function SellerStorePage() {
                   {featuredResources.slice(0, 3).map(resource => (
                     <div key={resource.id} className="flex space-x-3">
                       <div className="h-16 w-16 flex-shrink-0 rounded-md overflow-hidden bg-gray-100">
-                        {resource.imageUrl ? (
+                        {resource.image_url ? (
                           <CachedImage 
-                            src={resource.imageUrl || DEFAULT_RESOURCE_IMAGE} 
+                            src={resource.image_url || DEFAULT_RESOURCE_IMAGE} 
                             alt={resource.title} 
                             className="h-full w-full"
                             fallback={
@@ -406,7 +375,7 @@ export default function SellerStorePage() {
                 <div>
                   <CardTitle>Curriculum Resources</CardTitle>
                   <CardDescription>
-                    Browse {isOwnStore ? "your" : `${seller.firstName}'s`} dance curriculum resources
+                    Browse {isOwnStore ? "your" : `${seller.first_name}'s`} dance curriculum resources
                   </CardDescription>
                 </div>
                 {isOwnStore && (
@@ -459,7 +428,7 @@ export default function SellerStorePage() {
                       <p className="text-gray-500 mb-4">
                         {isOwnStore 
                           ? "You haven't uploaded any curriculum resources yet." 
-                          : `${seller.firstName} hasn't uploaded any curriculum resources yet.`}
+                          : `${seller.first_name} hasn't uploaded any curriculum resources yet.`}
                       </p>
                       {isOwnStore && (
                         <Button onClick={() => navigate("/upload-resource")} className="bg-purple-600 hover:bg-purple-700">
@@ -581,7 +550,7 @@ export default function SellerStorePage() {
                               <Card key={`featured-${resource.id}`} className="overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200">
                                 <div className="h-44 bg-gray-100 relative">
                                   <CachedImage 
-                                    src={resource.imageUrl} 
+                                    src={resource.image_url} 
                                     alt={resource.title}
                                     className="w-full h-full"
                                     imgClassName="object-cover transition-transform hover:scale-105"
@@ -595,9 +564,9 @@ export default function SellerStorePage() {
                                     <Award className="h-3 w-3 mr-1 fill-white" />
                                     Featured
                                   </Badge>
-                                  {resource.danceStyle && (
+                                  {resource.dance_style && (
                                     <Badge variant="outline" className="absolute top-2 left-2 bg-white/80 backdrop-blur-sm text-blue-700 border-blue-200">
-                                      {resource.danceStyle}
+                                      {resource.dance_style}
                                     </Badge>
                                   )}
                                 </div>
@@ -609,7 +578,7 @@ export default function SellerStorePage() {
                                     <p className="text-blue-600 text-xl font-bold">${parseFloat(resource.price).toFixed(2)}</p>
                                     <div className="flex items-center text-sm text-gray-500">
                                       <ShoppingBag className="h-3.5 w-3.5 mr-1 text-gray-400" /> 
-                                      <span>{resource.saleCount}</span>
+                                      <span>{resource.sale_count}</span>
                                     </div>
                                   </div>
                                   <div className="mt-2">
@@ -647,7 +616,7 @@ export default function SellerStorePage() {
                               <Card key={resource.id} className="h-full overflow-hidden flex flex-col shadow-sm hover:shadow-md transition-shadow duration-200">
                                 <div className="relative h-44 overflow-hidden bg-gray-100">
                                   <CachedImage 
-                                    src={resource.imageUrl} 
+                                    src={resource.image_url} 
                                     alt={resource.title}
                                     className="w-full h-full"
                                     imgClassName="object-cover transition-transform hover:scale-105"
@@ -657,15 +626,15 @@ export default function SellerStorePage() {
                                       </div>
                                     }
                                   />
-                                  {resource.isFeatured && (
+                                  {resource.is_featured && (
                                     <Badge className="absolute top-2 right-2 bg-yellow-400 text-white border-0">
                                       <Award className="h-3 w-3 mr-1 fill-white" />
                                       Featured
                                     </Badge>
                                   )}
-                                  {resource.danceStyle && (
+                                  {resource.dance_style && (
                                     <Badge variant="outline" className="absolute top-2 left-2 bg-white/80 backdrop-blur-sm text-blue-700 border-blue-200">
-                                      {resource.danceStyle}
+                                      {resource.dance_style}
                                     </Badge>
                                   )}
                                 </div>
@@ -677,21 +646,21 @@ export default function SellerStorePage() {
                                     <p className="text-blue-600 text-xl font-bold">${parseFloat(resource.price).toFixed(2)}</p>
                                     <div className="ml-auto flex items-center text-sm text-gray-500">
                                       <ShoppingBag className="h-3.5 w-3.5 mr-1 text-gray-400" /> 
-                                      <span>{resource.saleCount}</span>
+                                      <span>{resource.sale_count}</span>
                                     </div>
                                   </div>
                                   <p className="text-gray-600 text-sm line-clamp-2 mb-3">
                                     {resource.description}
                                   </p>
                                   <div className="flex flex-wrap gap-1.5">
-                                    {resource.ageRange && (
+                                    {resource.age_range && (
                                       <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
-                                        {resource.ageRange}
+                                        {resource.age_range}
                                       </Badge>
                                     )}
-                                    {resource.difficultyLevel && (
+                                    {resource.difficulty_level && (
                                       <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
-                                        {resource.difficultyLevel}
+                                        {resource.difficulty_level}
                                       </Badge>
                                     )}
                                   </div>
@@ -700,7 +669,7 @@ export default function SellerStorePage() {
                                   <div className="flex justify-between items-center w-full">
                                     <div className="flex items-center text-sm text-gray-500">
                                       <Clock className="h-3.5 w-3.5 mr-1 text-gray-400" /> 
-                                      <span>{new Date(resource.createdAt).toLocaleDateString()}</span>
+                                      <span>{new Date(resource.created_at).toLocaleDateString()}</span>
                                     </div>
                                     
                                     <div className="flex gap-2">
@@ -727,7 +696,7 @@ export default function SellerStorePage() {
                                                   </p>
                                                 </div>
                                                 <Switch 
-                                                  checked={resource.isFeatured} 
+                                                  checked={resource.is_featured} 
                                                   onCheckedChange={(checked) => {
                                                     toggleFeatureMutation.mutate({
                                                       resourceId: resource.id,
@@ -753,7 +722,7 @@ export default function SellerStorePage() {
                                           </DialogContent>
                                         </Dialog>
                                       )}
-                                      {(isOwnStore || user?.role === 'curriculum_officer' || user?.role === 'admin') && (
+                                      {(isOwnStore) && (
                                         <Button size="sm" variant="outline" asChild>
                                           <Link href={`/curriculum/${resource.id}/edit`}>
                                             <Edit className="h-4 w-4 mr-1" /> Edit
@@ -853,7 +822,7 @@ export default function SellerStorePage() {
                                     <span className="text-sm">Featured Downloads</span>
                                   </div>
                                   <span className="font-medium">
-                                    {featuredResources.reduce((sum, r) => sum + r.downloadCount, 0)}
+                                    {featuredResources.reduce((sum, r) => sum + r.download_count, 0)}
                                   </span>
                                 </div>
                                 <div className="flex items-center justify-between">
@@ -862,7 +831,7 @@ export default function SellerStorePage() {
                                     <span className="text-sm">Featured Sales</span>
                                   </div>
                                   <span className="font-medium">
-                                    {featuredResources.reduce((sum, r) => sum + r.saleCount, 0)}
+                                    {featuredResources.reduce((sum, r) => sum + r.sale_count, 0)}
                                   </span>
                                 </div>
                               </div>
@@ -877,7 +846,7 @@ export default function SellerStorePage() {
                                   <div 
                                     className="w-10 bg-primary rounded-t"
                                     style={{ 
-                                      height: `${Math.min(100, (featuredResources.reduce((sum, r) => sum + r.saleCount, 0) / Math.max(1, totalSales)) * 100)}%` 
+                                      height: `${Math.min(100, (featuredResources.reduce((sum, r) => sum + r.sale_count, 0) / Math.max(1, totalSales)) * 100)}%` 
                                     }}
                                   ></div>
                                   <p className="text-xs mt-1">Featured</p>
@@ -888,7 +857,7 @@ export default function SellerStorePage() {
                                   <div 
                                     className="w-10 bg-gray-300 rounded-t"
                                     style={{ 
-                                      height: `${Math.min(100, ((totalSales - featuredResources.reduce((sum, r) => sum + r.saleCount, 0)) / Math.max(1, totalSales)) * 100)}%` 
+                                      height: `${Math.min(100, ((totalSales - featuredResources.reduce((sum, r) => sum + r.sale_count, 0)) / Math.max(1, totalSales)) * 100)}%` 
                                     }}
                                   ></div>
                                   <p className="text-xs mt-1">Regular</p>
@@ -914,7 +883,7 @@ export default function SellerStorePage() {
                               <h4 className="text-sm font-medium text-gray-500 mb-3">By Downloads</h4>
                               <div className="space-y-4">
                                 {[...resources]
-                                  .sort((a, b) => b.downloadCount - a.downloadCount)
+                                  .sort((a, b) => b.download_count - a.download_count)
                                   .slice(0, 3)
                                   .map((resource, index) => (
                                     <div key={`download-${resource.id}`} className="flex items-center">
@@ -925,7 +894,7 @@ export default function SellerStorePage() {
                                         <p className="text-sm font-medium line-clamp-1">{resource.title}</p>
                                         <div className="flex items-center gap-2">
                                           <Download className="h-3 w-3 text-gray-400" />
-                                          <span className="text-xs text-gray-500">{resource.downloadCount} downloads</span>
+                                          <span className="text-xs text-gray-500">{resource.download_count} downloads</span>
                                         </div>
                                       </div>
                                     </div>
@@ -938,7 +907,7 @@ export default function SellerStorePage() {
                               <h4 className="text-sm font-medium text-gray-500 mb-3">By Sales</h4>
                               <div className="space-y-4">
                                 {[...resources]
-                                  .sort((a, b) => b.saleCount - a.saleCount)
+                                  .sort((a, b) => b.sale_count - a.sale_count)
                                   .slice(0, 3)
                                   .map((resource, index) => (
                                     <div key={`sale-${resource.id}`} className="flex items-center">
@@ -949,7 +918,7 @@ export default function SellerStorePage() {
                                         <p className="text-sm font-medium line-clamp-1">{resource.title}</p>
                                         <div className="flex items-center gap-2">
                                           <CircleDollarSign className="h-3 w-3 text-gray-400" />
-                                          <span className="text-xs text-gray-500">{resource.saleCount} sales</span>
+                                          <span className="text-xs text-gray-500">{resource.sale_count} sales</span>
                                         </div>
                                       </div>
                                     </div>
@@ -970,9 +939,9 @@ export default function SellerStorePage() {
                                 <CardContent className="p-4">
                                   <div className="flex items-center space-x-3">
                                     <div className="h-12 w-12 bg-gray-100 rounded-md flex items-center justify-center">
-                                      {resource.imageUrl ? (
+                                      {resource.image_url ? (
                                         <img 
-                                          src={resource.imageUrl} 
+                                          src={resource.image_url} 
                                           alt={resource.title} 
                                           className="h-full w-full object-cover rounded-md"
                                         />
@@ -982,7 +951,7 @@ export default function SellerStorePage() {
                                     </div>
                                     <div className="flex-1 min-w-0">
                                       <p className="font-medium text-sm line-clamp-1">{resource.title}</p>
-                                      <p className="text-xs text-gray-500">{formatDate(resource.createdAt)}</p>
+                                      <p className="text-xs text-gray-500">{formatDate(resource.created_at)}</p>
                                     </div>
                                   </div>
                                 </CardContent>
@@ -1010,7 +979,7 @@ export default function SellerStorePage() {
                               <div className="space-y-2">
                                 {Object.entries(
                                   resources.reduce((acc, resource) => {
-                                    const style = resource.danceStyle || "Unspecified";
+                                    const style = resource.dance_style || "Unspecified";
                                     acc[style] = (acc[style] || 0) + 1;
                                     return acc;
                                   }, {} as Record<string, number>)
@@ -1031,7 +1000,7 @@ export default function SellerStorePage() {
                               <div className="space-y-2">
                                 {Object.entries(
                                   resources.reduce((acc, resource) => {
-                                    const range = resource.ageRange || "Unspecified";
+                                    const range = resource.age_range || "Unspecified";
                                     acc[range] = (acc[range] || 0) + 1;
                                     return acc;
                                   }, {} as Record<string, number>)
@@ -1052,7 +1021,7 @@ export default function SellerStorePage() {
                               <div className="space-y-2">
                                 {Object.entries(
                                   resources.reduce((acc, resource) => {
-                                    const level = resource.difficultyLevel || "Unspecified";
+                                    const level = resource.difficulty_level || "Unspecified";
                                     acc[level] = (acc[level] || 0) + 1;
                                     return acc;
                                   }, {} as Record<string, number>)

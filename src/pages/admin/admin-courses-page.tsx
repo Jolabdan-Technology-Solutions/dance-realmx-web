@@ -10,9 +10,6 @@ import {
   Trash2, 
   Eye, 
   EyeOff,
-  User,
-  Calendar,
-  Tag
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -31,7 +28,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -49,7 +45,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Pagination,
@@ -64,25 +59,25 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 interface Course {
   id: number;
   title: string;
-  shortName: string;
+  short_name: string;
   description: string | null;
-  instructorId: number | null;
-  categoryId: number | null;
+  instructor_id: number | null;
+  category_id: number | null;
   price: string | null;
   level: string | null;
-  imageUrl: string | null;
-  createdAt: Date | null;
-  updatedAt: Date | null;
+  image_url: string | null;
+  created_at: string | null;
+  updated_at: string | null;
   visible: boolean | null;
-  enrollmentCount?: number;
+  enrollment_count?: number;
 }
 
 interface Instructor {
   id: number;
   username: string;
-  firstName: string | null;
-  lastName: string | null;
-  profileImageUrl: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  profile_image_url: string | null;
 }
 
 interface Category {
@@ -177,15 +172,13 @@ export default function AdminCoursesPage() {
   const filteredCourses = courses.filter(course => {
     const matchesSearch = searchQuery === "" || 
       course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (course.shortName && course.shortName.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (course.short_name && course.short_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (course.description && course.description.toLowerCase().includes(searchQuery.toLowerCase()));
-    
-    const matchesCategory = categoryFilter === null || course.categoryId?.toString() === categoryFilter;
-    const matchesInstructor = instructorFilter === null || course.instructorId?.toString() === instructorFilter;
+    const matchesCategory = categoryFilter === null || course.category_id?.toString() === categoryFilter;
+    const matchesInstructor = instructorFilter === null || course.instructor_id?.toString() === instructorFilter;
     const matchesVisibility = visibilityFilter === null || 
       (visibilityFilter === "visible" && course.visible === true) ||
       (visibilityFilter === "hidden" && (course.visible === false || course.visible === null));
-    
     return matchesSearch && matchesCategory && matchesInstructor && matchesVisibility;
   });
   
@@ -216,27 +209,26 @@ export default function AdminCoursesPage() {
   };
   
   // Format date
-  const formatDate = (date: Date | null) => {
+  const formatDate = (date: string | null) => {
     if (!date) return "—";
     return new Date(date).toLocaleDateString();
   };
   
   // Get instructor name
-  const getInstructorName = (instructorId: number | null) => {
-    if (!instructorId) return "—";
-    const instructor = instructors.find(i => i.id === instructorId);
-    if (!instructor) return `ID: ${instructorId}`;
-    
-    return instructor.firstName && instructor.lastName 
-      ? `${instructor.firstName} ${instructor.lastName}`
+  const getInstructorName = (instructor_id: number | null) => {
+    if (!instructor_id) return "—";
+    const instructor = instructors.find(i => i.id === instructor_id);
+    if (!instructor) return `ID: ${instructor_id}`;
+    return instructor.first_name && instructor.last_name 
+      ? `${instructor.first_name} ${instructor.last_name}`
       : instructor.username;
   };
   
   // Get category name
-  const getCategoryName = (categoryId: number | null) => {
-    if (!categoryId) return "—";
-    const category = categories.find(c => c.id === categoryId);
-    return category ? category.name : `ID: ${categoryId}`;
+  const getCategoryName = (category_id: number | null) => {
+    if (!category_id) return "—";
+    const category = categories.find(c => c.id === category_id);
+    return category ? category.name : `ID: ${category_id}`;
   };
   
   return (
@@ -311,8 +303,8 @@ export default function AdminCoursesPage() {
                   <SelectItem value="all">All Instructors</SelectItem>
                   {instructors.map((instructor) => (
                     <SelectItem key={instructor.id} value={instructor.id.toString()}>
-                      {instructor.firstName && instructor.lastName 
-                        ? `${instructor.firstName} ${instructor.lastName}`
+                      {instructor.first_name && instructor.last_name 
+                        ? `${instructor.first_name} ${instructor.last_name}`
                         : instructor.username}
                     </SelectItem>
                   ))}
@@ -367,9 +359,9 @@ export default function AdminCoursesPage() {
                             <TableCell>
                               <div className="flex items-center space-x-3">
                                 <div className="w-10 h-10 rounded overflow-hidden bg-gray-700 flex-shrink-0">
-                                  {course.imageUrl ? (
+                                  {course.image_url ? (
                                     <img 
-                                      src={course.imageUrl} 
+                                      src={course.image_url} 
                                       alt={course.title} 
                                       className="w-full h-full object-cover"
                                     />
@@ -386,59 +378,31 @@ export default function AdminCoursesPage() {
                               </div>
                             </TableCell>
                             <TableCell>
-                              {course.instructorId ? (
+                              {course.instructor_id ? (
                                 <div className="flex items-center space-x-2">
                                   <Avatar className="h-6 w-6">
                                     <AvatarImage 
-                                      src={instructors.find(i => i.id === course.instructorId)?.profileImageUrl || undefined} 
-                                      alt={getInstructorName(course.instructorId)} 
+                                      src={instructors.find(i => i.id === course.instructor_id)?.profile_image_url || undefined} 
+                                      alt={getInstructorName(course.instructor_id)} 
                                     />
                                     <AvatarFallback className="text-xs">
-                                      {getInstructorName(course.instructorId).substring(0, 2)}
+                                      {getInstructorName(course.instructor_id).substring(0, 2)}
                                     </AvatarFallback>
                                   </Avatar>
-                                  <span>{getInstructorName(course.instructorId)}</span>
+                                  <span>{getInstructorName(course.instructor_id)}</span>
                                 </div>
                               ) : (
                                 "—"
                               )}
                             </TableCell>
+                            <TableCell>{getCategoryName(course.category_id)}</TableCell>
+                            <TableCell>{formatDate(course.created_at)}</TableCell>
+                            <TableCell>{course.price ? `$${course.price}` : "—"}</TableCell>
                             <TableCell>
-                              {course.categoryId ? (
-                                <Badge variant="outline">
-                                  <Tag className="w-3 h-3 mr-1" />
-                                  {getCategoryName(course.categoryId)}
-                                </Badge>
+                              {course.visible === true ? (
+                                <Badge variant="default">Visible</Badge>
                               ) : (
-                                "—"
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center space-x-1">
-                                <Calendar className="w-3 h-3" />
-                                <span>{formatDate(course.createdAt)}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              {course.price ? (
-                                <Badge className="bg-green-700 hover:bg-green-800">
-                                  ${course.price}
-                                </Badge>
-                              ) : (
-                                <Badge variant="outline">Free</Badge>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              {course.visible ? (
-                                <Badge className="bg-blue-600 hover:bg-blue-700">
-                                  <Eye className="w-3 h-3 mr-1" />
-                                  Visible
-                                </Badge>
-                              ) : (
-                                <Badge variant="secondary">
-                                  <EyeOff className="w-3 h-3 mr-1" />
-                                  Hidden
-                                </Badge>
+                                <Badge variant="secondary">Hidden</Badge>
                               )}
                             </TableCell>
                             <TableCell className="text-right">
