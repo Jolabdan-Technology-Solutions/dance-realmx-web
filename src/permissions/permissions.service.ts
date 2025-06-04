@@ -108,6 +108,8 @@ export class PermissionsService {
         'view_history',
       ],
       [UserRole.GUEST_USER]: ['view_public_courses', 'view_instructors'],
+      [UserRole.DIRECTORY_MEMBER]: ['view_directory', 'manage_directory'],
+      [UserRole.CERTIFICATION_MANAGER]: ['manage_certifications', 'issue_certificates'],
     };
 
     const permissions = rolePermissions[role] || [];

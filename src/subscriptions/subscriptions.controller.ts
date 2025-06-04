@@ -24,21 +24,28 @@ interface RequestWithUser extends Request {
 }
 
 @Controller('subscriptions')
-@UseGuards(JwtAuthGuard)
 export class SubscriptionsController {
   constructor(private readonly subscriptionsService: SubscriptionsService) {}
 
+  @Get('plans')
+  findAllPlans() {
+    return this.subscriptionsService.findAllPlans();
+  }
+
   @Get()
+  @UseGuards(JwtAuthGuard)
   findAll() {
     return this.subscriptionsService.findAll();
   }
 
   @Get('user')
+  @UseGuards(JwtAuthGuard)
   findByUser(@Req() req: RequestWithUser) {
     return this.subscriptionsService.findByUserId(req.user.id);
   }
 
   @Get(':id')
+  @UseGuards(JwtAuthGuard)
   findOne(@Param('id') id: string) {
     return this.subscriptionsService.findOne(+id);
   }
@@ -47,21 +54,16 @@ export class SubscriptionsController {
   create(
     @Body()
     createSubscriptionDto: {
-      tier: SubscriptionTier;
-      stripe_subscription_id: string;
-      current_period_start: Date;
-      current_period_end: Date;
-      status: SubscriptionStatus;
+      plan_slug: string;
+      success_url: string;
+      cancel_url: string;
     },
-    @Req() req: RequestWithUser,
   ) {
-    return this.subscriptionsService.create({
-      ...createSubscriptionDto,
-      user_id: req.user.id,
-    });
+    return this.subscriptionsService.createCheckoutSession(createSubscriptionDto);
   }
 
   @Patch(':id')
+  @UseGuards(JwtAuthGuard)
   update(
     @Param('id') id: string,
     @Body() updateSubscriptionDto: Partial<Subscription>,
@@ -70,6 +72,7 @@ export class SubscriptionsController {
   }
 
   @Patch(':id/status')
+  @UseGuards(JwtAuthGuard)
   updateStatus(
     @Param('id') id: string,
     @Body('status') status: SubscriptionStatus,
@@ -78,6 +81,7 @@ export class SubscriptionsController {
   }
 
   @Delete(':id')
+  @UseGuards(JwtAuthGuard)
   delete(@Param('id') id: string) {
     return this.subscriptionsService.delete(+id);
   }

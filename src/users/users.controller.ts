@@ -16,8 +16,8 @@ import { CreateUserDto } from './dto/create-user-dto';
 import { LoginDto } from './dto/login-dto';
 import { LoginResponseDto } from './dto/login-response-dto';
 
-@Controller('users')
-export class UsersController {
+@Controller()
+export class AuthController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post('register')
@@ -30,6 +30,11 @@ export class UsersController {
   async login(@Body() loginDto: LoginDto): Promise<LoginResponseDto> {
     return this.usersService.login(loginDto);
   }
+}
+
+@Controller('users')
+export class UsersController {
+  constructor(private readonly usersService: UsersService) {}
 
   @Get()
   findAll() {

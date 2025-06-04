@@ -45,7 +45,6 @@ export class TenantsService {
     return this.prisma.userRoleMapping.create({
       data: {
         user_id: userId,
-        tenant_id: tenantId,
         role,
       },
     });
@@ -55,7 +54,6 @@ export class TenantsService {
     return this.prisma.userRoleMapping.findMany({
       where: {
         user_id: userId,
-        tenant_id: tenantId,
       },
       select: { role: true },
     });
@@ -65,9 +63,7 @@ export class TenantsService {
     return this.prisma.user.findMany({
       where: { tenant_id: tenantId },
       include: {
-        userRoleMapping: {
-          where: { tenant_id: tenantId },
-        },
+        userRoleMapping: true,
       },
     });
   }
@@ -77,7 +73,6 @@ export class TenantsService {
       where: { id },
       include: {
         users: true,
-        userRoleMappings: true,
       },
     });
 

@@ -3,9 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL")
 }
 
 model Tenant {
@@ -13,17 +13,14 @@ model Tenant {
   name       String
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
-
-  // Relations
-  users            User[]
-  userRoleMappings UserRoleMapping[]
+  users      User[]
 }
 
 model User {
   id                  Int                 @id @default(autoincrement())
   email               String              @unique
   username            String              @unique
-  password            String?
+  password            String
   first_name          String?
   last_name           String?
   role                UserRole            @default(GUEST_USER)
@@ -32,6 +29,7 @@ model User {
   created_at          DateTime            @default(now())
   updated_at          DateTime            @updatedAt
   subscription_tier   SubscriptionTier?
+  tenant_id           Int?
   instructor_bookings Booking[]           @relation("InstructorBookings")
   bookings            Booking[]
   courses             Course[]            @relation("InstructorCourses")
@@ -47,11 +45,10 @@ model User {
   stripe_customer     StripeCustomer?
   subscriptions       Subscription[]
   testimonials        Testimonial[]
-  certifications      UserCertification[]
-  selected_features   UserFeature[]
-  user_roles          UserRoleMapping[]
-  tenant_id           Int?
   tenant              Tenant?             @relation(fields: [tenant_id], references: [id])
+  certifications      UserCertification[]
+  features            UserFeature[]       @relation("UserFeatures")
+  role_mappings       UserRoleMapping[]
 }
 
 model Profile {
@@ -148,14 +145,15 @@ model StripeCustomer {
 model Subscription {
   id                     Int              @id @default(autoincrement())
   user_id                Int
+  plan_id                Int
   stripe_subscription_id String           @unique
-  tier                   SubscriptionTier
   status                 String
   current_period_start   DateTime
   current_period_end     DateTime
   cancel_at_period_end   Boolean          @default(false)
   created_at             DateTime         @default(now())
   updated_at             DateTime         @updatedAt
+  plan                   SubscriptionPlan @relation(fields: [plan_id], references: [id])
   user                   User             @relation(fields: [user_id], references: [id])
 }
 
@@ -241,27 +239,27 @@ model Payment {
 }
 
 model UserRoleMapping {
-  id         Int      @id @default(autoincrement())
-  user_id    Int
-  tenant_id  Int
-  role       String
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-  user       User     @relation(fields: [user_id], references: [id])
-  tenant     Tenant   @relation(fields: [tenant_id], references: [id])
+  id        Int      @id @default(autoincrement())
+  user_id   Int
+  role      UserRole
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
-  @@unique([user_id, tenant_id])
+  @@unique([user_id, role])
+  @@map("user_role_mappings")
 }
 
 model UserFeature {
-  id          String   @id @default(cuid())
+  id          Int      @id @default(autoincrement())
   user_id     Int
   feature_key String
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
-  user        User     @relation(fields: [user_id], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation("UserFeatures", fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([user_id, feature_key])
+  @@map("user_features")
 }
 
 model Notification {
@@ -329,25 +327,49 @@ model Review {
   @@unique([user_id, course_id])
 }
 
+model SubscriptionPlan {
+  id                   Int              @id @default(autoincrement())
+  name                 String           @unique
+  slug                 String           @unique
+  description          String?
+  features             String[]
+  priceMonthly         Decimal          @db.Decimal(10, 2)
+  priceYearly          Decimal          @db.Decimal(10, 2)
+  stripePriceIdMonthly String?
+  stripePriceIdYearly  String?
+  isPopular            Boolean          @default(false)
+  isActive             Boolean          @default(true)
+  isStandalone         Boolean          @default(false)
+  planType             String           @default("main")
+  featureDetails       Json?
+  unlockedRoles        UserRole[]
+  tier                 SubscriptionTier
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+  subscriptions        Subscription[]
+
+  @@map("subscription_plans")
+}
+
 enum UserRole {
+  GUEST_USER
   CURRICULUM_SELLER
+  STUDENT
+  ADMIN
+  DIRECTORY_MEMBER
+  CERTIFICATION_MANAGER
+  INSTRUCTOR_ADMIN
   CURRICULUM_ADMIN
   COURSE_CREATOR_ADMIN
-  INSTRUCTOR_ADMIN
   BOOKING_PROFESSIONAL
   BOOKING_USER
-  STUDENT
-  GUEST_USER
-  ADMIN
 }
 
 enum SubscriptionTier {
-  BASIC_SELLER
-  PREMIUM_SELLER
-  BASIC_DIRECTORY
-  PREMIUM_DIRECTORY
-  TALENT_DIRECTORY
-  ROYALTY_MEMBERSHIP
+  FREE
+  SILVER
+  GOLD
+  PLATINUM
 }
 
 enum EnrollmentStatus {
