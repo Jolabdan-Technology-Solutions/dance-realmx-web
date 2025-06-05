@@ -21,6 +21,11 @@ import { PermissionsModule } from './permissions/permissions.module';
 import { TenantsModule } from './tenants/tenants.module';
 import { FeaturesModule } from './features/features.module';
 import { CacheModule } from '@nestjs/cache-manager';
+import { CartModule } from './cart/cart.module';
+import { EnrollmentsModule } from './enrollments/enrollments.module';
+import { UserModule } from './user/user.module';
+import { EventsModule } from './events/events.module';
+import { CertificatesModule } from './certificates/certificates.module';
 
 @Module({
   imports: [
@@ -47,6 +52,11 @@ import { CacheModule } from '@nestjs/cache-manager';
     PermissionsModule,
     TenantsModule,
     FeaturesModule,
+    CartModule,
+    EnrollmentsModule,
+    UserModule,
+    EventsModule,
+    CertificatesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

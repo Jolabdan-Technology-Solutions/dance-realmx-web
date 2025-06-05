@@ -22,6 +22,14 @@ export class CreateUserDto {
 
   @IsOptional()
   @IsString()
+  @IsOptional()
+  auth_provider?: string;
+
+  @IsOptional()
+  @IsString()
+  subscription_tier?: string;
+
+  @IsString()
   first_name?: string;
 
   @IsOptional()

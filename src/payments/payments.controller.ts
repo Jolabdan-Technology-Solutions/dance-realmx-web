@@ -107,4 +107,11 @@ export class PaymentsController {
     }
     return this.paymentsService.handleWebhook(signature, req.rawBody);
   }
+
+  @Post('checkout')
+  async createOneTimeCheckout(
+    @Body() dto: { itemId: number; type: 'COURSE' | 'RESOURCE'; email: string }
+  ) {
+    return this.paymentsService.createOneTimeCheckoutSession(dto);
+  }
 }
