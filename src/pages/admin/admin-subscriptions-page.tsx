@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { 
-  CreditCard, Edit, Trash, Plus, Check, X, DollarSign, 
+import {
+  CreditCard, Edit, Trash, Plus, Check, X, DollarSign,
   Tag, FileText, Star, MoreHorizontal, Archive, RefreshCw
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -238,7 +238,7 @@ export default function AdminSubscriptionsPage() {
         form.setValue("slug", generateSlug(value.name || ""), { shouldValidate: true });
       }
     });
-    
+
     return () => subscription.unsubscribe();
   }, [form]);
 
@@ -356,8 +356,8 @@ export default function AdminSubscriptionsPage() {
           <DialogHeader>
             <DialogTitle>{editingPlanId !== null ? "Edit Subscription Plan" : "Create New Subscription Plan"}</DialogTitle>
             <DialogDescription>
-              {editingPlanId !== null 
-                ? "Make changes to the subscription plan below." 
+              {editingPlanId !== null
+                ? "Make changes to the subscription plan below."
                 : "Add a new subscription plan to your system."}
             </DialogDescription>
           </DialogHeader>
@@ -476,9 +476,9 @@ export default function AdminSubscriptionsPage() {
                     <FormItem className="col-span-2">
                       <FormLabel>Features (comma-separated)</FormLabel>
                       <FormControl>
-                        <Textarea 
-                          placeholder="Access to all courses, Unlimited downloads, Priority support" 
-                          {...field} 
+                        <Textarea
+                          placeholder="Access to all courses, Unlimited downloads, Priority support"
+                          {...field}
                           value={Array.isArray(field.value) ? field.value.join(", ") : field.value}
                           onChange={(e) => {
                             const value = e.target.value;
@@ -535,9 +535,9 @@ export default function AdminSubscriptionsPage() {
               </div>
 
               <DialogFooter>
-                <Button 
-                  type="button" 
-                  variant="outline" 
+                <Button
+                  type="button"
+                  variant="outline"
                   onClick={() => {
                     setIsCreating(false);
                     setEditingPlanId(null);
@@ -545,8 +545,8 @@ export default function AdminSubscriptionsPage() {
                 >
                   Cancel
                 </Button>
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   disabled={createMutation.isPending || updateMutation.isPending}
                 >
                   {(createMutation.isPending || updateMutation.isPending) && (
@@ -566,7 +566,7 @@ export default function AdminSubscriptionsPage() {
           <DialogHeader>
             <DialogTitle>Delete Subscription Plan</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete "{deletingPlanName}"? This action cannot be undone, 
+              Are you sure you want to delete "{deletingPlanName}"? This action cannot be undone,
               and may affect users who are currently subscribed to this plan.
             </DialogDescription>
           </DialogHeader>

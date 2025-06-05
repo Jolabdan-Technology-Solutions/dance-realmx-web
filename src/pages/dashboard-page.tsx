@@ -39,9 +39,10 @@ export function DashboardPage() {
   const { user } = useAuth();
 
   // Fetch upcoming events
-  const { data: events = [] } = useQuery<Event[]>({
+  const { data: rawEvents = [] } = useQuery<Event[]>({
     queryKey: ["/api/events"],
   });
+  const events = Array.isArray(rawEvents) ? rawEvents : [];
 
   // Fetch user's certificates
   const { data: certificates = [] } = useQuery<Certificate[]>({

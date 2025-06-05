@@ -28,7 +28,17 @@ export function StepPlanRecommendation({ registrationData, updateRegistrationDat
   
   // Fetch available subscription plans
   const { data: plans, isLoading, error } = useQuery<SubscriptionPlanOption[]>({
-    queryKey: ["/api/subscription-plans"],
+    queryKey: ["/api/subscriptions/plans"],
+    queryFn: async () => {
+      const response = await fetch('/api/subscriptions/plans', {
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+        },
+      });
+      if (!response.ok) throw new Error('Failed to fetch subscription plans');
+      return response.json();
+    }
   });
   
   // Calculate plan recommendations based on selected features
@@ -38,12 +48,12 @@ export function StepPlanRecommendation({ registrationData, updateRegistrationDat
     // Define feature-to-plan mappings based on the actual membership plan pricing
     const featureToMinimumPlanMap: Record<string, string> = {
       // Instructor features 
-      create_courses: "educator",
-      issue_certificates: "premium", 
-      manage_students: "educator",
-      create_quizzes: "educator",
-      upload_videos: "educator",
-      schedule_classes: "educator",
+      create_courses: "silver",
+      issue_certificates: "gold", 
+      manage_students: "silver",
+      create_quizzes: "silver",
+      upload_videos: "silver",
+      schedule_classes: "silver",
       
       // Student features - all basic features should be "free"
       enroll_courses: "free",
@@ -51,17 +61,17 @@ export function StepPlanRecommendation({ registrationData, updateRegistrationDat
       track_progress: "free",
       book_sessions: "free", 
       
-      // Seller features - now have dedicated "seller" plan
-      sell_resources: "seller", // Basic seller features
-      resource_analytics: "seller", // Basic seller features
-      store_dashboard: "seller", // Basic seller features
-      resource_management: "premium", // Premium seller features
+      // Seller features
+      sell_resources: "silver",
+      resource_analytics: "silver",
+      store_dashboard: "silver",
+      resource_management: "gold",
       
-      // Connect features - now have dedicated "booking" plan
-      connect_profile: "booking", // Basic booking features
-      connect_availability: "booking", // Basic booking features
-      connect_bookings: "booking", // Basic booking features
-      connect_messaging: "premium" // Premium messaging feature
+      // Connect features
+      connect_profile: "silver",
+      connect_availability: "silver",
+      connect_bookings: "silver",
+      connect_messaging: "gold"
     };
     
     // Calculate the total feature categories selected
@@ -92,105 +102,22 @@ export function StepPlanRecommendation({ registrationData, updateRegistrationDat
       }
     });
     
-    // Calculate highest required plan level based on actual pricing plans
+    // Calculate highest required plan level based on selected features
     let requiredPlanLevel = "free";
     
-    // Handle special cases first based on membership plan document
-    
-    // If only student features are selected, always use free plan
-    if (featureCategories.student > 0 && 
-        featureCategories.instructor === 0 && 
-        featureCategories.seller === 0 && 
-        featureCategories.connect === 0) {
-      requiredPlanLevel = "free";
-    } 
-    // If only seller features are selected, use standalone seller plan
-    else if (featureCategories.seller > 0 &&
-        featureCategories.instructor === 0 && 
-        featureCategories.student === 0 && 
-        featureCategories.connect === 0) {
-      
-      // Check if any premium seller features are selected
-      const hasPremiumSellerFeatures = registrationData.selectedFeatures.some(
-        featureId => featureId === "resource_management"
-      );
-      
-      requiredPlanLevel = hasPremiumSellerFeatures ? "premium" : "seller";
+    // If any premium features are selected, recommend gold plan
+    if (registrationData.selectedFeatures.some(feature => 
+      ['issue_certificates', 'resource_management', 'connect_messaging'].includes(feature)
+    )) {
+      requiredPlanLevel = "gold";
     }
-    // If only connect features are selected, use standalone booking plan
-    else if (featureCategories.connect > 0 &&
-        featureCategories.instructor === 0 && 
-        featureCategories.student === 0 && 
-        featureCategories.seller === 0) {
-      
-      // Check if any premium connect features are selected
-      const hasPremiumConnectFeatures = registrationData.selectedFeatures.some(
-        featureId => ["connect_messaging"].includes(featureId)
-      );
-      
-      requiredPlanLevel = hasPremiumConnectFeatures ? "premium" : "booking";
-    }
-    // For multi-role combinations, we need more specialized logic
-    else {
-      // Per the membership plan document:
-      
-      // Case 1: Seller+Instructor combination (both basic features)
-      // Should recommend Educator plan which covers both basic seller and educator roles
-      if (featureCategories.seller > 0 && featureCategories.instructor > 0 && 
-          featureCategories.connect === 0 && 
-          !registrationData.selectedFeatures.includes("issue_certificates") && // Premium instructor feature
-          !registrationData.selectedFeatures.includes("resource_management")) { // Premium seller feature
-        requiredPlanLevel = "educator";
-      }
-      // Case 2: Basic Seller + Basic Booking/Connect
-      // Should recommend combined plan if standalone aren't sufficient
-      else if (featureCategories.seller > 0 && featureCategories.connect > 0 && 
-          featureCategories.instructor === 0 && featureCategories.student === 0 &&
-          !registrationData.selectedFeatures.includes("resource_management") && // No premium seller
-          !registrationData.selectedFeatures.includes("connect_messaging")) { // No premium connect messaging
-        // For multiple roles, recommend a combined plan
-        requiredPlanLevel = "educator";
-      }
-      // Case 3: Basic Seller + Premium Connect/Directory
-      // OR Premium Seller + Basic Connect/Directory
-      // Should recommend Premium plan
-      else if ((featureCategories.seller > 0 && featureCategories.connect > 0) &&
-               ((registrationData.selectedFeatures.includes("resource_management") && 
-                 !registrationData.selectedFeatures.includes("connect_bookings") && 
-                 !registrationData.selectedFeatures.includes("connect_messaging")) ||
-                (!registrationData.selectedFeatures.includes("resource_management") && 
-                 (registrationData.selectedFeatures.includes("connect_bookings") || 
-                  registrationData.selectedFeatures.includes("connect_messaging"))))) {
-        requiredPlanLevel = "premium";
-      }
-      // Case 4: Royalty plan is needed when all four feature categories are selected
-      else if (featureCategories.student > 0 && 
-               featureCategories.instructor > 0 && 
-               featureCategories.seller > 0 && 
-               featureCategories.connect > 0) {
-        requiredPlanLevel = "royalty";
-      }
-      // Case 5: Any individual premium feature deserves premium plan
-      else if (registrationData.selectedFeatures.includes("issue_certificates") || 
-               registrationData.selectedFeatures.includes("resource_management") ||
-               registrationData.selectedFeatures.includes("connect_bookings") ||
-               registrationData.selectedFeatures.includes("connect_messaging")) {
-        requiredPlanLevel = "premium";
-      }
-      // Case 6: For all other combinations, use educator if any educator feature exists
-      else {
-        let hasEducatorFeature = false;
-        
-        // Check if there's at least one feature that requires educator plan
-        registrationData.selectedFeatures.forEach(featureId => {
-          const requiredPlan = featureToMinimumPlanMap[featureId];
-          if (requiredPlan === "educator") {
-            hasEducatorFeature = true;
-          }
-        });
-        
-        requiredPlanLevel = hasEducatorFeature ? "educator" : "free";
-      }
+    // If any silver features are selected, recommend silver plan
+    else if (registrationData.selectedFeatures.some(feature => 
+      ['create_courses', 'manage_students', 'create_quizzes', 'upload_videos', 
+       'schedule_classes', 'sell_resources', 'resource_analytics', 'store_dashboard',
+       'connect_profile', 'connect_availability', 'connect_bookings'].includes(feature)
+    )) {
+      requiredPlanLevel = "silver";
     }
     
     // Calculate how many features are matched by each plan
@@ -201,9 +128,9 @@ export function StepPlanRecommendation({ registrationData, updateRegistrationDat
         // Calculate if this plan includes the feature
         const planCoversFeature = 
           plan.slug === minimumPlanForFeature ||
-          (plan.slug === "educator" && minimumPlanForFeature === "free") ||
-          (plan.slug === "premium" && ["free", "educator"].includes(minimumPlanForFeature)) ||
-          (plan.slug === "royalty" && ["free", "educator", "premium"].includes(minimumPlanForFeature));
+          (plan.slug === "silver" && minimumPlanForFeature === "free") ||
+          (plan.slug === "gold" && ["free", "silver"].includes(minimumPlanForFeature)) ||
+          (plan.slug === "platinum" && ["free", "silver", "gold"].includes(minimumPlanForFeature));
           
         return planCoversFeature ? count + 1 : count;
       }, 0);
@@ -211,9 +138,9 @@ export function StepPlanRecommendation({ registrationData, updateRegistrationDat
       // Check if this plan is the required minimum plan or higher
       const isRecommended = 
         plan.slug === requiredPlanLevel ||
-        (plan.slug === "educator" && requiredPlanLevel === "free") ||
-        (plan.slug === "premium" && ["free", "educator"].includes(requiredPlanLevel)) ||
-        (plan.slug === "royalty" && ["free", "educator", "premium"].includes(requiredPlanLevel));
+        (plan.slug === "silver" && requiredPlanLevel === "free") ||
+        (plan.slug === "gold" && ["free", "silver"].includes(requiredPlanLevel)) ||
+        (plan.slug === "platinum" && ["free", "silver", "gold"].includes(requiredPlanLevel));
         
       return {
         ...plan,

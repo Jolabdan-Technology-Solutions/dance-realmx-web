@@ -1,4 +1,4 @@
-export type Step = "features" | "planRecommendation" | "accountCreation" | "payment" | "confirmation";
+export type Step = "features" | "planRecommendation" | "accountCreation";
 
 export type FeatureCategory = "instructor" | "student" | "seller" | "connect";
 
@@ -7,14 +7,24 @@ export interface Feature {
   name: string;
   description: string;
   category: FeatureCategory;
-  icon?: string;
+  icon: string;
 }
 
 export interface SubscriptionPlanOption {
-  id: string;
+  id: number;
   name: string;
-  price: number;
+  slug: string;
+  description: string;
   features: string[];
+  priceMonthly: number;
+  priceYearly: number;
+  isPopular: boolean;
+  isActive: boolean;
+  isStandalone: boolean;
+  planType: string;
+  featureDetails: any;
+  unlockedRoles: string[];
+  tier: string;
 }
 
 export interface AccountFormData {
@@ -31,8 +41,6 @@ export interface RegistrationData {
   recommendedPlan: SubscriptionPlanOption | null;
   accountData: AccountFormData | null;
   paymentCompleted: boolean;
-  paymentMethod?: "yearly" | "monthly";
-  paymentSessionId?: string;
 }
 
 export interface RegistrationFormData {

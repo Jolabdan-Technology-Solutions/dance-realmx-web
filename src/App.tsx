@@ -23,28 +23,6 @@ function LoadingFallback() {
 }
 
 // Error fallback component for failed lazy loads
-function LazyLoadErrorFallback({
-  error,
-  retry,
-}: {
-  error: Error;
-  retry: () => void;
-}) {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-dark text-white">
-      <div className="text-center">
-        <h2 className="text-xl font-semibold mb-4">Failed to load page</h2>
-        <p className="text-gray-400 mb-4">Error: {error.message}</p>
-        <button
-          onClick={retry}
-          className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/80"
-        >
-          Retry
-        </button>
-      </div>
-    </div>
-  );
-}
 
 // Enhanced lazy loading with error handling
 const createLazyComponent = (

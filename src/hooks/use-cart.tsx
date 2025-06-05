@@ -165,7 +165,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [isAuthenticated, guestCart.items]);
 
   // Determine which cart to use based on authentication status
-  const items = isAuthenticated ? authenticatedItems : guestCart.items;
+  let items = isAuthenticated ? authenticatedItems : guestCart.items;
+  if (!Array.isArray(items)) {
+    items = [];
+  }
   const isLoading = isAuthenticated ? isLoadingCart : false;
 
   // Calculate total and item count

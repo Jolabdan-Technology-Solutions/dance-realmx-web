@@ -40,7 +40,7 @@ export default function StripeCheckoutPage() {
 
         if (plan) {
           // Handle subscription plan checkout
-          response = await apiRequest("POST", "/api/create-subscription", {
+          response = await apiRequest("POST", "/subscriptions", {
             planSlug: plan,
             successUrl,
             cancelUrl

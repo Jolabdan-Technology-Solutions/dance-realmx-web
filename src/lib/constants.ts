@@ -98,7 +98,7 @@ export const API_ENDPOINTS = {
     BASE: "/api/upload"
   },
   SUBSCRIPTION_PLANS: {
-    BASE: "/api/subscription-plans"
+    BASE: "/api/subscriptions/plans"
   },
   COURSES: {
     BASE: "/api/courses"

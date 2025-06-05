@@ -8,6 +8,7 @@ import {
 import { User } from "@/types/user";
 import { getQueryFn, apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { api } from "@/lib/api";
 
 // Define types for our context
 type LoginData = {
@@ -37,7 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isLoading,
     refetch,
   } = useQuery<User | undefined, Error>({
-    queryKey: ["/api/user"],
+    queryKey: ["/api/profiles/me"],
     queryFn: getQueryFn({ on401: "returnNull" }),
     staleTime: 10 * 1000, // Consider data fresh for 10 seconds
   });
@@ -51,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     const handleAuthRefresh = () => {
       console.log("Auth refresh explicitly requested, invalidating cache and refetching");
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/profiles/me"] });
       setTimeout(() => refetch(), 100); // Small delay to ensure server-side changes are complete
     };
     
@@ -63,14 +64,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       document.removeEventListener('profile-image-updated', handleProfileImageUpdate);
       document.removeEventListener('auth-refresh-required', handleAuthRefresh);
     };
-  }, [refetch]);
+  }, []);
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
       console.log("Login attempt with credentials:", credentials);
       
-      const response = await apiRequest('POST', '/api/login', credentials);
-      const data = await response.json();
+      const response = await api.post('/api/login', credentials);
+      const data = response.data;
       
       // Store the access token in localStorage
       if (data.access_token) {
@@ -84,7 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log("Login mutation succeeded, setting user data:", data);
       
       // Update user data in the query cache
-      queryClient.setQueryData(["/api/user"], data);
+      queryClient.setQueryData(["/api/profiles/me"], data);
       
       toast({
         title: "Login successful",
@@ -150,7 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (user: User) => {
       console.log("Registration successful for user:", user.username);
-      queryClient.setQueryData(["/api/user"], user);
+      queryClient.setQueryData(["/api/profiles/me"], user);
       toast({
         title: "Registration successful",
         description: `Welcome to DanceRealmX, ${user.username}!`,
@@ -186,7 +187,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       queryClient.clear();
       
       // Set user to null immediately
-      queryClient.setQueryData(["/api/user"], null);
+      queryClient.setQueryData(["/api/profiles/me"], null);
       
       toast({
         title: "Logged out",

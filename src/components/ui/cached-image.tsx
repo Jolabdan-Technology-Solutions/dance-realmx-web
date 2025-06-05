@@ -21,6 +21,7 @@ export interface CachedImageProps {
   sizes?: string;
   decoding?: React.ImgHTMLAttributes<HTMLImageElement>["decoding"];
   style?: React.CSSProperties;
+  fallbackSrc?: string;
 }
 
 /**
@@ -38,11 +39,12 @@ export function CachedImage({
   contentType = "general",
   resource,
   forceCacheBusting = false,
+  fallbackSrc = '/images/placeholder.jpg',
   ...props
 }: CachedImageProps) {
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(!src); // Set error to true if src is null/undefined/empty
-  const [imgSrc, setImgSrc] = useState<string>('');
+  const [error, setError] = useState(false);
+  const [imgSrc, setImgSrc] = useState<string>(src);
   const [recoveryAttempted, setRecoveryAttempted] = useState(false);
   
   // Early return if src is null, undefined, or empty

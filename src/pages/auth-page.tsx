@@ -26,7 +26,7 @@ import { AuthWrapper } from "../lib/auth-wrapper";
 import { FcGoogle } from "react-icons/fc";
 import { Separator } from "../components/ui/separator";
 import { Checkbox } from "../components/ui/checkbox";
-import { UserRoles } from "../../../shared/schema";
+import { USER_ROLES } from "@/constants/roles";
 
 // Define form schemas
 const loginSchema = z.object({
@@ -157,6 +157,10 @@ function AuthPageWithAuth() {
         password: data.password.trim(),
         email: data.email.trim(),
         role: "STUDENT", // Default role, adjust as needed
+        first_name: data.firstName.trim(),
+        last_name: data.lastName.trim(),
+        profile_image_url: "",
+        auth_provider: "local"
       };
 
       console.log("Register form submission:", {
@@ -183,9 +187,20 @@ function AuthPageWithAuth() {
       return <Redirect to={`${returnUrl}?mode=${connectMode}`} />;
     }
 
-    // Otherwise redirect to the return URL or dashboard as fallback
+    // Prevent redirect if in registration workflow
+    const isRegistrationFlow =
+      returnUrl.includes("/registration-flow") ||
+      returnUrl.includes("/register");
+    
+    // Only redirect if not in registration flow
+    if (returnUrl && !isRegistrationFlow) {
     console.log("User authenticated, redirecting to:", returnUrl);
     return <Redirect to={returnUrl} />;
+    }
+    
+    // If in registration flow, don't redirect - let the parent component handle the flow
+    console.log("In registration flow, not redirecting");
+    return null;
   }
 
   return (
@@ -420,7 +435,7 @@ function AuthPageWithAuth() {
                                 </FormDescription>
                               </div>
                               <div className="space-y-2">
-                                {Object.entries(UserRoles).map(
+                                {Object.entries(USER_ROLES).map(
                                   ([key, value]) => (
                                     <FormField
                                       key={key}
@@ -435,29 +450,28 @@ function AuthPageWithAuth() {
                                             <FormControl>
                                               <Checkbox
                                                 checked={field.value?.includes(
-                                                  value
+                                                  value as string
                                                 )}
                                                 onCheckedChange={(checked) => {
                                                   return checked
                                                     ? field.onChange([
-                                                        ...field.value,
-                                                        value,
-                                                      ])
+                                                      ...field.value,
+                                                      value,
+                                                    ])
                                                     : field.onChange(
-                                                        field.value?.filter(
-                                                          (val) => val !== value
-                                                        )
-                                                      );
+                                                      field.value?.filter(
+                                                        (val) => val !== value
+                                                      )
+                                                    );
                                                 }}
                                               />
                                             </FormControl>
                                             <div className="space-y-1 leading-none">
                                               <FormLabel className="text-sm font-medium">
-                                                {/* Convert role name to title case for display */}
-                                                {value
+                                                {(value as string)
                                                   .split("_")
                                                   .map(
-                                                    (word) =>
+                                                    (word: string) =>
                                                       word
                                                         .charAt(0)
                                                         .toUpperCase() +
@@ -624,8 +638,20 @@ export default function AuthPage() {
       return <Redirect to={`${returnUrl}?mode=${connectMode}`} />;
     }
 
-    // Otherwise redirect to the return URL or dashboard as fallback
+    // Prevent redirect if in registration workflow
+    const isRegistrationFlow =
+      returnUrl.includes("/registration-flow") ||
+      returnUrl.includes("/register");
+    
+    // Only redirect if not in registration flow
+    if (returnUrl && !isRegistrationFlow) {
+      console.log("User authenticated, redirecting to:", returnUrl);
     return <Redirect to={returnUrl} />;
+    }
+    
+    // If in registration flow, don't redirect - let the parent component handle the flow
+    console.log("In registration flow, not redirecting");
+    return null;
   }
 
   // If auth is still loading, show loading indicator

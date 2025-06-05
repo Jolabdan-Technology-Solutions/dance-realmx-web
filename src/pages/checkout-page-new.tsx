@@ -34,7 +34,11 @@ declare global {
   }
 }
 
+// Debug: Log all environment variables
+console.log('Environment variables:', import.meta.env);
+
 if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
+  console.error('Stripe public key is missing. Available env vars:', Object.keys(import.meta.env));
   throw new Error("Missing required Stripe key: VITE_STRIPE_PUBLIC_KEY");
 }
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);

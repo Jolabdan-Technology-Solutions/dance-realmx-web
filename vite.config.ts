@@ -8,25 +8,44 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      '@shared': path.resolve(__dirname, '../shared'),
-      '@shared/schema': '/src/shared/schema',
-      '#shared/schema': '/src/shared/schema',
+      '@shared': path.resolve(__dirname, './shared'),
     },
   },
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+    sourcemap: true,
+  },
   server: {
-    allowedHosts: ["livetestdomain.com"],
-    proxy: {
-      '/api/register': {
-        target: 'http://localhost:3000',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/register/, '/users/register'),
-      },
-      '/api/login': {
-        target: 'http://localhost:3000',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/login/, '/users/login'),
-      },
-      // Add more proxies as needed
+    host: '0.0.0.0',
+    port: 5173,
+    strictPort: true,
+    hmr: {
+      clientPort: 443,
+      path: '/hmr',
     },
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5001',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/uploads': {
+        target: 'http://localhost:5001',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/hmr': {
+        target: 'ws://localhost:5173',
+        ws: true,
+      },
+    },
+    cors: true,
+    allowedHosts: [
+      'livetestdomain.com',
+      'www.livetestdomain.com',
+      'localhost',
+      '127.0.0.1'
+    ],
   },
 });

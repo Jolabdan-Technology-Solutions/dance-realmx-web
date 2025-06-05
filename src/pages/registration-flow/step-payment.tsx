@@ -44,27 +44,20 @@ export function StepPayment({ registrationData, updateRegistrationData }: StepPa
         setIsLoading(true);
         
         // Create subscription checkout session
-        const response = await apiRequest("POST", "/api/create-subscription-session", {
-          email: registrationData.accountData.email,
-          userData: registrationData.accountData,
-          planSlug: registrationData.recommendedPlan.slug
+        const response = await apiRequest("POST", "/api/subscriptions/checkout", {
+          planSlug: registrationData.recommendedPlan.slug,
+          frequency: 'MONTHLY',
+          email: registrationData.accountData.email
         });
         
         const data = await response.json();
         
-        if (data.clientSecret) {
-          setClientSecret(data.clientSecret);
-          
-          // Store the sessionId for later verification
-          if (data.sessionId) {
-            updateRegistrationData({
-              paymentSessionId: data.sessionId
-            });
-          }
-        } else {
+        if (!data.url) {
           throw new Error(data.message || "Could not initialize payment");
         }
-      } catch (error) {
+        
+        window.location.href = data.url;
+      } catch (error: any) {
         console.error("Error creating subscription:", error);
         setErrorMessage(error.message || "There was a problem creating the subscription");
         
@@ -79,7 +72,7 @@ export function StepPayment({ registrationData, updateRegistrationData }: StepPa
     };
     
     createSubscription();
-  }, [registrationData.accountData, registrationData.recommendedPlan, registrationData.paymentMethod, updateRegistrationData, toast]);
+  }, [registrationData.accountData, registrationData.recommendedPlan, toast]);
   
   if (isLoading) {
     return (
@@ -270,7 +263,7 @@ function PaymentForm({
           description: `You have successfully subscribed to the ${planName} plan.`,
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Payment error:", error);
       setPaymentError(error.message || "Payment processing failed");
       

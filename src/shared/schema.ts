@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 // Stubs for shared schema types and constants used in the frontend
 // Expand these as needed to match backend types
 
@@ -199,7 +201,20 @@ export interface Booking {
   updated_at?: string;
 }
 
-export const USER_ROLES = ["admin", "instructor", "student"] as const;
+export const USER_ROLES = [
+  'GUEST_USER',
+  'CURRICULUM_SELLER',
+  'STUDENT',
+  'ADMIN',
+  'DIRECTORY_MEMBER',
+  'CERTIFICATION_MANAGER',
+  'INSTRUCTOR_ADMIN',
+  'CURRICULUM_ADMIN',
+  'COURSE_CREATOR_ADMIN',
+  'BOOKING_PROFESSIONAL',
+  'BOOKING_USER',
+] as const;
+
 export type UserRole = typeof USER_ROLES[number];
 
 export const SUBSCRIPTION_PLANS = [
@@ -209,13 +224,24 @@ export const SUBSCRIPTION_PLANS = [
 ];
 
 export interface SubscriptionPlan {
-  id: string;
+  id: number;
   name: string;
-  price: number;
-  price_monthly?: number;
-  price_yearly?: number;
+  slug: string;
   description?: string;
-  slug?: string;
+  features: string[];
+  priceMonthly: number;
+  priceYearly: number;
+  stripePriceIdMonthly?: string;
+  stripePriceIdYearly?: string;
+  isPopular: boolean;
+  isActive: boolean;
+  isStandalone: boolean;
+  planType: string;
+  featureDetails?: any;
+  unlockedRoles: string[];
+  tier: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface SubscriptionPlanOption {
@@ -227,3 +253,21 @@ export interface SubscriptionPlanOption {
   slug?: string;
   matched_features?: number;
 }
+
+export const insertSubscriptionPlanSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  slug: z.string().min(1, "Slug is required"),
+  description: z.string().optional(),
+  features: z.array(z.string()),
+  priceMonthly: z.string().min(1, "Monthly price is required"),
+  priceYearly: z.string().min(1, "Yearly price is required"),
+  stripePriceIdMonthly: z.string().optional(),
+  stripePriceIdYearly: z.string().optional(),
+  isPopular: z.boolean().default(false),
+  isActive: z.boolean().default(true),
+  isStandalone: z.boolean().default(false),
+  planType: z.string().default("main"),
+  featureDetails: z.any().optional(),
+  unlockedRoles: z.array(z.string()),
+  tier: z.string(),
+});
