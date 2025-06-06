@@ -167,9 +167,12 @@ describe('MailService', () => {
   describe('sendBookingConfirmation', () => {
     it('should send booking confirmation successfully', async () => {
       const email = 'test@example.com';
-      const name = 'Test User';
-      const courseName = 'Test Course';
+      const instructorName = 'Test Instructor';
       const bookingDate = new Date();
+      const bookingTime = '10:00 AM';
+      const duration = '1 hour';
+      const location = 'Online';
+      const price = 99.99;
 
       (SendGrid.send as jest.Mock).mockResolvedValueOnce([
         { statusCode: 202 },
@@ -178,9 +181,12 @@ describe('MailService', () => {
 
       await service.sendBookingConfirmation(
         email,
-        name,
-        courseName,
-        bookingDate,
+        instructorName,
+        bookingDate.toISOString(),
+        new Date(bookingTime),
+        duration,
+        Number(location),
+        String(price)
       );
 
       expect(SendGrid.send).toHaveBeenCalledWith(
@@ -188,7 +194,7 @@ describe('MailService', () => {
           to: email,
           from: 'test@example.com',
           subject: 'Booking',
-          html: expect.stringContaining(name),
+          html: expect.stringContaining(instructorName),
         }),
       );
     });

@@ -26,29 +26,30 @@ export class CartController {
   constructor(private readonly cartService: CartService) {}
 
   @Get()
-  async getCart(@Req() req: RequestWithUser) {
-    return this.cartService.getCart(req.user.id);
+  async getCart(@Body('userId') userId: number) {
+    return this.cartService.getCart(userId);
   }
 
   @Post('add')
   async addToCart(
-    @Req() req: RequestWithUser,
-    @Body() data: { resourceId: number; quantity: number },
+    @Body('userId') userId: number,
+    @Body('itemId') itemId: number,
+    @Body('itemType') itemType: string,
+    @Body('quantity') quantity: string,
   ) {
-    return this.cartService.addToCart(
-      req.user.id,
-      data.resourceId,
-      data.quantity,
-    );
+    return this.cartService.addToCart(userId, itemId, itemType);
   }
 
-  @Delete(':id')
-  async removeFromCart(@Req() req: RequestWithUser, @Param('id') id: string) {
-    return this.cartService.removeFromCart(req.user.id, parseInt(id));
+  @Delete(':itemId')
+  async removeFromCart(
+    @Body('userId') userId: number,
+    @Param('itemId') itemId: number,
+  ) {
+    return this.cartService.removeFromCart(userId, itemId);
   }
 
-  @Post('clear')
-  async clearCart(@Req() req: RequestWithUser) {
-    return this.cartService.clearCart(req.user.id);
+  @Delete()
+  async clearCart(@Body('userId') userId: number) {
+    return this.cartService.clearCart(userId);
   }
 }

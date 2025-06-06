@@ -7,23 +7,11 @@ export class PrismaService
   implements OnModuleInit, OnModuleDestroy
 {
   constructor() {
-    super({
-      log: ['query', 'info', 'warn', 'error'],
-      datasources: {
-        db: {
-          url: process.env.DATABASE_URL,
-        },
-      },
-    });
+    super();
   }
 
   async onModuleInit() {
-    try {
-      await this.$connect();
-    } catch (error) {
-      console.error('Failed to connect to database:', error);
-      throw error;
-    }
+    await this.$connect();
   }
 
   async onModuleDestroy() {

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Resource } from '@prisma/client';
+import { CreateResourceDto } from './dto/create-resource.dto';
 
 interface FindAllOptions {
   type?: string;
@@ -72,10 +73,10 @@ export class ResourcesService {
           select: {
             id: true,
             username: true,
-            firstName: true,
-            lastName: true,
-            profileImageUrl: true,
-            isApprovedSeller: true,
+            first_name: true,
+            last_name: true,
+            profile_image_url: true,
+            role: true,
           },
         },
         category: true,
@@ -94,10 +95,10 @@ export class ResourcesService {
           select: {
             id: true,
             username: true,
-            firstName: true,
-            lastName: true,
-            profileImageUrl: true,
-            isApprovedSeller: true,
+            first_name: true,
+            last_name: true,
+            profile_image_url: true,
+            role: true,
           },
         },
         category: true,
@@ -135,33 +136,11 @@ export class ResourcesService {
     });
   }
 
-  async create(data: {
-    title: string;
-    description: string;
-    type: string;
-    url: string;
-    price: number;
-    danceStyle?: string;
-    ageRange?: string;
-    difficultyLevel?: string;
-    sellerId: number;
-    thumbnailUrl?: string;
-    categoryId?: number;
-  }): Promise<Resource> {
+  async create(createResourceDto: CreateResourceDto, userId: number) {
     return this.prisma.resource.create({
-      data,
-      include: {
-        seller: {
-          select: {
-            id: true,
-            username: true,
-            firstName: true,
-            lastName: true,
-            profileImageUrl: true,
-            isApprovedSeller: true,
-          },
-        },
-        category: true,
+      data: {
+        ...createResourceDto,
+        sellerId: userId,
       },
     });
   }
@@ -175,10 +154,10 @@ export class ResourcesService {
           select: {
             id: true,
             username: true,
-            firstName: true,
-            lastName: true,
-            profileImageUrl: true,
-            isApprovedSeller: true,
+            first_name: true,
+            last_name: true,
+            profile_image_url: true,
+            role: true,
           },
         },
         category: true,
@@ -189,6 +168,20 @@ export class ResourcesService {
   async delete(id: number): Promise<Resource> {
     return this.prisma.resource.delete({
       where: { id },
+    });
+  }
+
+  async purchase(resourceId: number, userId: number) {
+    // For now, just create a purchase record
+    // This will be replaced with a proper payment system later
+    return this.prisma.resourcePurchase.create({
+      data: {
+        resource_id: resourceId,
+        user_id: userId,
+        status: 'COMPLETED',
+        amount: 0, // This will be replaced with actual price
+        purchased_at: new Date(),
+      },
     });
   }
 }

@@ -8,12 +8,14 @@ import { ResourceOwnerGuard } from './guards/resource-owner.guard';
 import { SubscriptionGuard } from './guards/subscription.guard';
 import { CoursesService } from '../courses/courses.service';
 import { BookingsService } from '../bookings/bookings.service';
-import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailModule } from '../mail/mail.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { StripeModule } from '../stripe/stripe.module';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
+import { SubscriptionTierGuard } from './guards/subscription-tier.guard';
 
 @Module({
   imports: [
@@ -31,6 +33,8 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     MailModule,
     ConfigModule,
     PermissionsModule,
+    StripeModule,
+    SubscriptionsModule,
   ],
   providers: [
     AuthService,
@@ -40,9 +44,9 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     SubscriptionGuard,
     CoursesService,
     BookingsService,
-    SubscriptionsService,
     PrismaService,
     JwtStrategy,
+    SubscriptionTierGuard,
   ],
   exports: [
     JwtAuthGuard,
@@ -50,6 +54,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     ResourceOwnerGuard,
     SubscriptionGuard,
     AuthService,
+    SubscriptionTierGuard,
   ],
 })
 export class AuthModule {}
