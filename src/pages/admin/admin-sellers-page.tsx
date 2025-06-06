@@ -21,13 +21,12 @@ import { formatCurrency } from "@/lib/utils";
 interface Seller {
   id: number;
   username: string;
-  firstName: string | null;
-  lastName: string | null;
+  first_name: string | null;
+  last_name: string | null;
   email: string | null;
   bio: string | null;
-  profileImageUrl: string | null;
+  profile_image_url: string | null;
   role: string;
-  isApprovedSeller: boolean;
   stripeConnectAccountId: string | null;
   stripeConnectOnboardingComplete: boolean;
   resourceCount: number;
@@ -52,8 +51,8 @@ export default function AdminSellersPage() {
   const [rejectionReason, setRejectionReason] = useState("");
   const [newSellerData, setNewSellerData] = useState({
     username: "",
-    firstName: "",
-    lastName: "",
+    first_name: "",
+    last_name: "",
     email: "",
     password: ""
   });
@@ -74,13 +73,13 @@ export default function AdminSellersPage() {
   const filteredSellers = sellers.filter((seller: Seller) => {
     const matchesSearch = 
       searchQuery === "" || 
-      `${seller.firstName || ""} ${seller.lastName || ""}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      `${seller.first_name || ""} ${seller.last_name || ""}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
       seller.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (seller.email || "").toLowerCase().includes(searchQuery.toLowerCase());
     
     if (activeTab === "all") return matchesSearch;
-    if (activeTab === "approved") return matchesSearch && seller.isApprovedSeller;
-    if (activeTab === "pending") return matchesSearch && !seller.isApprovedSeller;
+    if (activeTab === "approved") return matchesSearch && (seller.role === 'CURRICULUM_SELLER');
+    if (activeTab === "pending") return matchesSearch && !seller.role.startsWith('CURRICULUM_');
     if (activeTab === "withStripe") return matchesSearch && !!seller.stripeConnectAccountId;
     return matchesSearch;
   });
@@ -163,8 +162,8 @@ export default function AdminSellersPage() {
       });
       setNewSellerData({
         username: "",
-        firstName: "",
-        lastName: "",
+        first_name: "",
+        last_name: "",
         email: "",
         password: ""
       });
@@ -258,14 +257,14 @@ export default function AdminSellersPage() {
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <CachedAvatar username={seller.username} profileImageUrl={seller.profileImageUrl} />
+                  <CachedAvatar username={seller.username} profileImageUrl={seller.profile_image_url} />
                   <div>
-                    <CardTitle className="text-lg">{seller.firstName} {seller.lastName}</CardTitle>
+                    <CardTitle className="text-lg">{seller.first_name} {seller.last_name}</CardTitle>
                     <CardDescription className="text-sm">@{seller.username}</CardDescription>
                   </div>
                 </div>
-                <Badge variant={seller.isApprovedSeller ? "default" : "outline"}>
-                  {seller.isApprovedSeller ? "Approved" : "Pending"}
+                <Badge variant={seller.role === 'CURRICULUM_SELLER' ? "default" : "outline"}>
+                  {seller.role === 'CURRICULUM_SELLER' ? "Approved" : "Pending"}
                 </Badge>
               </div>
             </CardHeader>
@@ -308,7 +307,7 @@ export default function AdminSellersPage() {
               )}
             </CardContent>
             <CardFooter className="flex gap-2 border-t pt-4">
-              {!seller.isApprovedSeller ? (
+              {!seller.role.startsWith('CURRICULUM_') ? (
                 <>
                   <Button variant="default" size="sm" onClick={() => handleSellerApproval(seller, true)} 
                     className="flex-1">
@@ -362,7 +361,7 @@ export default function AdminSellersPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Approve Seller</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to approve {selectedSeller?.firstName} {selectedSeller?.lastName} (@{selectedSeller?.username}) as a seller?
+              Are you sure you want to approve {selectedSeller?.first_name} {selectedSeller?.last_name} (@{selectedSeller?.username}) as a seller?
               They will be able to upload and sell curriculum resources on the platform.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -386,7 +385,7 @@ export default function AdminSellersPage() {
           <DialogHeader>
             <DialogTitle>Reject Seller Application</DialogTitle>
             <DialogDescription>
-              Please provide a reason for rejecting {selectedSeller?.firstName} {selectedSeller?.lastName}'s seller application.
+              Please provide a reason for rejecting {selectedSeller?.first_name} {selectedSeller?.last_name}'s seller application.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -420,7 +419,7 @@ export default function AdminSellersPage() {
           <DialogHeader>
             <DialogTitle>Create Payout</DialogTitle>
             <DialogDescription>
-              Create a payout for {selectedSeller?.firstName} {selectedSeller?.lastName}.
+              Create a payout for {selectedSeller?.first_name} {selectedSeller?.last_name}.
               Current balance: {selectedSeller ? formatCurrency(selectedSeller.totalRevenue - selectedSeller.payoutHistory.totalPaid) : "$0.00"}
             </DialogDescription>
           </DialogHeader>
@@ -468,21 +467,21 @@ export default function AdminSellersPage() {
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="firstName">First Name</Label>
+                <Label htmlFor="first_name">First Name</Label>
                 <Input
-                  id="firstName"
+                  id="first_name"
                   placeholder="John"
-                  value={newSellerData.firstName}
-                  onChange={(e) => setNewSellerData({...newSellerData, firstName: e.target.value})}
+                  value={newSellerData.first_name}
+                  onChange={(e) => setNewSellerData({...newSellerData, first_name: e.target.value})}
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="lastName">Last Name</Label>
+                <Label htmlFor="last_name">Last Name</Label>
                 <Input
-                  id="lastName"
+                  id="last_name"
                   placeholder="Doe"
-                  value={newSellerData.lastName}
-                  onChange={(e) => setNewSellerData({...newSellerData, lastName: e.target.value})}
+                  value={newSellerData.last_name}
+                  onChange={(e) => setNewSellerData({...newSellerData, last_name: e.target.value})}
                 />
               </div>
             </div>

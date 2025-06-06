@@ -71,20 +71,12 @@ import { USER_ROLES } from "@/constants/roles";
 interface User {
   id: number;
   username: string;
+  first_name: string | null;
+  last_name: string | null;
   email: string | null;
-  firstName: string | null;
-  lastName: string | null;
-  role: string | null;
-  roles: string[] | null;
-  profileImageUrl: string | null;
-  bio: string | null;
-  isInstructor: boolean | null;
-  createdAt: Date | null;
-  lastLoginAt: Date | null;
-  status: string | null;
-  subscriptionPlan: string | null;
-  subscriptionStatus: string | null;
-  subscriptionExpiresAt: Date | null;
+  profile_image_url: string | null;
+  role: string;
+  created_at: Date | null;
 }
 
 export default function AdminUsersPage() {
@@ -156,7 +148,7 @@ export default function AdminUsersPage() {
   
   // Filter users based on search query and filters
   const filteredUsers = users.filter(user => {
-    const fullName = `${user.firstName || ""} ${user.lastName || ""}`.trim();
+    const fullName = `${user.first_name || ""} ${user.last_name || ""}`.trim();
     
     const matchesSearch = 
       searchQuery === "" || 
@@ -382,16 +374,16 @@ export default function AdminUsersPage() {
   
   // Get user display name
   const getUserDisplayName = (user: User) => {
-    if (user.firstName && user.lastName) {
-      return `${user.firstName} ${user.lastName}`;
+    if (user.first_name && user.last_name) {
+      return `${user.first_name} ${user.last_name}`;
     }
     return user.username;
   };
   
   // Get avatar initials
   const getAvatarInitials = (user: User) => {
-    if (user.firstName && user.lastName) {
-      return `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`;
+    if (user.first_name && user.last_name) {
+      return `${user.first_name.charAt(0)}${user.last_name.charAt(0)}`;
     }
     return user.username.substring(0, 2).toUpperCase();
   };
@@ -528,7 +520,7 @@ export default function AdminUsersPage() {
                             <TableCell>
                               <div className="flex items-center space-x-3">
                                 <Avatar>
-                                  <AvatarImage src={user.profileImageUrl || undefined} alt={getUserDisplayName(user)} />
+                                  <AvatarImage src={user.profile_image_url || undefined} alt={getUserDisplayName(user)} />
                                   <AvatarFallback>{getAvatarInitials(user)}</AvatarFallback>
                                 </Avatar>
                                 <div>
@@ -550,7 +542,7 @@ export default function AdminUsersPage() {
                             <TableCell>{getRoleBadge(user)}</TableCell>
                             <TableCell>{getStatusBadge(user.status)}</TableCell>
                             <TableCell>{getSubscriptionBadge(user.subscriptionPlan, user.subscriptionStatus)}</TableCell>
-                            <TableCell>{formatDate(user.createdAt)}</TableCell>
+                            <TableCell>{formatDate(user.created_at)}</TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end space-x-2">
                                 <Button

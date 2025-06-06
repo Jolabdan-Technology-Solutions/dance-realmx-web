@@ -227,6 +227,8 @@ export default function HomePage() {
     submitTestimonialMutation.mutate(testimonialData);
   };
 
+  const displayName = user?.first_name || user?.username || 'Guest';
+
   return (
     <div className="min-h-screen">
       {isLoggedIn ? (
@@ -248,8 +250,7 @@ export default function HomePage() {
 
             <div className="z-10 text-center px-4 max-w-5xl">
               <h1 className="text-4xl font-bold mb-2 text-white">
-                Welcome {isInstructor ? "Instructor" : ""}{" "}
-                {user?.first_name || user?.firstName || user?.username}!
+                Welcome {isInstructor ? "Instructor" : ""} {displayName}!
               </h1>
 
               <p className="text-xl mb-6 text-white max-w-2xl mx-auto">

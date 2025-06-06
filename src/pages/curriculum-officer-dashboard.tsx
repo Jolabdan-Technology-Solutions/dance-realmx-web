@@ -48,6 +48,7 @@ import { useForm } from "react-hook-form";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CachedImage } from "@/components/ui/cached-image";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 // Define type for resource
 interface Resource {
@@ -1109,7 +1110,7 @@ export default function CurriculumOfficerDashboard() {
             <DialogTitle>Initiate Payout</DialogTitle>
             <DialogDescription>
               {selectedSeller ? (
-                `Send payment to ${selectedSeller.firstName ? `${selectedSeller.firstName} ${selectedSeller.lastName || ''}` : selectedSeller.username}`
+                `Send payment to ${selectedSeller.first_name ? `${selectedSeller.first_name} ${selectedSeller.last_name || ''}` : selectedSeller.username}`
               ) : ''}
             </DialogDescription>
           </DialogHeader>

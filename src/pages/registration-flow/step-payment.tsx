@@ -46,7 +46,7 @@ export function StepPayment({ registrationData, updateRegistrationData }: StepPa
         // Create subscription checkout session
         const response = await apiRequest("POST", "/api/subscriptions/checkout", {
           planSlug: registrationData.recommendedPlan.slug,
-          frequency: 'MONTHLY',
+          frequency: 'month',
           email: registrationData.accountData.email
         });
         

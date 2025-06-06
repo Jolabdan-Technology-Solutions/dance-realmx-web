@@ -83,7 +83,7 @@ export default function SubscriptionPage() {
         },
         body: JSON.stringify({
           planSlug: plan.slug,
-          frequency: 'MONTHLY',
+          frequency: 'month',
           email: user.email
         }),
         credentials: 'include',

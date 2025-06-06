@@ -98,8 +98,8 @@ export const ResourceDetailsModal: React.FC<ResourceDetailsModalProps> = ({
     }
   };
 
-  const sellerName = resource.seller 
-    ? `${resource.seller.firstName || ''}${resource.seller.lastName ? ' ' + resource.seller.lastName : ''}`.trim() || resource.seller.username 
+  const sellerName = resource.seller
+    ? `${resource.seller.first_name || ''} ${resource.seller.last_name || ''}`.trim() || resource.seller.username
     : 'Unknown Seller';
     
   // Add to cart function
@@ -149,9 +149,9 @@ export const ResourceDetailsModal: React.FC<ResourceDetailsModalProps> = ({
           <DialogHeader className="pb-2 border-b">
             <DialogTitle className="text-2xl font-bold">{resource.title}</DialogTitle>
             <DialogDescription className="flex items-center gap-2 text-sm mt-1">
-              <Avatar className="h-6 w-6">
-                <AvatarImage src={resource.seller?.profileImageUrl} />
-                <AvatarFallback>{sellerName[0]}</AvatarFallback>
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={resource.seller?.profile_image_url} alt={sellerName} />
+                <AvatarFallback>{sellerName.charAt(0)}</AvatarFallback>
               </Avatar>
               <div className="flex flex-col">
                 <span className="text-foreground">{sellerName}</span>

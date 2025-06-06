@@ -14,6 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { CachedImage } from "@/components/ui/cached-image";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 // Simple curriculum page that focuses on directly fetching and displaying resources
 export default function CurriculumPageNew() {
@@ -64,10 +65,9 @@ export default function CurriculumPageNew() {
                 const sellerResponse = await fetch(`/api/users/${resource.sellerId}`);
                 if (sellerResponse.ok) {
                   const sellerData = await sellerResponse.json();
-                  sellerName = sellerData.username || 
-                              `${sellerData.firstName || ''} ${sellerData.lastName || ''}`.trim() || 
+                  sellerName = `${sellerData.first_name || ''} ${sellerData.last_name || ''}`.trim() || 
                               "Anonymous Instructor";
-                  sellerProfileImageUrl = sellerData.profileImageUrl;
+                  sellerProfileImageUrl = sellerData.profile_image_url;
                 }
                 
                 // Try to fetch ratings for this resource
@@ -238,24 +238,15 @@ export default function CurriculumPageNew() {
                 </div>
                 
                 {/* Seller info with thumbnail */}
-                <div className="flex items-center mt-2">
-                  <div className="w-5 h-5 rounded-full overflow-hidden mr-1.5">
-                    <CachedImage
-                      src={resource.sellerProfileImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(resource.sellerName || 'Instructor')}&background=00d4ff&color=fff`}
-                      alt={resource.sellerName || 'Instructor'}
-                      className="w-full h-full"
-                      contentType="resource"
-                      imgClassName="w-full h-full object-cover"
-                      fallback={
-                        <div className="w-5 h-5 bg-gray-200 flex items-center justify-center rounded-full">
-                          <User className="h-3 w-3 text-gray-500" />
-                        </div>
-                      }
+                <div className="flex items-center gap-2">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage 
+                      src={resource.sellerProfileImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(resource.sellerName || 'Instructor')}&background=00d4ff&color=fff`} 
+                      alt={resource.sellerName || 'Instructor'} 
                     />
-                  </div>
-                  <span className="text-xs text-gray-600 truncate">
-                    {resource.sellerName || 'Anonymous Instructor'}
-                  </span>
+                    <AvatarFallback>{resource.sellerName?.charAt(0) || 'I'}</AvatarFallback>
+                  </Avatar>
+                  <span className="text-sm text-gray-600">{resource.sellerName || 'Instructor'}</span>
                 </div>
               </div>
             </CardContent>

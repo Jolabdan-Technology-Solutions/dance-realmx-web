@@ -37,8 +37,8 @@ const loginSchema = z.object({
 const registerSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
   password: z.string().min(6, "Password must be at least 6 characters"),
-  firstName: z.string().min(1, "First name is required"),
-  lastName: z.string().min(1, "Last name is required"),
+  first_name: z.string().min(1, "First name is required"),
+  last_name: z.string().min(1, "Last name is required"),
   email: z.string().email("Please enter a valid email"),
   selectedRoles: z.array(z.string()).min(1, "Select at least one role"),
 });
@@ -94,8 +94,8 @@ function AuthPageWithAuth() {
     defaultValues: {
       username: "",
       password: "",
-      firstName: "",
-      lastName: "",
+      first_name: "",
+      last_name: "",
       email: "",
       selectedRoles: [],
     },
@@ -157,8 +157,8 @@ function AuthPageWithAuth() {
         password: data.password.trim(),
         email: data.email.trim(),
         role: "STUDENT", // Default role, adjust as needed
-        first_name: data.firstName.trim(),
-        last_name: data.lastName.trim(),
+        first_name: data.first_name.trim(),
+        last_name: data.last_name.trim(),
         profile_image_url: "",
         auth_provider: "local"
       };
@@ -342,7 +342,7 @@ function AuthPageWithAuth() {
                         <div className="grid grid-cols-2 gap-4">
                           <FormField
                             control={registerForm.control}
-                            name="firstName"
+                            name="first_name"
                             render={({ field }) => (
                               <FormItem>
                                 <FormLabel>First Name</FormLabel>
@@ -356,7 +356,7 @@ function AuthPageWithAuth() {
 
                           <FormField
                             control={registerForm.control}
-                            name="lastName"
+                            name="last_name"
                             render={({ field }) => (
                               <FormItem>
                                 <FormLabel>Last Name</FormLabel>

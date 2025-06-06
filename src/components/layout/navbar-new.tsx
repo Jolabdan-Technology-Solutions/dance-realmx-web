@@ -13,6 +13,7 @@ import CartIcon from "@/components/cart/cart-icon";
 import { AuthWrapper } from "@/lib/auth-wrapper";
 import { useAuth, AuthContext } from "@/hooks/use-auth";
 import { CachedAvatar } from "@/components/ui/cached-avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 // User session menu component - uses the useAuth hook directly
 function UserSessionMenu() {
@@ -36,16 +37,12 @@ function UserSessionMenu() {
           <Button variant="ghost" className="flex items-center space-x-1 text-white">
             {/* Use the CachedAvatar component for better avatar handling */}
             <div className="mr-2">
-              <CachedAvatar
-                firstName={user?.first_name || ''}
-                lastName={user?.last_name || ''}
-                username={user?.username || ''}
-                profileImageUrl={user?.profile_image_url}
-                alt={displayName}
-                className="w-8 h-8"
-                type="profile"
-                entityType="user"
-              />
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={user?.profile_image_url} alt={user?.username} />
+                <AvatarFallback>
+                  {user?.first_name?.charAt(0) || user?.last_name?.charAt(0) || user?.username?.charAt(0)}
+                </AvatarFallback>
+              </Avatar>
             </div>
             <span>Hi, {displayName}!</span>
             <ChevronDown className="h-4 w-4" />
@@ -126,17 +123,12 @@ function MobileUserMenu() {
       {/* Use the CachedAvatar component for better avatar handling in mobile menu */}
       <div className="flex justify-center mb-4">
         <div className="w-20 h-20 rounded-full border-2 border-white overflow-hidden">
-          <CachedAvatar
-            firstName={user?.first_name || ''}
-            lastName={user?.last_name || ''}
-            username={user?.username || ''}
-            profileImageUrl={user?.profile_image_url}
-            alt={user?.username || 'User'}
-            className="w-20 h-20"
-            fallbackClassName="text-3xl"
-            type="profile"
-            entityType="user"
-          />
+          <Avatar className="h-20 w-20">
+            <AvatarImage src={user?.profile_image_url} alt={user?.username} />
+            <AvatarFallback>
+              {user?.first_name?.charAt(0) || user?.last_name?.charAt(0) || user?.username?.charAt(0)}
+            </AvatarFallback>
+          </Avatar>
         </div>
       </div>
       <Link href="/dashboard">

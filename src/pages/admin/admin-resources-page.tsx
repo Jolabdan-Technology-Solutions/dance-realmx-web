@@ -458,7 +458,7 @@ export default function AdminResourcesPage() {
                             <div className="flex items-center space-x-2">
                               <div className="h-6 w-6 rounded-full overflow-hidden">
                                 <img 
-                                  src={resource.sellerProfileImageUrl || DEFAULT_SELLER_IMAGE}
+                                  src={resource.seller.profile_image_url || DEFAULT_SELLER_IMAGE}
                                   alt={resource.sellerName} 
                                   className="h-full w-full object-cover"
                                 />
