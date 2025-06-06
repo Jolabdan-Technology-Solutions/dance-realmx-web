@@ -3,430 +3,298 @@ generator client {
 }
 
 datasource db {
-  provider     = "postgresql"
-  url          = env("DATABASE_URL")
-  directUrl    = env("DIRECT_URL")
-  relationMode = "prisma"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
-model Tenant {
-  id         Int      @id @default(autoincrement())
-  name       String
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-  users      User[]
-}
-
-model User {
-  id                  Int                 @id @default(autoincrement())
-  email               String              @unique
-  username            String              @unique
-  password            String
-  first_name          String?
-  last_name           String?
-  role                UserRole            @default(GUEST_USER)
-  profile_image_url   String?
-  auth_provider       String?
-  created_at          DateTime            @default(now())
-  updated_at          DateTime            @updatedAt
-  subscription_tier   SubscriptionTier?
-  tenant_id           Int?
-  instructor_bookings Booking[]           @relation("InstructorBookings")
-  bookings            Booking[]
-  courses             Course[]            @relation("InstructorCourses")
-  enrollments         Enrollment[]
-  receivedMessages    Message[]           @relation("ReceivedMessages")
-  sentMessages        Message[]           @relation("SentMessages")
-  notifications       Notification[]
-  payments            Payment[]
-  profile             Profile?
-  resources           Resource[]          @relation("SellerResources")
-  resource_purchases  ResourcePurchase[]
-  reviews             Review[]
-  stripe_customer     StripeCustomer?
-  subscriptions       Subscription[]
-  testimonials        Testimonial[]
-  certifications      UserCertification[]
-  features            UserFeature[]       @relation("UserFeatures")
-  role_mappings       UserRoleMapping[]
-  tenant              Tenant?             @relation(fields: [tenant_id], references: [id])
-}
-
-model Profile {
-  id             Int      @id @default(autoincrement())
-  user_id        Int      @unique
-  bio            String?
-  phone_number   String?
-  address        String?
-  city           String?
-  state          String?
-  country        String?
-  zip_code       String?
-  is_professional Boolean  @default(false)
-  created_at     DateTime @default(now())
-  updated_at     DateTime @updatedAt
-  user           User     @relation(fields: [user_id], references: [id])
-}
-
-model Course {
-  id                Int                 @id @default(autoincrement())
-  title             String
-  description       String
-  price             Float
-  image_url         String?
-  instructor_id     Int
-  preview_video_url String
-  video_url         String
-  created_at        DateTime            @default(now())
-  updated_at        DateTime            @updatedAt
-  instructor        User                @relation("InstructorCourses", fields: [instructor_id], references: [id])
-  enrollments       Enrollment[]
-  modules           Module[]
-  reviews           Review[]
-  certifications    UserCertification[]
-  categories        Category[]          @relation("CourseCategories")
-  tags              Tag[]               @relation("CourseTags")
-}
-
-model Module {
-  id          Int      @id @default(autoincrement())
-  title       String
-  description String
-  course_id   Int
-  order       Int
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
-  lessons     Lesson[]
-  course      Course   @relation(fields: [course_id], references: [id])
-}
-
-model Lesson {
-  id         Int      @id @default(autoincrement())
-  title      String
-  content    String
-  video_url  String?
-  module_id  Int
-  order      Int
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-  module     Module   @relation(fields: [module_id], references: [id])
-}
-
-model Enrollment {
-  id         Int      @id @default(autoincrement())
-  user_id    Int
-  course_id  Int
-  status     String   @default("ACTIVE")
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-  course     Course   @relation(fields: [course_id], references: [id])
-  user       User     @relation(fields: [user_id], references: [id])
-
-  @@unique([user_id, course_id])
-}
-
-model Testimonial {
-  id         Int      @id @default(autoincrement())
-  content    String
-  rating     Int
-  user_id    Int
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-  user       User     @relation(fields: [user_id], references: [id])
-}
-
-model StripeCustomer {
-  id                 Int      @id @default(autoincrement())
-  user_id            Int      @unique
-  stripe_customer_id String   @unique
-  created_at         DateTime @default(now())
-  updated_at         DateTime @updatedAt
-  user               User     @relation(fields: [user_id], references: [id])
-}
-
-model Subscription {
-  id                     Int                   @id @default(autoincrement())
-  user_id                Int
-  plan_id                Int
-  stripe_subscription_id String?               @unique
-  current_period_start   DateTime
-  current_period_end     DateTime
-  cancel_at_period_end   Boolean               @default(false)
-  created_at             DateTime              @default(now())
-  updated_at             DateTime              @updatedAt
-  frequency              SubscriptionFrequency
-  stripe_session_id      String?
-  status                 SubscriptionStatus    @default(ACTIVE)
-  user                   User                  @relation(fields: [user_id], references: [id])
-  plan                   SubscriptionPlan      @relation(fields: [plan_id], references: [id])
-}
-
-model Booking {
-  id            Int      @id @default(autoincrement())
-  user_id       Int
-  instructor_id Int
-  session_start DateTime
-  session_end   DateTime
-  status        String   @default("PENDING")
+model user {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String?
+  image         String?
+  role          user_role @default(STUDENT)
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
-  instructor    User     @relation("InstructorBookings", fields: [instructor_id], references: [id])
-  user          User     @relation(fields: [user_id], references: [id])
+
+  // Relations
+  profile       profile?
+  bookings_as_professional booking[] @relation("ProfessionalBookings")
+  bookings_as_student     booking[] @relation("StudentBookings")
+  resources     resource[] @relation("SellerResources")
+  certifications user_certification[]
+  enrollments   enrollment[]
+  testimonials  testimonial[]
+  stripe_customer stripe_customer?
+  subscriptions subscription[]
+  role_mappings user_role_mapping[]
+  features      user_feature[]
+  notifications notification[]
+  sent_messages message[] @relation("SentMessages")
+  received_messages message[] @relation("ReceivedMessages")
+  reviews       review[]
+  courses_as_instructor course[] @relation("InstructorCourses")
 }
 
-model UserCertification {
-  id              Int      @id @default(autoincrement())
-  user_id         Int
-  course_id       Int
-  issued_at       DateTime @default(now())
-  certificate_url String?
+model profile {
+  id        String   @id @default(cuid())
+  user_id   String   @unique
+  user      user     @relation(fields: [user_id], references: [id])
+  bio       String?
+  location  String?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+enum user_role {
+  STUDENT
+  PROFESSIONAL
+  SELLER
+  ADMIN
+}
+
+model booking {
+  id               String         @id @default(cuid())
+  professional_id  String
+  student_id       String
+  start_time       DateTime
+  end_time         DateTime
+  duration         Int
+  type             String
+  status           booking_status @default(PENDING)
+  price            Float
+  location         Json
+  notes            String?
+  created_at       DateTime     @default(now())
+  updated_at       DateTime     @updatedAt
+
+  professional     user         @relation("ProfessionalBookings", fields: [professional_id], references: [id])
+  student          user         @relation("StudentBookings", fields: [student_id], references: [id])
+}
+
+enum booking_status {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
+
+model booking_availability {
+  id               String   @id @default(cuid())
+  professional_id  String
+  day_of_week      Int
+  start_time       String
+  end_time         String
+  is_recurring     Boolean  @default(true)
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  professional     user     @relation(fields: [professional_id], references: [id])
+}
+
+model booking_settings {
+  id                    String   @id @default(cuid())
+  professional_id        String   @unique
+  min_notice_hours       Int      @default(24)
+  max_advance_days       Int      @default(30)
+  cancellation_policy    Json
+  buffer_time            Int      @default(15)
+  default_duration       Int      @default(60)
+  default_price          Float    @default(50)
+  created_at             DateTime @default(now())
+  updated_at             DateTime @updatedAt
+
+  professional           user     @relation(fields: [professional_id], references: [id])
+}
+
+model course {
+  id              String   @id @default(cuid())
+  title           String
+  description     String?
+  instructor_id   String
+  price           Float
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
-  course          Course   @relation(fields: [course_id], references: [id])
-  user            User     @relation(fields: [user_id], references: [id])
+
+  instructor      user     @relation("InstructorCourses", fields: [instructor_id], references: [id])
+  enrollments     enrollment[]
+  certifications  user_certification[]
+  reviews         review[]
 }
 
-model ResourceCategory {
-  id          Int        @id @default(autoincrement())
-  name        String     @unique
-  description String?
-  created_at  DateTime   @default(now())
-  updated_at  DateTime   @updatedAt
-  resources   Resource[]
-}
-
-model Resource {
-  id              Int                @id @default(autoincrement())
-  title           String
-  description     String
-  price           Float
-  created_at      DateTime           @default(now())
-  updated_at      DateTime           @updatedAt
-  ageRange        String?
-  categoryId      Int?
-  danceStyle      String?
-  difficultyLevel String?
-  sellerId        Int
-  thumbnailUrl    String?
-  type            String
-  url             String
-  seller          User               @relation("SellerResources", fields: [sellerId], references: [id])
-  purchases       ResourcePurchase[]
-  category        ResourceCategory?  @relation(fields: [categoryId], references: [id])
-}
-
-model ResourcePurchase {
-  id                       Int      @id @default(autoincrement())
-  user_id                  Int
-  resource_id              Int
-  stripe_payment_intent_id String?
-  status                   String   @default("PENDING")
-  amount                   Float
-  created_at               DateTime @default(now())
-  updated_at               DateTime @updatedAt
-  resource                 Resource @relation(fields: [resource_id], references: [id])
-  user                     User     @relation(fields: [user_id], references: [id])
-
-  @@unique([user_id, resource_id])
-}
-
-model Payment {
-  id                       Int           @id @default(autoincrement())
-  user_id                  Int
-  stripe_payment_intent_id String?       @unique
-  amount                   Float
-  reference_id             Int?
-  created_at               DateTime      @default(now())
-  updated_at               DateTime      @updatedAt
-  currency                 String        @default("usd")
-  metadata                 Json?
-  status                   PaymentStatus @default(PENDING)
-  reference_type           PaymentType
-  stripe_session_id        String?
-  user                     User          @relation(fields: [user_id], references: [id])
-}
-
-model UserRoleMapping {
-  id        Int      @id @default(autoincrement())
-  user_id   Int
-  role      UserRole
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
-
-  @@unique([user_id, role])
-  @@map("user_role_mappings")
-}
-
-model UserFeature {
-  id          Int      @id @default(autoincrement())
-  user_id     Int
-  feature_key String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  user        User     @relation("UserFeatures", fields: [user_id], references: [id], onDelete: Cascade)
-
-  @@unique([user_id, feature_key])
-  @@map("user_features")
-}
-
-model Notification {
-  id         Int      @id @default(autoincrement())
-  user_id    Int
-  title      String
-  message    String
-  type       String
-  read       Boolean  @default(false)
-  data       Json?
+model enrollment {
+  id         String   @id @default(cuid())
+  user_id    String
+  course_id  String
+  status     String
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
-  user       User     @relation(fields: [user_id], references: [id])
 
-  @@index([user_id])
+  user       user     @relation(fields: [user_id], references: [id])
+  course     course   @relation(fields: [course_id], references: [id])
 }
 
-model Message {
-  id          Int      @id @default(autoincrement())
-  sender_id   Int
-  receiver_id Int
-  content     String
-  read        Boolean  @default(false)
+model testimonial {
+  id         String   @id @default(cuid())
+  user_id    String
+  content    String
+  rating     Int
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  user       user     @relation(fields: [user_id], references: [id])
+}
+
+model stripe_customer {
+  id                String   @id @default(cuid())
+  user_id           String   @unique
+  stripe_customer_id String
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  user              user     @relation(fields: [user_id], references: [id])
+}
+
+model subscription_plan {
+  id          String   @id @default(cuid())
+  name        String
+  price       Float
+  features    Json
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
-  receiver    User     @relation("ReceivedMessages", fields: [receiver_id], references: [id])
-  sender      User     @relation("SentMessages", fields: [sender_id], references: [id])
 
-  @@index([sender_id])
-  @@index([receiver_id])
+  subscriptions subscription[]
 }
 
-model Category {
-  id          Int        @id @default(autoincrement())
-  name        String     @unique
-  description String?
-  parent_id   Int?
-  created_at  DateTime   @default(now())
-  updated_at  DateTime   @updatedAt
-  parent      Category?  @relation("CategoryHierarchy", fields: [parent_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  children    Category[] @relation("CategoryHierarchy")
-  courses     Course[]   @relation("CourseCategories")
+model subscription {
+  id                String             @id @default(cuid())
+  user_id           String
+  plan_id           String
+  status            subscription_status @default(ACTIVE)
+  stripe_subscription_id String?
+  created_at        DateTime           @default(now())
+  updated_at        DateTime           @updatedAt
+
+  user              user               @relation(fields: [user_id], references: [id])
+  plan              subscription_plan  @relation(fields: [plan_id], references: [id])
 }
 
-model Tag {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique
-  description String?
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
-  courses     Course[] @relation("CourseTags")
+enum subscription_status {
+  ACTIVE
+  CANCELLED
+  EXPIRED
 }
 
-model Review {
-  id         Int      @id @default(autoincrement())
+model user_certification {
+  id         String   @id @default(cuid())
+  user_id    String
+  course_id  String
+  issued_at  DateTime
+  status     String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  user       user     @relation(fields: [user_id], references: [id])
+  course     course   @relation(fields: [course_id], references: [id])
+}
+
+model resource {
+  id               String   @id @default(cuid())
+  name             String
+  description      String?
+  price            Float
+  type             String
+  dance_style      String?
+  difficulty_level String?
+  age_range        String?
+  thumbnail_url    String?
+  url              String
+  seller_id        String
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  seller           user     @relation("SellerResources", fields: [seller_id], references: [id])
+  purchases        resource_purchase[]
+}
+
+model resource_purchase {
+  id           String   @id @default(cuid())
+  user_id      String
+  resource_id  String
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  user         user     @relation(fields: [user_id], references: [id])
+  resource     resource @relation(fields: [resource_id], references: [id])
+}
+
+model payment {
+  id                  String   @id @default(cuid())
+  user_id             String
+  amount              Float
+  currency            String
+  status              String
+  stripe_session_id   String?
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+
+  user                user     @relation(fields: [user_id], references: [id])
+}
+
+model user_role_mapping {
+  id         String   @id @default(cuid())
+  user_id    String
+  role       String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  user       user     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model user_feature {
+  id         String   @id @default(cuid())
+  user_id    String
+  feature    String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  user       user     @relation("UserFeatures", fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model notification {
+  id         String   @id @default(cuid())
+  user_id    String
+  type       String
+  message    String
+  read       Boolean  @default(false)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  user       user     @relation(fields: [user_id], references: [id])
+}
+
+model message {
+  id           String   @id @default(cuid())
+  sender_id    String
+  receiver_id  String
+  content      String
+  read         Boolean  @default(false)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  sender       user     @relation("SentMessages", fields: [sender_id], references: [id])
+  receiver     user     @relation("ReceivedMessages", fields: [receiver_id], references: [id])
+}
+
+model review {
+  id         String   @id @default(cuid())
+  user_id    String
+  course_id  String
   rating     Int
   comment    String?
-  user_id    Int
-  course_id  Int
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
-  course     Course   @relation(fields: [course_id], references: [id])
-  user       User     @relation(fields: [user_id], references: [id])
 
-  @@unique([user_id, course_id])
-}
-
-model SubscriptionPlan {
-  id                   Int              @id @default(autoincrement())
-  name                 String           @unique
-  slug                 String           @unique
-  description          String?
-  features             String[]
-  priceMonthly         Decimal          @db.Decimal(10, 2)
-  priceYearly          Decimal          @db.Decimal(10, 2)
-  stripePriceIdMonthly String?
-  stripePriceIdYearly  String?
-  isPopular            Boolean          @default(false)
-  isActive             Boolean          @default(true)
-  isStandalone         Boolean          @default(false)
-  planType             String           @default("main")
-  featureDetails       Json?
-  unlockedRoles        UserRole[]
-  tier                 SubscriptionTier
-  createdAt            DateTime         @default(now())
-  updatedAt            DateTime         @updatedAt
-  subscriptions        Subscription[]
-
-  @@map("subscription_plans")
-}
-
-model CourseCategories {
-  A Int
-  B Int
-
-  @@id([A, B], map: "_CourseCategories_AB_pkey")
-  @@index([B], map: "_CourseCategories_B_index")
-  @@map("_CourseCategories")
-}
-
-model CourseTags {
-  A Int
-  B Int
-
-  @@id([A, B], map: "_CourseTags_AB_pkey")
-  @@index([B], map: "_CourseTags_B_index")
-  @@map("_CourseTags")
-}
-
-enum UserRole {
-  GUEST_USER
-  CURRICULUM_SELLER
-  STUDENT
-  ADMIN
-  DIRECTORY_MEMBER
-  CERTIFICATION_MANAGER
-  INSTRUCTOR_ADMIN
-  CURRICULUM_ADMIN
-  COURSE_CREATOR_ADMIN
-  BOOKING_PROFESSIONAL
-  BOOKING_USER
-}
-
-enum SubscriptionTier {
-  FREE
-  SILVER
-  GOLD
-  PLATINUM
-}
-
-enum EnrollmentStatus {
-  ACTIVE
-  COMPLETED
-  CANCELLED
-}
-
-enum PaymentStatus {
-  PENDING
-  SUCCEEDED
-  FAILED
-  REFUNDED
-  PARTIALLY_REFUNDED
-  CANCELED
-}
-
-enum PaymentType {
-  COURSE
-  RESOURCE
-  SUBSCRIPTION
-}
-
-enum SubscriptionFrequency {
-  MONTHLY
-  YEARLY
-}
-
-enum SubscriptionStatus {
-  ACTIVE
-  TRIALING
-  CANCELED
-  FAILED
+  user       user     @relation(fields: [user_id], references: [id])
+  course     course   @relation(fields: [course_id], references: [id])
 }

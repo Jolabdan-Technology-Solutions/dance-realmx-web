@@ -1,251 +1,255 @@
-# DanceRealmX Platform
+# Dance RealmX Platform
 
-## Overview
-DanceRealmX is a comprehensive dance education platform that combines e-learning, resource marketplace, certification, and booking systems. This repository contains the full-stack implementation of the platform.
+A comprehensive platform for dance professionals and students to connect, learn, and grow together.
 
-## Tech Stack
-- **Frontend**: React + TypeScript + Vite
-- **Backend**: NestJS + TypeScript
-- **Database**: PostgreSQL + Prisma ORM
-- **Authentication**: JWT + OAuth
+## 🚀 Features
+
+### For Students
+- Book private/group lessons with professionals
+- Purchase and access dance resources
+- Track progress and earn certifications
+- Join courses and communities
+- Receive personalized recommendations
+
+### For Professionals
+- Manage bookings and availability
+- Create and sell resources
+- Issue certifications
+- Track earnings and analytics
+- Build professional profile
+
+### For Sellers
+- Upload and sell dance resources
+- Manage digital products
+- Track sales and analytics
+- Connect with customers
+
+## 🛠 Tech Stack
+
+- **Frontend**: Next.js, React, Material-UI
+- **Backend**: Node.js, Express
+- **Database**: PostgreSQL
+- **ORM**: Prisma
+- **Authentication**: NextAuth.js
 - **Payment Processing**: Stripe
-- **File Storage**: Cloudinary
-- **Email Service**: SendGrid
+- **File Storage**: AWS S3
+- **Deployment**: PM2, Nginx
 
-## Prerequisites
-- Node.js (v18 or higher)
-- PostgreSQL (v14 or higher)
-- npm or yarn
-- Stripe account
-- Cloudinary account
-- SendGrid account
+## 📋 Prerequisites
 
-## Environment Setup
+- Node.js (v16 or higher)
+- PostgreSQL (v13 or higher)
+- PM2 (for production)
+- Nginx (for production)
 
-### Required Environment Variables
+## 🔧 Environment Variables
+
+Create a `.env` file in the root directory:
+
 ```env
 # Database
-DATABASE_URL="postgresql://user:password@localhost:5432/dancerealmx"
+DATABASE_URL="postgresql://user:password@localhost:5432/dance_realmx"
 
 # Authentication
-JWT_SECRET="your-jwt-secret"
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="your-secret-key"
 GOOGLE_CLIENT_ID="your-google-client-id"
 GOOGLE_CLIENT_SECRET="your-google-client-secret"
 
 # Stripe
-STRIPE_SECRET_KEY="sk_test_..."
-STRIPE_PUBLISHABLE_KEY="pk_test_..."
-STRIPE_WEBHOOK_SECRET="whsec_..."
+STRIPE_SECRET_KEY="your-stripe-secret-key"
+STRIPE_WEBHOOK_SECRET="your-stripe-webhook-secret"
+STRIPE_PRICE_ID="your-stripe-price-id"
 
-# Subscription Price IDs
-STRIPE_PRICE_SILVER_MONTHLY="price_..."
-STRIPE_PRICE_SILVER_YEARLY="price_..."
-STRIPE_PRICE_GOLD_MONTHLY="price_..."
-STRIPE_PRICE_GOLD_YEARLY="price_..."
-STRIPE_PRICE_PLATINUM_MONTHLY="price_..."
-STRIPE_PRICE_PLATINUM_YEARLY="price_..."
-
-# Cloudinary
-CLOUDINARY_CLOUD_NAME="your-cloud-name"
-CLOUDINARY_API_KEY="your-api-key"
-CLOUDINARY_API_SECRET="your-api-secret"
-
-# SendGrid
-SENDGRID_API_KEY="your-sendgrid-api-key"
-SENDGRID_FROM_EMAIL="noreply@dancerealmx.com"
-
-# Frontend
-VITE_API_URL="http://localhost:3000"
-VITE_STRIPE_PUBLIC_KEY="pk_test_..."
+# AWS S3
+AWS_ACCESS_KEY_ID="your-aws-access-key"
+AWS_SECRET_ACCESS_KEY="your-aws-secret-key"
+AWS_REGION="your-aws-region"
+AWS_BUCKET_NAME="your-bucket-name"
 ```
 
-## Installation
+## 🚀 Getting Started
 
-### Backend Setup
-```bash
-cd dance-realmx
-npm install
-npx prisma generate
-npx prisma migrate dev
-npm run start:dev
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/your-username/dance-realmx.git
+   cd dance-realmx
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Set up the database**
+   ```bash
+   npx prisma migrate dev
+   npx prisma generate
+   ```
+
+4. **Run the development server**
+   ```bash
+   npm run dev
+   ```
+
+5. **Build for production**
+   ```bash
+   npm run build
+   ```
+
+6. **Start production server**
+   ```bash
+   npm run start:prod
+   ```
+
+## 📁 Project Structure
+
+```
+dance-realmx/
+├── prisma/              # Database schema and migrations
+├── src/
+│   ├── pages/          # Next.js pages
+│   ├── components/     # React components
+│   ├── hooks/          # Custom React hooks
+│   ├── lib/            # Utility functions
+│   ├── services/       # Business logic
+│   └── styles/         # Global styles
+├── public/             # Static files
+└── tests/              # Test files
 ```
 
-### Frontend Setup
-```bash
-cd dance-realmx-web
-npm install
-npm run dev
-```
+## 🔄 Database Schema
 
-## Feature Implementation Status
+The platform uses the following main models:
 
-### Core Features ✅
-- [x] User Authentication
-- [x] Role-based Access Control
-- [x] Profile Management
-- [x] Basic Course Structure
-- [x] Resource Management
-- [x] Subscription System
-- [x] Basic Booking System
+- `user`: Core user information and authentication
+- `profile`: Extended user profile information
+- `booking`: Lesson booking management
+- `course`: Course and curriculum management
+- `resource`: Digital resource management
+- `subscription`: Subscription and payment management
+- `certification`: User certification tracking
 
-### In Progress 🚧
-- [ ] Enhanced Learning Paths
-- [ ] Certificate System
-- [ ] Advanced Booking Features
-- [ ] Mobile Optimization
-- [ ] Performance Improvements
+## 💳 Payment Integration
 
-### Planned Features 📋
-- [ ] Live Streaming
-- [ ] AI Recommendations
-- [ ] Community Features
-- [ ] International Support
+The platform uses Stripe for payment processing:
 
-## Testing
+1. **Subscription Plans**
+   - Monthly/Yearly billing
+   - Multiple plan tiers
+   - Automatic renewal
 
-### Backend Tests
-```bash
-cd dance-realmx
-npm run test
-npm run test:e2e
-```
+2. **Resource Purchases**
+   - One-time payments
+   - Digital delivery
+   - Purchase history
 
-### Frontend Tests
-```bash
-cd dance-realmx-web
-npm run test
-npm run test:e2e
-```
+3. **Booking Payments**
+   - Secure payment processing
+   - Refund handling
+   - Payment verification
 
-## API Documentation
-API documentation is available at `/api/docs` when running the backend server.
+## 🔐 Authentication
 
-## Development Workflow
+- Google OAuth integration
+- Role-based access control
+- Session management
+- Secure password handling
 
-### Branch Strategy
-- `main` - Production branch
-- `dev` - Development branch
-- `feature/*` - Feature branches
-- `bugfix/*` - Bug fix branches
-
-### Commit Convention
-```
-feat: add new feature
-fix: fix bug
-docs: update documentation
-style: format code
-refactor: refactor code
-test: add tests
-chore: update dependencies
-```
-
-### Pull Request Process
-1. Create feature branch from `dev`
-2. Implement changes
-3. Write/update tests
-4. Update documentation
-5. Create PR to `dev`
-6. Code review
-7. Merge to `dev`
-8. Deploy to staging
-9. QA testing
-10. Merge to `main`
-
-## Deployment
-
-### Production Deployment
-```bash
-# Backend
-cd dance-realmx
-npm run build
-pm2 start ecosystem.config.js
-
-# Frontend
-cd dance-realmx-web
-npm run build
-```
-
-### Environment Setup
-1. Set up production environment variables
-2. Configure SSL certificates
-3. Set up database backups
-4. Configure monitoring
-5. Set up CI/CD pipeline
-
-## Monitoring and Maintenance
-
-### Health Checks
-- API endpoints: `/health`
-- Database connection
-- External service status
-
-### Logging
-- Application logs
-- Error tracking
-- Performance monitoring
-
-### Backup Strategy
-- Daily database backups
-- Weekly full backups
-- Monthly archive backups
-
-## Security
+## 📱 API Endpoints
 
 ### Authentication
-- JWT token validation
-- Role-based access control
-- OAuth integration
-- Session management
+- `POST /api/auth/signin`
+- `POST /api/auth/signout`
+- `GET /api/auth/session`
 
-### Data Protection
-- Data encryption
-- Secure file storage
-- Payment security
-- API security
+### Bookings
+- `GET /api/bookings`
+- `POST /api/bookings`
+- `PUT /api/bookings/:id`
+- `DELETE /api/bookings/:id`
 
-## Performance Optimization
+### Resources
+- `GET /api/resources`
+- `POST /api/resources`
+- `PUT /api/resources/:id`
+- `DELETE /api/resources/:id`
 
-### Frontend
-- Code splitting
-- Lazy loading
-- Image optimization
-- Caching strategy
+### Courses
+- `GET /api/courses`
+- `POST /api/courses`
+- `PUT /api/courses/:id`
+- `DELETE /api/courses/:id`
 
-### Backend
-- Query optimization
-- Caching implementation
-- Load balancing
-- Database indexing
+## 🧪 Testing
 
-## Troubleshooting
+```bash
+# Run unit tests
+npm run test
 
-### Common Issues
-1. Database Connection
-   - Check DATABASE_URL
-   - Verify PostgreSQL service
-   - Check network connectivity
+# Run integration tests
+npm run test:integration
 
-2. Authentication
-   - Verify JWT_SECRET
-   - Check OAuth credentials
-   - Validate token expiration
+# Run e2e tests
+npm run test:e2e
+```
 
-3. File Upload
-   - Check Cloudinary credentials
-   - Verify file size limits
-   - Check storage quotas
+## 📈 Monitoring
 
-### Support
-For technical support, contact:
-- Email: support@dancerealmx.com
-- Slack: #dancerealmx-dev
+- PM2 process management
+- Error tracking
+- Performance monitoring
+- Usage analytics
 
-## Contributing
+## 🔄 Deployment
+
+1. **Build the application**
+   ```bash
+   npm run build
+   ```
+
+2. **Start with PM2**
+   ```bash
+   pm2 start npm --name dance-realmx -- run start:prod
+   ```
+
+3. **Configure Nginx**
+   ```nginx
+   server {
+       listen 80;
+       server_name your-domain.com;
+
+       location / {
+           proxy_pass http://localhost:3000;
+           proxy_http_version 1.1;
+           proxy_set_header Upgrade $http_upgrade;
+           proxy_set_header Connection 'upgrade';
+           proxy_set_header Host $host;
+           proxy_cache_bypass $http_upgrade;
+       }
+   }
+   ```
+
+## 🤝 Contributing
+
 1. Fork the repository
-2. Create feature branch
-3. Commit changes
-4. Push to branch
-5. Create Pull Request
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-## License
-This project is licensed under the MIT License - see LICENSE file for details.
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 👥 Team
+
+- Project Manager: [Name]
+- Lead Developer: [Name]
+- UI/UX Designer: [Name]
+- Backend Developer: [Name]
+- Frontend Developer: [Name]
+
+## 📞 Support
+
+For support, email support@dancerealmx.com or join our Slack channel.

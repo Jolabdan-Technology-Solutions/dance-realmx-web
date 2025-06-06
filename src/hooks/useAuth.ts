@@ -1,30 +1,21 @@
-import { useState, useEffect } from 'react';
-import { User } from '@prisma/client';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/router';
+import { useEffect } from 'react';
 
-export function useAuth() {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+export function useAuth(requireAuth = true) {
+  const { data: session, status } = useSession();
+  const router = useRouter();
 
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const response = await fetch('/api/auth/me');
-        if (response.ok) {
-          const data = await response.json();
-          setUser(data);
-        } else {
-          setUser(null);
-        }
-      } catch (error) {
-        console.error('Auth check failed:', error);
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
-    };
+    if (requireAuth && status === 'unauthenticated') {
+      router.push('/auth/signin');
+    }
+  }, [requireAuth, status, router]);
 
-    checkAuth();
-  }, []);
-
-  return { user, loading };
+  return {
+    user: session?.user,
+    status,
+    isAuthenticated: status === 'authenticated',
+    isLoading: status === 'loading',
+  };
 } 
