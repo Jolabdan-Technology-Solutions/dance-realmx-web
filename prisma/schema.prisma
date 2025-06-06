@@ -6,6 +6,7 @@ datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DATABASE_URL")
+  relationMode = "prisma"
 }
 
 model Tenant {
@@ -29,7 +30,6 @@ model User {
   created_at          DateTime            @default(now())
   updated_at          DateTime            @updatedAt
   subscription_tier   SubscriptionTier?
-  tenant_id           Int?
   instructor_bookings Booking[]           @relation("InstructorBookings")
   bookings            Booking[]
   courses             Course[]            @relation("InstructorCourses")
@@ -45,10 +45,13 @@ model User {
   stripe_customer     StripeCustomer?
   subscriptions       Subscription[]
   testimonials        Testimonial[]
-  tenant              Tenant?             @relation(fields: [tenant_id], references: [id])
   certifications      UserCertification[]
   features            UserFeature[]       @relation("UserFeatures")
   role_mappings       UserRoleMapping[]
+  tenant_id           Int?
+  tenant              Tenant?             @relation(fields: [tenant_id], references: [id])
+  cartItems           CartItem[]
+  orders              Order[]
 }
 
 model Profile {
@@ -84,6 +87,8 @@ model Course {
   certifications    UserCertification[]
   categories        Category[]          @relation("CourseCategories")
   tags              Tag[]               @relation("CourseTags")
+  cartItems         CartItem[]
+  orderItems        OrderItem[]
 }
 
 model Module {
@@ -143,18 +148,20 @@ model StripeCustomer {
 }
 
 model Subscription {
-  id                     Int              @id @default(autoincrement())
+  id                     Int                  @id @default(autoincrement())
   user_id                Int
   plan_id                Int
-  stripe_subscription_id String           @unique
-  status                 String
+  stripe_subscription_id String?              @unique
+  stripe_session_id      String?              // <-- Add this
+  status                 SubscriptionStatus   @default(ACTIVE)
+  frequency              SubscriptionFrequency
   current_period_start   DateTime
   current_period_end     DateTime
-  cancel_at_period_end   Boolean          @default(false)
-  created_at             DateTime         @default(now())
-  updated_at             DateTime         @updatedAt
-  plan                   SubscriptionPlan @relation(fields: [plan_id], references: [id])
-  user                   User             @relation(fields: [user_id], references: [id])
+  cancel_at_period_end   Boolean              @default(false)
+  created_at             DateTime             @default(now())
+  updated_at             DateTime             @updatedAt
+  user                   User                 @relation(fields: [user_id], references: [id])
+  plan                   SubscriptionPlan     @relation(fields: [plan_id], references: [id])
 }
 
 model Booking {
@@ -192,19 +199,25 @@ model ResourceCategory {
 }
 
 model Resource {
-  id           Int                @id @default(autoincrement())
-  title        String
-  description  String
-  price        Float
-  seller_id    Int
-  category_id  Int
-  is_published Boolean            @default(false)
-  file_url     String?
-  created_at   DateTime           @default(now())
-  updated_at   DateTime           @updatedAt
-  category     ResourceCategory   @relation(fields: [category_id], references: [id])
-  seller       User               @relation("SellerResources", fields: [seller_id], references: [id])
-  purchases    ResourcePurchase[]
+  id              Int                @id @default(autoincrement())
+  title           String
+  description     String
+  type            String             // 'curriculum', 'course', etc.
+  url             String
+  price           Float
+  thumbnailUrl    String?
+  danceStyle      String?
+  ageRange        String?
+  difficultyLevel String?
+  sellerId        Int
+  seller          User               @relation("SellerResources", fields: [sellerId], references: [id])
+  purchases       ResourcePurchase[]
+  category        ResourceCategory?  @relation(fields: [categoryId], references: [id])
+  categoryId      Int?
+  created_at      DateTime           @default(now())
+  updated_at      DateTime           @updatedAt
+  cartItems         CartItem[]
+  orderItems        OrderItem[]
 }
 
 model ResourcePurchase {
@@ -225,16 +238,16 @@ model ResourcePurchase {
 model Payment {
   id                       Int           @id @default(autoincrement())
   user_id                  Int
-  stripe_payment_intent_id String        @unique
+  stripe_payment_intent_id String?       @unique
+  stripe_session_id        String?       // <-- Add this
   amount                   Float
-  reference_id             Int
+  reference_id             Int?          // Can be course/resource/subscription
+  reference_type           PaymentType   // Already exists: COURSE, RESOURCE, SUBSCRIPTION
   created_at               DateTime      @default(now())
   updated_at               DateTime      @updatedAt
   currency                 String        @default("usd")
   metadata                 Json?
-  stripe_customer_id       String?
   status                   PaymentStatus @default(PENDING)
-  type                     PaymentType
   user                     User          @relation(fields: [user_id], references: [id])
 }
 
@@ -242,9 +255,9 @@ model UserRoleMapping {
   id        Int      @id @default(autoincrement())
   user_id   Int
   role      UserRole
+  user      User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([user_id, role])
   @@map("user_role_mappings")
@@ -254,9 +267,9 @@ model UserFeature {
   id          Int      @id @default(autoincrement())
   user_id     Int
   feature_key String
+  user        User     @relation("UserFeatures", fields: [user_id], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  user        User     @relation("UserFeatures", fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([user_id, feature_key])
   @@map("user_features")
@@ -294,12 +307,12 @@ model Message {
 
 model Category {
   id          Int        @id @default(autoincrement())
-  name        String
+  name        String     @unique
   description String?
   parent_id   Int?
   created_at  DateTime   @default(now())
   updated_at  DateTime   @updatedAt
-  parent      Category?  @relation("CategoryHierarchy", fields: [parent_id], references: [id])
+  parent      Category?  @relation("CategoryHierarchy", fields: [parent_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
   children    Category[] @relation("CategoryHierarchy")
   courses     Course[]   @relation("CourseCategories")
 }
@@ -325,30 +338,6 @@ model Review {
   user       User     @relation(fields: [user_id], references: [id])
 
   @@unique([user_id, course_id])
-}
-
-model SubscriptionPlan {
-  id                   Int              @id @default(autoincrement())
-  name                 String           @unique
-  slug                 String           @unique
-  description          String?
-  features             String[]
-  priceMonthly         Decimal          @db.Decimal(10, 2)
-  priceYearly          Decimal          @db.Decimal(10, 2)
-  stripePriceIdMonthly String?
-  stripePriceIdYearly  String?
-  isPopular            Boolean          @default(false)
-  isActive             Boolean          @default(true)
-  isStandalone         Boolean          @default(false)
-  planType             String           @default("main")
-  featureDetails       Json?
-  unlockedRoles        UserRole[]
-  tier                 SubscriptionTier
-  createdAt            DateTime         @default(now())
-  updatedAt            DateTime         @updatedAt
-  subscriptions        Subscription[]
-
-  @@map("subscription_plans")
 }
 
 enum UserRole {
@@ -391,4 +380,80 @@ enum PaymentType {
   COURSE
   RESOURCE
   SUBSCRIPTION
+}
+
+enum SubscriptionFrequency {
+  MONTHLY
+  YEARLY
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  TRIALING
+  CANCELED
+  FAILED
+}
+
+model SubscriptionPlan {
+  id                   Int              @id @default(autoincrement())
+  name                 String           @unique
+  slug                 String           @unique
+  description          String?
+  features             String[]
+  priceMonthly         Decimal          @db.Decimal(10, 2)
+  priceYearly          Decimal          @db.Decimal(10, 2)
+  stripePriceIdMonthly String?
+  stripePriceIdYearly  String?
+  isPopular            Boolean          @default(false)
+  isActive             Boolean          @default(true)
+  isStandalone         Boolean          @default(false)
+  planType             String           @default("main")
+  featureDetails       Json?
+  unlockedRoles        UserRole[]
+  tier                 SubscriptionTier
+  subscriptions        Subscription[]
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+  @@map("subscription_plans")
+}
+
+model CartItem {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  course_id  Int?
+  resource_id Int?
+  quantity   Int      @default(1)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  course     Course?  @relation(fields: [course_id], references: [id], onDelete: Cascade)
+  resource   Resource? @relation(fields: [resource_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, course_id])
+  @@unique([user_id, resource_id])
+}
+
+model Order {
+  id         Int         @id @default(autoincrement())
+  user_id    Int
+  status     String      @default("PENDING")
+  total      Float
+  created_at DateTime    @default(now())
+  updated_at DateTime    @updatedAt
+  user       User        @relation(fields: [user_id], references: [id])
+  items      OrderItem[]
+}
+
+model OrderItem {
+  id         Int      @id @default(autoincrement())
+  order_id   Int
+  course_id  Int?
+  resource_id Int?
+  quantity   Int
+  price      Float
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  order      Order    @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  course     Course?  @relation(fields: [course_id], references: [id])
+  resource   Resource? @relation(fields: [resource_id], references: [id])
 }

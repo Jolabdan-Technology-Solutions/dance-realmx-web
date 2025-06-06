@@ -2,16 +2,86 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Resource } from '@prisma/client';
 
+interface FindAllOptions {
+  type?: string;
+  search?: string;
+  danceStyle?: string;
+  ageRange?: string;
+  difficultyLevel?: string;
+  priceRange?: string;
+  sellerId?: number;
+}
+
 @Injectable()
 export class ResourcesService {
   constructor(private prisma: PrismaService) {}
 
-  async findAll(): Promise<Resource[]> {
+  async findAll(options: FindAllOptions = {}): Promise<Resource[]> {
+    const {
+      type,
+      search,
+      danceStyle,
+      ageRange,
+      difficultyLevel,
+      priceRange,
+      sellerId,
+    } = options;
+
+    // Build the where clause
+    const where: any = {};
+
+    if (type) {
+      where.type = type;
+    }
+
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    if (danceStyle) {
+      where.danceStyle = danceStyle;
+    }
+
+    if (ageRange) {
+      where.ageRange = ageRange;
+    }
+
+    if (difficultyLevel) {
+      where.difficultyLevel = difficultyLevel;
+    }
+
+    if (priceRange) {
+      const [min, max] = priceRange.split('-').map(Number);
+      where.price = {
+        gte: min,
+        lte: max || undefined,
+      };
+    }
+
+    if (sellerId) {
+      where.sellerId = sellerId;
+    }
+
     return this.prisma.resource.findMany({
+      where,
       include: {
-        course: true,
-        module: true,
-        lesson: true,
+        seller: {
+          select: {
+            id: true,
+            username: true,
+            firstName: true,
+            lastName: true,
+            profileImageUrl: true,
+            isApprovedSeller: true,
+          },
+        },
+        category: true,
+      },
+      orderBy: {
+        created_at: 'desc',
       },
     });
   }
@@ -20,9 +90,17 @@ export class ResourcesService {
     return this.prisma.resource.findUnique({
       where: { id },
       include: {
-        course: true,
-        module: true,
-        lesson: true,
+        seller: {
+          select: {
+            id: true,
+            username: true,
+            firstName: true,
+            lastName: true,
+            profileImageUrl: true,
+            isApprovedSeller: true,
+          },
+        },
+        category: true,
       },
     });
   }
@@ -62,16 +140,28 @@ export class ResourcesService {
     description: string;
     type: string;
     url: string;
-    course_id?: number;
-    module_id?: number;
-    lesson_id?: number;
+    price: number;
+    danceStyle?: string;
+    ageRange?: string;
+    difficultyLevel?: string;
+    sellerId: number;
+    thumbnailUrl?: string;
+    categoryId?: number;
   }): Promise<Resource> {
     return this.prisma.resource.create({
       data,
       include: {
-        course: true,
-        module: true,
-        lesson: true,
+        seller: {
+          select: {
+            id: true,
+            username: true,
+            firstName: true,
+            lastName: true,
+            profileImageUrl: true,
+            isApprovedSeller: true,
+          },
+        },
+        category: true,
       },
     });
   }
@@ -81,9 +171,17 @@ export class ResourcesService {
       where: { id },
       data,
       include: {
-        course: true,
-        module: true,
-        lesson: true,
+        seller: {
+          select: {
+            id: true,
+            username: true,
+            firstName: true,
+            lastName: true,
+            profileImageUrl: true,
+            isApprovedSeller: true,
+          },
+        },
+        category: true,
       },
     });
   }

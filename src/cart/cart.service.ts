@@ -26,13 +26,11 @@ export class CartService {
     await this.validateItem(dto.itemType, dto.itemId);
 
     // Check if item is already in cart
-    const existingItem = await this.prisma.cartItem.findUnique({
+    const existingItem = await this.prisma.cartItem.findFirst({
       where: {
-        userId_itemType_itemId: {
-          userId,
-          itemType: dto.itemType,
-          itemId: dto.itemId,
-        },
+        user_id: userId,
+        course_id: dto.itemType === CartItemType.COURSE ? dto.itemId : null,
+        resource_id: dto.itemType === CartItemType.RESOURCE ? dto.itemId : null,
       },
     });
 
@@ -47,9 +45,9 @@ export class CartService {
     // Add new item to cart
     return this.prisma.cartItem.create({
       data: {
-        userId,
-        itemType: dto.itemType,
-        itemId: dto.itemId,
+        user_id: userId,
+        course_id: dto.itemType === CartItemType.COURSE ? dto.itemId : null,
+        resource_id: dto.itemType === CartItemType.RESOURCE ? dto.itemId : null,
         quantity: dto.quantity,
       },
     });
@@ -57,7 +55,7 @@ export class CartService {
 
   async removeFromCart(userId: number, cartItemId: number): Promise<void> {
     const cartItem = await this.prisma.cartItem.findFirst({
-      where: { id: cartItemId, userId },
+      where: { id: cartItemId, user_id: userId },
     });
 
     if (!cartItem) {
@@ -79,7 +77,7 @@ export class CartService {
     }
 
     const cartItem = await this.prisma.cartItem.findFirst({
-      where: { id: cartItemId, userId },
+      where: { id: cartItemId, user_id: userId },
     });
 
     if (!cartItem) {
@@ -94,7 +92,7 @@ export class CartService {
 
   async getCart(userId: number) {
     const cartItems = await this.prisma.cartItem.findMany({
-      where: { userId },
+      where: { user_id: userId },
       include: {
         user: {
           select: {
@@ -103,6 +101,8 @@ export class CartService {
             username: true,
           },
         },
+        course: true,
+        resource: true,
       },
     });
 
@@ -110,8 +110,8 @@ export class CartService {
     const cartWithDetails = await Promise.all(
       cartItems.map(async (item) => {
         const itemDetails = await this.getItemDetails(
-          item.itemType as CartItemType,
-          item.itemId,
+          item.course_id ? CartItemType.COURSE : CartItemType.RESOURCE,
+          item.course_id ?? item.resource_id ?? 0,
         );
         return {
           ...item,
@@ -140,17 +140,15 @@ export class CartService {
     // Create order
     const order = await this.prisma.order.create({
       data: {
-        userId,
-        orderNumber: this.generateOrderNumber(),
-        totalAmount: cart.total,
-        status: 'pending',
+        user_id: userId,
+        total: cart.total,
+        status: 'PENDING',
         items: {
           create: cart.items.map((item) => ({
-            itemType: item.itemType,
-            itemId: item.itemId,
-            title: item.itemDetails.title,
-            price: item.itemDetails.price,
+            course_id: item.course_id,
+            resource_id: item.resource_id,
             quantity: item.quantity,
+            price: item.itemDetails.price,
           })),
         },
       },
@@ -173,13 +171,13 @@ export class CartService {
     await this.prisma.order.update({
       where: { id: order.id },
       data: {
-        paymentIntentId: paymentIntent.id,
+        status: 'PAYMENT_PENDING',
       },
     });
 
     // Clear cart
     await this.prisma.cartItem.deleteMany({
-      where: { userId },
+      where: { user_id: userId },
     });
 
     return {
@@ -246,7 +244,7 @@ export class CartService {
             id: true,
             title: true,
             price: true,
-            file_url: true,
+            url: true,
           },
         });
         if (!resource) {
@@ -281,13 +279,5 @@ export class CartService {
       default:
         throw new BadRequestException(`Invalid item type: ${itemType}`);
     }
-  }
-
-  private generateOrderNumber(): string {
-    const timestamp = Date.now().toString();
-    const random = Math.floor(Math.random() * 1000)
-      .toString()
-      .padStart(3, '0');
-    return `ORD-${timestamp}-${random}`;
   }
 }

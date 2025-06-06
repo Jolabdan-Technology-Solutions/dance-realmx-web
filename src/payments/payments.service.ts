@@ -119,11 +119,9 @@ export class PaymentsService {
 
     // Build the where clause
     const where: Prisma.PaymentWhereInput = {
-      AND: [
-        { user_id: userId },
-        status ? { status: status as PaymentStatus } : {},
-        type ? { type: type as PaymentType } : {},
-      ],
+      user_id: userId,
+      ...(status ? { status: status as PaymentStatus } : {}),
+      ...(type ? { reference_type: type as PaymentType } : {}),
     };
 
     // Build the orderBy clause
@@ -337,5 +335,47 @@ export class PaymentsService {
     userId: number,
   ) {
     // Implement subscription purchase logic
+  }
+
+  async createOneTimeCheckoutSession(dto: { itemId: number; type: 'COURSE' | 'RESOURCE'; email: string }) {
+    // Lookup user
+    const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    if (!user) throw new NotFoundException('User not found');
+    let item, priceId, amount;
+    if (dto.type === 'COURSE') {
+      item = await this.prisma.course.findUnique({ where: { id: dto.itemId } });
+      priceId = item?.stripePriceId;
+      amount = item?.price;
+    } else if (dto.type === 'RESOURCE') {
+      item = await this.prisma.resource.findUnique({ where: { id: dto.itemId } });
+      priceId = item?.stripePriceId;
+      amount = item?.price;
+    } else {
+      throw new BadRequestException('Invalid type');
+    }
+    if (!item || !priceId) throw new NotFoundException('Item or Stripe price not found');
+
+    const session = await this.stripe.checkout.sessions.create({
+      mode: 'payment',
+      payment_method_types: ['card'],
+      customer_email: user.email,
+      line_items: [{ price: priceId, quantity: 1 }],
+      success_url: this.configService.get('FRONTEND_URL') + '/purchase/success?session_id={CHECKOUT_SESSION_ID}',
+      cancel_url: this.configService.get('FRONTEND_URL') + '/purchase/cancel',
+      metadata: { userId: user.id, itemId: item.id, type: dto.type },
+    });
+
+    await this.prisma.payment.create({
+      data: {
+        user_id: user.id,
+        stripe_session_id: session.id,
+        amount,
+        reference_id: item.id,
+        reference_type: dto.type,
+        status: PaymentStatus.PENDING,
+      },
+    });
+
+    return { url: session.url };
   }
 }

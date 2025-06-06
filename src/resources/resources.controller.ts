@@ -17,20 +17,23 @@ export class ResourcesController {
 
   @Get()
   findAll(
-    @Query('courseId') courseId?: string,
-    @Query('moduleId') moduleId?: string,
-    @Query('lessonId') lessonId?: string,
+    @Query('type') type?: string,
+    @Query('search') search?: string,
+    @Query('danceStyle') danceStyle?: string,
+    @Query('ageRange') ageRange?: string,
+    @Query('difficultyLevel') difficultyLevel?: string,
+    @Query('priceRange') priceRange?: string,
+    @Query('sellerId') sellerId?: string,
   ) {
-    if (courseId) {
-      return this.resourcesService.findByCourse(+courseId);
-    }
-    if (moduleId) {
-      return this.resourcesService.findByModule(+moduleId);
-    }
-    if (lessonId) {
-      return this.resourcesService.findByLesson(+lessonId);
-    }
-    return this.resourcesService.findAll();
+    return this.resourcesService.findAll({
+      type,
+      search,
+      danceStyle,
+      ageRange,
+      difficultyLevel,
+      priceRange,
+      sellerId: sellerId ? +sellerId : undefined,
+    });
   }
 
   @Get(':id')
@@ -46,9 +49,12 @@ export class ResourcesController {
       description: string;
       type: string;
       url: string;
-      course_id?: number;
-      module_id?: number;
-      lesson_id?: number;
+      price: number;
+      danceStyle?: string;
+      ageRange?: string;
+      difficultyLevel?: string;
+      sellerId: number;
+      thumbnailUrl?: string;
     },
   ) {
     return this.resourcesService.create(createResourceDto);

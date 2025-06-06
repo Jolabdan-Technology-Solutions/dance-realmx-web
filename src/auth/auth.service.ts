@@ -5,6 +5,7 @@ import { MailService } from '../mail/mail.service';
 import { Role } from './enums/role.enum';
 import * as bcrypt from 'bcrypt';
 import { User } from '@prisma/client';
+import { CreateUserDto } from './dto/register.dto';
 
 export interface LoginResponse {
   user: {
@@ -30,7 +31,10 @@ export class AuthService {
     private mailService: MailService,
   ) {}
 
-  async validateUser(email: string, password: string): Promise<Omit<User, 'password'>> {
+  async validateUser(
+    email: string,
+    password: string,
+  ): Promise<Omit<User, 'password'>> {
     const user = await this.prisma.user.findUnique({ where: { email } });
     if (!user || !user.password) {
       throw new UnauthorizedException('Invalid credentials');
@@ -64,12 +68,7 @@ export class AuthService {
     };
   }
 
-  async register(data: {
-    email: string;
-    password: string;
-    name: string;
-    role?: Role;
-  }) {
+  async register(data: CreateUserDto) {
     const user = await this.prisma.user.create({
       data: {
         ...data,

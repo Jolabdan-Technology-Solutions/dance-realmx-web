@@ -6,14 +6,29 @@ module.exports = {
     apps: [
         {
             name: 'dance-realmx-api',
-            script: 'dist/src/main.js',
-            instances: 'max',
-            exec_mode: 'cluster',
+            script: 'dist/index.js',
+            instances: 1,
+            exec_mode: 'fork',
+            autorestart: true,
+            watch: false,
+            max_memory_restart: '1G',
             env: {
                 NODE_ENV: 'production',
                 PORT: 5001,
-                FRONTEND_URL: 'https://livetestdomain.com',
-                API_URL: 'https://api.livetestdomain.com'
+                FRONTEND_URL: process.env.FRONTEND_URL,
+                API_URL: process.env.API_URL,
+            },
+            env_development: {
+                NODE_ENV: 'development',
+                PORT: 5001,
+                FRONTEND_URL: process.env.FRONTEND_URL,
+                API_URL: process.env.API_URL,
+            },
+            env_staging: {
+                NODE_ENV: 'staging',
+                PORT: 5001,
+                FRONTEND_URL: process.env.FRONTEND_URL,
+                API_URL: process.env.API_URL,
             },
             error_file: './logs/err.log',
             out_file: './logs/out.log',
