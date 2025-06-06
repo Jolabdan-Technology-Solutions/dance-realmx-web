@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -12,12 +13,15 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
-import { AlertTriangle } from "lucide-react";
-import { USER_ROLES } from "@shared/schema";
+import { AlertTriangle, Loader2 } from "lucide-react";
+import { USER_ROLES } from "@/constants/roles";
 import { RegistrationData, AccountFormData } from "@/types/registration";
+import { useToast } from "@/hooks/use-toast";
+import { UserRole } from "@/types/roles";
 
 interface StepAccountCreationProps {
   registrationData: RegistrationData;
@@ -28,15 +32,20 @@ interface StepAccountCreationProps {
 export function StepAccountCreation({
   registrationData,
   updateRegistrationData,
+  onAccountCreated,
 }: StepAccountCreationProps) {
-  // Create form schema based on the selected features and plan
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Create form schema
   const accountSchema = z.object({
     username: z.string().min(3, "Username must be at least 3 characters"),
     password: z.string().min(6, "Password must be at least 6 characters"),
-    firstName: z.string().min(1, "First name is required"),
-    lastName: z.string().min(1, "Last name is required"),
+    first_name: z.string().min(1, "First name is required"),
+    last_name: z.string().min(1, "Last name is required"),
     email: z.string().email("Please enter a valid email"),
-    selectedRoles: z.array(z.string()).min(1, "Select at least one role"),
+    selected_roles: z.array(z.string()).min(1, "Select at least one role"),
   });
 
   // Determine default roles based on selected features
@@ -87,33 +96,71 @@ export function StepAccountCreation({
     defaultValues: {
       username: "",
       password: "",
-      firstName: "",
-      lastName: "",
+      first_name: "",
+      last_name: "",
       email: "",
-      selectedRoles: determineDefaultRoles(),
+      selected_roles: determineDefaultRoles(),
     },
   });
 
-  // When form values change, update the registration data
-  const onSubmit = (data: AccountFormData) => {
-    updateRegistrationData({
-      accountData: data,
-    });
-  };
+  // Handle form submission
+  const onSubmit = async (data: AccountFormData) => {
+    setIsLoading(true);
+    setError(null);
 
-  console.log(registrationData);
+    try {
+      // Create registration payload
+      const payload = {
+        username: data.username,
+        password: data.password,
+        email: data.email,
+        first_name: data.first_name,
+        last_name: data.last_name,
+        role: "STUDENT" as const, // Use const assertion to ensure type safety
+      };
+
+      const response = await fetch(
+        "https://api.livetestdomain.com/api/register",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Registration failed");
+      }
+
+      // Update registration data and proceed to next step
+      updateRegistrationData({ accountData: data });
+      onAccountCreated(data);
+
+      toast({
+        title: "Account Created",
+        description: "Your account has been successfully created!",
+      });
+    } catch (error: any) {
+      console.error("Registration error:", error);
+      toast({
+        title: "Registration Failed",
+        description:
+          error.message || "Failed to create account. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Construct human-readable plan details
   const getPlanDescription = () => {
     if (!registrationData.recommendedPlan) return null;
 
     const plan = registrationData.recommendedPlan;
-    const price =
-      registrationData.paymentMethod === "monthly"
-        ? plan.priceMonthly
-        : plan.priceYearly;
-    const period =
-      registrationData.paymentMethod === "monthly" ? "month" : "year";
+    const price = plan.priceMonthly;
+    const period = "month";
 
     return {
       name: plan.name,
@@ -136,15 +183,11 @@ export function StepAccountCreation({
         </div>
 
         <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            onChange={() => form.handleSubmit(onSubmit)()}
-            className="space-y-4"
-          >
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="firstName"
+                name="first_name"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>First Name</FormLabel>
@@ -158,7 +201,7 @@ export function StepAccountCreation({
 
               <FormField
                 control={form.control}
-                name="lastName"
+                name="last_name"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Last Name</FormLabel>
@@ -223,7 +266,7 @@ export function StepAccountCreation({
 
             <FormField
               control={form.control}
-              name="selectedRoles"
+              name="selected_roles"
               render={() => (
                 <FormItem>
                   <div className="mb-2">
@@ -234,13 +277,12 @@ export function StepAccountCreation({
                   </div>
                   <div className="space-y-2">
                     {Object.entries(USER_ROLES)
-                      // Don't show admin as an option
                       .filter(([key]) => key !== "ADMIN")
                       .map(([key, value]) => (
                         <FormField
                           key={key}
                           control={form.control}
-                          name="selectedRoles"
+                          name="selected_roles"
                           render={({ field }) => {
                             return (
                               <FormItem
@@ -256,9 +298,7 @@ export function StepAccountCreation({
                                         : field.value.filter(
                                             (role) => role !== value
                                           );
-
                                       field.onChange(updatedRoles);
-                                      form.handleSubmit(onSubmit)();
                                     }}
                                   />
                                 </FormControl>
@@ -279,6 +319,24 @@ export function StepAccountCreation({
                 </FormItem>
               )}
             />
+
+            {/* Submit button inside the form */}
+            <div className="pt-4">
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="w-full bg-[#00d4ff] hover:bg-[#00d4ff]/90 text-black font-semibold"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating Account...
+                  </>
+                ) : (
+                  "Create Account"
+                )}
+              </Button>
+            </div>
           </form>
         </Form>
       </div>
@@ -292,21 +350,21 @@ export function StepAccountCreation({
         </div>
 
         {/* Account Preview Card */}
-        {form.watch("firstName") && form.watch("lastName") && (
+        {form.watch("first_name") && form.watch("last_name") && (
           <Card className="bg-gray-900 mb-6">
             <CardContent className="pt-6">
               <div className="flex items-center space-x-4 mb-4">
                 <Avatar className="h-16 w-16">
                   <AvatarFallback className="bg-[#00d4ff] text-black text-lg">
-                    {form.watch("firstName").charAt(0)}
-                    {form.watch("lastName").charAt(0)}
+                    {form.watch("first_name")?.charAt(0) || ''}
+                    {form.watch("last_name")?.charAt(0) || ''}
                   </AvatarFallback>
                 </Avatar>
                 <div>
                   <h3 className="text-xl font-semibold">
-                    {form.watch("firstName")} {form.watch("lastName")}
+                    {form.watch("first_name") || ''} {form.watch("last_name") || ''}
                   </h3>
-                  <p className="text-gray-400">@{form.watch("username")}</p>
+                  <p className="text-gray-400">@{form.watch("username") || ''}</p>
                 </div>
               </div>
 
@@ -318,7 +376,7 @@ export function StepAccountCreation({
                 <div className="flex items-start">
                   <span className="text-gray-400 w-20">Roles:</span>
                   <div className="flex flex-wrap gap-2">
-                    {form.watch("selectedRoles").map((role) => (
+                    {form.watch("selected_roles").map((role) => (
                       <span
                         key={role}
                         className="bg-gray-800 px-2 py-1 rounded-md text-sm"
@@ -363,7 +421,7 @@ export function StepAccountCreation({
         )}
 
         {/* Payment Warning */}
-        <Alert variant="outline" className="border-yellow-600 bg-yellow-950/50">
+        <Alert variant="default" className="border-yellow-600 bg-yellow-950/50">
           <AlertTriangle className="h-4 w-4 text-yellow-600" />
           <AlertTitle className="text-yellow-600">
             Payment Information
@@ -373,16 +431,6 @@ export function StepAccountCreation({
             account. You can customize your profile further after registration.
           </AlertDescription>
         </Alert>
-      </div>
-
-      <div className="col-span-2">
-        <button
-          type="submit"
-          className="w-fit bg-[#00d4ff] hover:bg-[#00d4ff]/75 text-white font-semibold py-3 px-4 rounded-md ml-auto"
-          onClick={form.handleSubmit(onSubmit)}
-        >
-          Continue
-        </button>
       </div>
     </div>
   );

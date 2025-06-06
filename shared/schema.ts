@@ -1,100 +1,111 @@
 // DanceRealmX Shared Schema Types
 // This file exports TypeScript types and enums derived from the Prisma schema
 
-import { z } from 'zod';
+import { z } from "zod";
 
 // User Roles
 export const UserRoles = {
-  STUDENT: 'student',
-  INSTRUCTOR: 'instructor',
-  ADMIN: 'admin',
-  SELLER: 'seller',
-  CURRICULUM_OFFICER: 'curriculum_officer',
+  GUEST_USER: "guest_user",
+  CURRICULUM_SELLER: "curriculum_seller",
+  STUDENT: "student",
+  ADMIN: "admin",
+  DIRECTORY_MEMBER: "directory_member",
+  CERTIFICATION_MANAGER: "certification_manager",
+  INSTRUCTOR_ADMIN: "instructor_admin",
+  CURRICULUM_ADMIN: "curriculum_admin",
+  COURSE_CREATOR_ADMIN: "course_creator_admin",
+  BOOKING_PROFESSIONAL: "booking_professional",
+  BOOKING_USER: "booking_user",
 } as const;
 
-export type UserRole = typeof UserRoles[keyof typeof UserRoles];
+export type UserRole = (typeof UserRoles)[keyof typeof UserRoles];
 
 // Resource Types
 export const ResourceTypes = {
-  DOCUMENT: 'document',
-  VIDEO: 'video',
-  AUDIO: 'audio',
-  TEXT: 'text',
-  BUNDLE: 'bundle',
-  IMAGE: 'image',
+  DOCUMENT: "document",
+  VIDEO: "video",
+  AUDIO: "audio",
+  TEXT: "text",
+  BUNDLE: "bundle",
+  IMAGE: "image",
 } as const;
 
-export type ResourceType = typeof ResourceTypes[keyof typeof ResourceTypes];
+export type ResourceType = (typeof ResourceTypes)[keyof typeof ResourceTypes];
 
 // Resource Status
 export const ResourceStatus = {
-  DRAFT: 'draft',
-  PENDING_REVIEW: 'pending_review',
-  PUBLISHED: 'published',
-  REJECTED: 'rejected',
-  ARCHIVED: 'archived',
+  DRAFT: "draft",
+  PENDING_REVIEW: "pending_review",
+  PUBLISHED: "published",
+  REJECTED: "rejected",
+  ARCHIVED: "archived",
 } as const;
 
-export type ResourceStatusType = typeof ResourceStatus[keyof typeof ResourceStatus];
+export type ResourceStatusType =
+  (typeof ResourceStatus)[keyof typeof ResourceStatus];
 
 // Subscription Plan Types
 export const SubscriptionPlanTypes = {
-  MAIN: 'main',
-  SELLER: 'seller',
-  BOOKING: 'booking',
+  MAIN: "main",
+  SELLER: "seller",
+  BOOKING: "booking",
 } as const;
 
-export type SubscriptionPlanType = typeof SubscriptionPlanTypes[keyof typeof SubscriptionPlanTypes];
+export type SubscriptionPlanType =
+  (typeof SubscriptionPlanTypes)[keyof typeof SubscriptionPlanTypes];
 
 // Subscription Status
 export const SubscriptionStatus = {
-  ACTIVE: 'active',
-  CANCELED: 'canceled',
-  PAST_DUE: 'past_due',
-  UNPAID: 'unpaid',
+  ACTIVE: "active",
+  CANCELED: "canceled",
+  PAST_DUE: "past_due",
+  UNPAID: "unpaid",
 } as const;
 
-export type SubscriptionStatusType = typeof SubscriptionStatus[keyof typeof SubscriptionStatus];
+export type SubscriptionStatusType =
+  (typeof SubscriptionStatus)[keyof typeof SubscriptionStatus];
 
 // Order Status
 export const OrderStatus = {
-  PENDING: 'pending',
-  COMPLETED: 'completed',
-  CANCELLED: 'cancelled',
-  REFUNDED: 'refunded',
+  PENDING: "pending",
+  COMPLETED: "completed",
+  CANCELLED: "cancelled",
+  REFUNDED: "refunded",
 } as const;
 
-export type OrderStatusType = typeof OrderStatus[keyof typeof OrderStatus];
+export type OrderStatusType = (typeof OrderStatus)[keyof typeof OrderStatus];
 
 // Booking Request Status
 export const BookingRequestStatus = {
-  PENDING: 'pending',
-  ACCEPTED: 'accepted',
-  DECLINED: 'declined',
-  COMPLETED: 'completed',
-  CANCELLED: 'cancelled',
+  PENDING: "pending",
+  ACCEPTED: "accepted",
+  DECLINED: "declined",
+  COMPLETED: "completed",
+  CANCELLED: "cancelled",
 } as const;
 
-export type BookingRequestStatusType = typeof BookingRequestStatus[keyof typeof BookingRequestStatus];
+export type BookingRequestStatusType =
+  (typeof BookingRequestStatus)[keyof typeof BookingRequestStatus];
 
 // Booking Appointment Status
 export const BookingAppointmentStatus = {
-  CONFIRMED: 'confirmed',
-  CANCELLED: 'cancelled',
-  COMPLETED: 'completed',
+  CONFIRMED: "confirmed",
+  CANCELLED: "cancelled",
+  COMPLETED: "completed",
 } as const;
 
-export type BookingAppointmentStatusType = typeof BookingAppointmentStatus[keyof typeof BookingAppointmentStatus];
+export type BookingAppointmentStatusType =
+  (typeof BookingAppointmentStatus)[keyof typeof BookingAppointmentStatus];
 
 // Activity Types
 export const ActivityTypes = {
-  LESSON_VIEW: 'LESSON_VIEW',
-  LESSON_COMPLETE: 'LESSON_COMPLETE',
-  QUIZ_PASS: 'QUIZ_PASS',
-  QUIZ_FAIL: 'QUIZ_FAIL',
+  LESSON_VIEW: "LESSON_VIEW",
+  LESSON_COMPLETE: "LESSON_COMPLETE",
+  QUIZ_PASS: "QUIZ_PASS",
+  QUIZ_FAIL: "QUIZ_FAIL",
 } as const;
 
-export type ActivityType = typeof ActivityTypes[keyof typeof ActivityTypes];
+export type ActivityType = (typeof ActivityTypes)[keyof typeof ActivityTypes];
 
 // Common Interfaces
 export interface User {
@@ -185,4 +196,4 @@ export const insertSubscriptionPlanSchema = {
 };
 
 // Export all types
-export * from './types'; 
+export * from "./types";

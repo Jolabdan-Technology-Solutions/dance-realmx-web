@@ -30,10 +30,10 @@ export interface SubscriptionPlanOption {
 export interface AccountFormData {
   username: string;
   password: string;
-  firstName: string;
-  lastName: string;
+  first_name: string;
+  last_name: string;
   email: string;
-  selectedRoles: string[];
+  selected_roles: string[];
 }
 
 export interface RegistrationData {
