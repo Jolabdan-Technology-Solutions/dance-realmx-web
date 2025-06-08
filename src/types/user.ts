@@ -1,15 +1,15 @@
 export enum UserRole {
-  GUEST_USER = 'GUEST_USER',
-  CURRICULUM_SELLER = 'CURRICULUM_SELLER',
-  STUDENT = 'STUDENT',
-  ADMIN = 'ADMIN',
-  DIRECTORY_MEMBER = 'DIRECTORY_MEMBER',
-  CERTIFICATION_MANAGER = 'CERTIFICATION_MANAGER',
-  INSTRUCTOR_ADMIN = 'INSTRUCTOR_ADMIN',
-  CURRICULUM_ADMIN = 'CURRICULUM_ADMIN',
-  COURSE_CREATOR_ADMIN = 'COURSE_CREATOR_ADMIN',
-  BOOKING_PROFESSIONAL = 'BOOKING_PROFESSIONAL',
-  BOOKING_USER = 'BOOKING_USER'
+  GUEST_USER = "GUEST_USER",
+  CURRICULUM_SELLER = "CURRICULUM_SELLER",
+  STUDENT = "STUDENT",
+  ADMIN = "ADMIN",
+  DIRECTORY_MEMBER = "DIRECTORY_MEMBER",
+  CERTIFICATION_MANAGER = "CERTIFICATION_MANAGER",
+  INSTRUCTOR_ADMIN = "INSTRUCTOR_ADMIN",
+  CURRICULUM_ADMIN = "CURRICULUM_ADMIN",
+  COURSE_CREATOR_ADMIN = "COURSE_CREATOR_ADMIN",
+  BOOKING_PROFESSIONAL = "BOOKING_PROFESSIONAL",
+  BOOKING_USER = "BOOKING_USER",
 }
 
 export interface UserRoleMapping {
@@ -33,6 +33,8 @@ export interface User {
   auth_provider: string | null;
   created_at: Date;
   updated_at: Date;
+  frequency: string | null;
+  is_active: boolean | null;
   bio?: string | null;
   subscription_plan?: string | null;
   subscriptionPlan?: string | null;
@@ -42,4 +44,4 @@ export interface User {
   subscriptionExpiresAt?: Date | null;
   role_mappings: UserRoleMapping[];
   subscription_tier?: string;
-} 
+}

@@ -26,7 +26,7 @@ import { getInitials } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
 interface Student {
-  id: number;
+  id: string;
   username: string;
   firstName: string;
   lastName: string;
@@ -59,9 +59,9 @@ export default function InstructorStudentsPage() {
     return matchesSearch;
   });
 
-  const sendInviteEmail = async (studentId: number) => {
+  const sendInviteEmail = async (studentId: string) => {
     try {
-      await apiRequest('POST', '/api/instructor/students/invite', { studentId });
+      await apiRequest('/api/instructor/students/invite', { method: 'POST', data: { studentId } });
       toast({
         title: "Invitation sent",
         description: "The student has been sent an email invitation.",

@@ -2,21 +2,21 @@
  * API utilities for making requests to the server
  */
 
-import axios from 'axios';
+import axios from "axios";
 
 // Use a static API_BASE_URL instead of runtime import.meta.env
-const API_BASE_URL = 'https://api.livetestdomain.com/';
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5001/";
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
 // Add request interceptor for auth token
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem("access_token");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -28,7 +28,7 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
+      localStorage.removeItem("access_token");
       // window.location.href = '/auth'
     }
     return Promise.reject(error);
@@ -40,15 +40,15 @@ export const handleApiError = (error: any) => {
   if (error.response) {
     // The request was made and the server responded with a status code
     // that falls out of the range of 2xx
-    console.error('API Error:', error.response.data);
+    console.error("API Error:", error.response.data);
     return error.response.data;
   } else if (error.request) {
     // The request was made but no response was received
-    console.error('API Request Error:', error.request);
-    return { message: 'No response from server' };
+    console.error("API Request Error:", error.request);
+    return { message: "No response from server" };
   } else {
     // Something happened in setting up the request that triggered an Error
-    console.error('API Setup Error:', error.message);
+    console.error("API Setup Error:", error.message);
     return { message: error.message };
   }
 };
@@ -59,19 +59,19 @@ export async function apiRequest(
   body?: any,
   customHeaders?: Record<string, string>
 ) {
-  const url = path.startsWith('http') ? path : path;
+  const url = path.startsWith("http") ? path : path;
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
     ...customHeaders,
   };
 
   const options: RequestInit = {
     method,
     headers,
-    credentials: 'include',
+    //credentials: 'include',
   };
 
-  if (body && method !== 'GET') {
+  if (body && method !== "GET") {
     options.body = JSON.stringify(body);
   }
 
@@ -83,14 +83,14 @@ export async function fetchWithTimeout(
   init?: RequestInit & { timeout?: number }
 ) {
   const { timeout = 8000, ...options } = init || {};
-  
+
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
-  
+
   try {
     const response = await fetch(input, {
       ...options,
-      signal: controller.signal
+      signal: controller.signal,
     });
     clearTimeout(id);
     return response;
@@ -98,4 +98,4 @@ export async function fetchWithTimeout(
     clearTimeout(id);
     throw error;
   }
-} 
+}

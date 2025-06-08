@@ -17,9 +17,9 @@ import {
 
 // Import the banner image directly from the public folder
 const bannerImage = "/assets/images/6.png";
-import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
-import { Badge } from "../components/ui/badge";
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Badge } from "../../components/ui/badge";
 import {
   Card,
   CardContent,
@@ -27,21 +27,21 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "../components/ui/card";
+} from "../../components/ui/card";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../components/ui/select";
+} from "../../components/ui/select";
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
-} from "../components/ui/tabs";
-import { CourseDetailsModal } from "../components/courses/course-details-modal";
+} from "../../components/ui/tabs";
+import { CourseDetailsModal } from "../../components/courses/course-details-modal";
 
 export default function CoursesPage() {
   const [searchQuery, setSearchQuery] = useState("");

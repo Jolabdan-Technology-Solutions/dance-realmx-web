@@ -160,8 +160,7 @@ export default function CurriculumOfficerDashboard() {
     queryKey: ['/api/admin/resources/pending'],
     queryFn: () => {
       console.log("Fetching pending resources for curriculum officer...");
-      // Use the updated endpoint path
-      return apiRequest("GET", "/api/admin/resources/pending")
+      return apiRequest("/api/admin/resources/pending", { method: "GET" })
         .then(res => {
           if (res.ok) {
             console.log("Successfully fetched pending resources from admin endpoint");
@@ -169,7 +168,7 @@ export default function CurriculumOfficerDashboard() {
           }
           console.log("Admin endpoint failed, trying fallback endpoint");
           // If it fails, try the resources/pending endpoint
-          return apiRequest("GET", "/api/admin/resources/pending").then(fallbackRes => {
+          return apiRequest("/api/admin/resources/pending", { method: "GET" }).then(fallbackRes => {
             if (fallbackRes.ok) {
               console.log("Successfully fetched from fallback endpoint");
               return fallbackRes.json();
@@ -179,7 +178,7 @@ export default function CurriculumOfficerDashboard() {
           });
         });
     },
-    enabled: !!user && (user.role === "curriculum_officer" || user?.role === "admin"),
+    enabled: !!user && (user.role === "CURRICULUM_ADMIN" || user?.role === "ADMIN"),
   });
 
   // Query for all resources
@@ -189,8 +188,8 @@ export default function CurriculumOfficerDashboard() {
     error: allResourcesError
   } = useQuery({
     queryKey: ['/api/admin/resources/all'],
-    queryFn: () => apiRequest("GET", "/api/admin/resources/all").then(res => res.json()),
-    enabled: !!user && (user.role === "curriculum_officer" || user?.role === "admin"),
+    queryFn: () => apiRequest("/api/admin/resources/all", { method: "GET" }).then(res => res.json()),
+    enabled: !!user && (user.role === "CURRICULUM_ADMIN" || user?.role === "ADMIN"),
   });
 
   // Query for sellers
@@ -200,16 +199,15 @@ export default function CurriculumOfficerDashboard() {
     error: sellersError
   } = useQuery({
     queryKey: ['/api/admin/sellers'],
-    queryFn: () => apiRequest("GET", "/api/admin/sellers").then(res => res.json()),
-    enabled: !!user && (user.role === "curriculum_officer" || user?.role === "admin"),
+    queryFn: () => apiRequest("/api/admin/sellers", { method: "GET" }).then(res => res.json()),
+    enabled: !!user && (user.role === "CURRICULUM_ADMIN" || user?.role === "ADMIN"),
   });
 
   // Mutation for approving/rejecting resources
   const resourceActionMutation = useMutation({
     mutationFn: async ({ resourceId, action, reason }: z.infer<typeof resourceActionSchema>) => {
       console.log(`Attempting to ${action} resource with ID ${resourceId}`);
-      // Match the endpoint pattern defined in the server's admin-routes.ts file
-      return apiRequest("POST", `/api/admin/resources/${resourceId}/${action}`, { reason });
+      return apiRequest(`/api/admin/resources/${resourceId}/${action}`, { method: "POST", data: { reason } });
     },
     onSuccess: () => {
       // Invalidate queries to refetch the data
@@ -244,12 +242,7 @@ export default function CurriculumOfficerDashboard() {
   const sellerApprovalMutation = useMutation({
     mutationFn: async ({ sellerId, isApproved, reason }: z.infer<typeof sellerApprovalSchema>) => {
       console.log(`Attempting to ${isApproved ? "approve" : "reject"} seller with ID ${sellerId}`);
-      // Fix the API endpoint path to match the server-side routes
-      return apiRequest(
-        "POST", 
-        `/api/admin/sellers/${sellerId}/${isApproved ? "approve" : "reject"}`, 
-        { reason }
-      );
+      return apiRequest(`/api/admin/sellers/${sellerId}/${isApproved ? "approve" : "reject"}`, { method: "POST", data: { reason } });
     },
     onSuccess: () => {
       // Invalidate queries to refetch the data
@@ -282,7 +275,7 @@ export default function CurriculumOfficerDashboard() {
   // Mutation for creating a new seller account
   const createSellerMutation = useMutation({
     mutationFn: async (data: z.infer<typeof newSellerSchema>) => {
-      return apiRequest("POST", "/api/admin/create-seller-curriculum", data);
+      return apiRequest("/api/admin/create-seller-curriculum", { method: "POST", data });
     },
     onSuccess: () => {
       // Invalidate queries to refetch the data
@@ -310,7 +303,7 @@ export default function CurriculumOfficerDashboard() {
   // Mutation for initiating a payout
   const initiatePayoutMutation = useMutation({
     mutationFn: async ({ sellerId, amount }: { sellerId: number, amount: string }) => {
-      return apiRequest("POST", `/api/admin/payout-curriculum/${sellerId}`, { amount });
+      return apiRequest(`/api/admin/payout-curriculum/${sellerId}`, { method: "POST", data: { amount } });
     },
     onSuccess: () => {
       // Invalidate queries to refetch the data
@@ -406,7 +399,7 @@ export default function CurriculumOfficerDashboard() {
   };
 
   // If not authorized, show error message
-  if (!authLoading && (!user || (user.role !== "curriculum_officer" && user.role !== "admin"))) {
+  if (!authLoading && (!user || (user.role !== "CURRICULUM_ADMIN" && user.role !== "ADMIN"))) {
     return (
       <div className="container mx-auto py-10">
         <Card>

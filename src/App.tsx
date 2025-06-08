@@ -64,16 +64,16 @@ const ProfileImageDebugPage = lazy(() => import("@/pages/profile-image-debug"));
 const NotFound = createLazyComponent(() => import("./pages/not-found"));
 
 // Course Certification Module
-const CoursesPage = lazy(() => import("@/pages/courses-page"));
-const CourseDetailsPage = lazy(() => import("@/pages/course-details-page"));
+const CoursesPage = lazy(() => import("@/pages/courses/courses-page"));
+const CourseDetailsPage = lazy(() => import("@/pages/courses/course-details-page"));
 const MyCertificationsPage = lazy(() => import("@/pages/my-certifications-page"));
-const MyCoursesPage = lazy(() => import("@/pages/my-courses-page"));
-const CourseModulePage = lazy(() => import("@/pages/course-module-page"));
+const MyCoursesPage = lazy(() => import("@/pages/courses/my-courses-page"));
+const CourseModulePage = lazy(() => import("@/pages/courses/course-module-page"));
 const LessonPage = lazy(() => import("@/pages/lesson-page"));
 const QuizPage = lazy(() => import("@/pages/quiz-page"));
 const CertificatePage = lazy(() => import("@/pages/certificate-page"));
 const CertificateTemplatesPage = lazy(() => import("@/pages/certificate-templates-page"));
-const CourseAdminDashboard = lazy(() => import("@/pages/course-admin-dashboard"));
+const CourseAdminDashboard = lazy(() => import("@/pages/courses/course-admin-dashboard"));
 
 // Connect - Booking Module
 const ConnectPage = lazy(() => import("@/pages/connect-page"));
@@ -84,8 +84,8 @@ const BookingPage = lazy(() => import("@/pages/booking-page"));
 const MyBookingsPage = lazy(() => import("@/pages/my-bookings-page"));
 
 // Curriculum Resource Module
-const CurriculumPage = lazy(() => import("@/pages/curriculum-page-simple"));
-const CurriculumPageCombined = lazy(() => import("@/pages/curriculum-page-combined"));
+const CurriculumPage = lazy(() => import("@/pages/curriculum/curriculum-page-simple"));
+const CurriculumPageCombined = lazy(() => import("@/pages/curriculum/curriculum-page-combined"));
 const ResourceDetailsPage = lazy(() => import("@/pages/resource-details-page"));
 const EditResourcePage = lazy(() => import("@/pages/edit-resource-page"));
 const MyResourcesPage = lazy(() => import("@/pages/my-resources-page"));
@@ -94,7 +94,7 @@ const SimpleUploadResourcePage = lazy(() => import("@/pages/simple-upload-resour
 const SellerStorePage = lazy(() => import("@/pages/seller-store-page"));
 const SellerDashboardPage = lazy(() => import("@/pages/seller-dashboard-page"));
 const SellerPaymentsPage = lazy(() => import("@/pages/seller-payments-page"));
-const CurriculumOfficerDashboard = lazy(() => import("@/pages/curriculum-officer-dashboard"));
+const CurriculumOfficerDashboard = lazy(() => import("@/pages/curriculum/curriculum-officer-dashboard"));
 
 // Subscription Module
 const SubscriptionPage = createLazyComponent(

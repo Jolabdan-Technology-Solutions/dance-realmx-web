@@ -28,9 +28,9 @@ export function StepPlanRecommendation({ registrationData, updateRegistrationDat
   
   // Fetch available subscription plans
   const { data: plans, isLoading, error } = useQuery<SubscriptionPlanOption[]>({
-    queryKey: ["/api/subscriptions/plans"],
+    queryKey: ["https://api.livetestdomain.com/api/subscriptions/plans"],
     queryFn: async () => {
-      const response = await fetch('/api/subscriptions/plans', {
+      const response = await fetch('https://api.livetestdomain.com/api/subscriptions/plans', {
         credentials: 'include',
         headers: {
           'Accept': 'application/json',

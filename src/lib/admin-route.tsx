@@ -1,7 +1,7 @@
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 import { Redirect, Route } from "wouter";
-import { USER_ROLES } from "@/constants/roles";
+import { UserRole } from "@/constants/roles";
 
 export function AdminRoute({
   path,
@@ -30,8 +30,13 @@ export function AdminRoute({
     );
   }
 
-  const allowedRoles = [USER_ROLES.ADMIN, USER_ROLES.CURRICULUM_OFFICER];
-  if (!allowedRoles.includes(user.role)) {
+  const allowedRoles = [UserRole.ADMIN, UserRole.CURRICULUM_ADMIN, UserRole.INSTRUCTOR_ADMIN, UserRole.COURSE_CREATOR_ADMIN, UserRole.CERTIFICATION_MANAGER, UserRole.DIRECTORY_MEMBER, UserRole.BOOKING_PROFESSIONAL, UserRole.BOOKING_USER];
+  
+  const hasAdminRole = user.role_mappings?.some(mapping => 
+    allowedRoles.includes(mapping.role as keyof typeof UserRole)
+  );
+
+  if (!hasAdminRole) {
     return (
       <Route path={path}>
         <Redirect to="/" />

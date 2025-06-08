@@ -1,12 +1,20 @@
 import { useAuth } from "@/hooks/use-auth";
-import { Redirect } from "wouter";
-import { USER_ROLES } from "@/constants/roles";
+import { Redirect, useLocation } from "wouter";
+import { UserRole } from "@/constants/roles";
 
 /**
  * Component to redirect users to their appropriate dashboard based on role
  */
 export function DashboardRedirect() {
   const { user } = useAuth();
+  const [location] = useLocation();
+
+  console.log("User:", user);
+
+  // Allow access to login page even when logged in
+  if (location === "/auth") {
+    return null;
+  }
 
   if (!user) {
     // If not logged in, redirect to auth page
@@ -14,38 +22,39 @@ export function DashboardRedirect() {
   }
 
   // Check if user has multiple roles
-  const hasRolesArray = Array.isArray(user?.roles) && user?.roles && user?.roles.length > 0;
-  const hasMultipleRoles = hasRolesArray && user?.roles && user?.roles.length > 1;
-  
+  const hasRolesArray =
+    Array.isArray(user?.role) && user?.role && user?.role.length > 0;
+  const hasMultipleRoles = hasRolesArray && user?.role && user?.role.length > 1;
+
   // If user has multiple roles, redirect to multi-role dashboard
   if (hasMultipleRoles) {
     return <Redirect to="/multi-dashboard" />;
   }
-  
+
   // For users with a single role in the roles array
-  if (hasRolesArray && user?.roles && user?.roles.length === 1) {
-    switch (user?.roles[0]) {
-      case USER_ROLES.SELLER:
+  if (hasRolesArray && user?.role && user?.role.length === 1) {
+    switch (user?.role[0]) {
+      case UserRole.CURRICULUM_SELLER:
         return <Redirect to="/seller-dashboard" />;
-      case USER_ROLES.INSTRUCTOR:
+      case UserRole.INSTRUCTOR_ADMIN:
         return <Redirect to="/instructor/dashboard" />;
-      case USER_ROLES.ADMIN:
+      case UserRole.ADMIN:
         return <Redirect to="/admin" />;
-      case USER_ROLES.CURRICULUM_OFFICER:
+      case UserRole.CURRICULUM_ADMIN:
         return <Redirect to="/admin/curriculum-officer" />;
     }
   }
-  
+
   // For legacy users without roles array or users with empty roles array
   // Redirect based on the primary role
   switch (user?.role) {
-    case USER_ROLES.SELLER:
+    case UserRole.CURRICULUM_SELLER:
       return <Redirect to="/seller-dashboard" />;
-    case USER_ROLES.INSTRUCTOR:
+    case UserRole.INSTRUCTOR_ADMIN:
       return <Redirect to="/instructor/dashboard" />;
-    case USER_ROLES.ADMIN:
+    case UserRole.ADMIN:
       return <Redirect to="/admin" />;
-    case USER_ROLES.CURRICULUM_OFFICER:
+    case UserRole.CURRICULUM_ADMIN:
       return <Redirect to="/admin/curriculum-officer" />;
     default:
       // All other roles go to the regular dashboard

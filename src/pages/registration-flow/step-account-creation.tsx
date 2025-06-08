@@ -18,10 +18,9 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { AlertTriangle, Loader2 } from "lucide-react";
-import { USER_ROLES } from "@/constants/roles";
+import { UserRole } from "@/types/user";
 import { RegistrationData, AccountFormData } from "@/types/registration";
 import { useToast } from "@/hooks/use-toast";
-import { UserRole } from "@/types/roles";
 
 interface StepAccountCreationProps {
   registrationData: RegistrationData;
@@ -46,6 +45,7 @@ export function StepAccountCreation({
     last_name: z.string().min(1, "Last name is required"),
     email: z.string().email("Please enter a valid email"),
     selected_roles: z.array(z.string()).min(1, "Select at least one role"),
+    subscription_tier: z.string().optional(),
   });
 
   // Determine default roles based on selected features
@@ -59,7 +59,7 @@ export function StepAccountCreation({
         feature.includes("instructor") ||
         feature.includes("class")
       ) {
-        roles.add(USER_ROLES.INSTRUCTOR);
+        roles.add(UserRole.INSTRUCTOR_ADMIN);
       }
 
       if (
@@ -67,7 +67,7 @@ export function StepAccountCreation({
         feature.includes("student") ||
         feature.includes("track_progress")
       ) {
-        roles.add(USER_ROLES.STUDENT);
+        roles.add(UserRole.STUDENT);
       }
 
       if (
@@ -75,17 +75,17 @@ export function StepAccountCreation({
         feature.includes("store") ||
         feature.includes("resource")
       ) {
-        roles.add(USER_ROLES.SELLER);
+        roles.add(UserRole.CURRICULUM_SELLER);
       }
 
       if (feature.includes("curriculum")) {
-        roles.add(USER_ROLES.CURRICULUM_OFFICER);
+        roles.add(UserRole.CURRICULUM_ADMIN);
       }
     });
 
     // If no roles detected, default to student
     if (roles.size === 0) {
-      roles.add(USER_ROLES.STUDENT);
+      roles.add(UserRole.STUDENT);
     }
 
     return Array.from(roles);
@@ -116,14 +116,34 @@ export function StepAccountCreation({
         email: data.email,
         first_name: data.first_name,
         last_name: data.last_name,
-        role: "STUDENT" as const, // Use const assertion to ensure type safety
+        frequency: registrationData?.paymentMethod?.toUpperCase() || null,
+        role: data.selected_roles.map((role) => {
+          // Map the roles to match the backend enum values
+          switch (role) {
+            case "INSTRUCTOR":
+              return "INSTRUCTOR_ADMIN";
+            case "SELLER":
+              return "CURRICULUM_SELLER";
+            case "CURRICULUM_OFFICER":
+              return "CURRICULUM_ADMIN";
+            default:
+              return role;
+          }
+        }),
+        subscription_tier: registrationData.recommendedPlan?.tier || null,
       };
+
+      console.log("Submitting registration payload:", payload);
 
       const response = await fetch(
         "https://api.livetestdomain.com/api/register",
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          // headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            // "Authorization": `Bearer ${localStorage.getItem("token")}`,
+          },
           body: JSON.stringify(payload),
         }
       );
@@ -141,8 +161,12 @@ export function StepAccountCreation({
         title: "Account Created",
         description: "Your account has been successfully created!",
       });
+
+      localStorage.removeItem("registrationData");
+      localStorage.removeItem("dancerealmx_registration_data");
     } catch (error: any) {
       console.error("Registration error:", error);
+      setError(error.message || "Failed to create account. Please try again.");
       toast({
         title: "Registration Failed",
         description:
@@ -276,7 +300,7 @@ export function StepAccountCreation({
                     </FormDescription>
                   </div>
                   <div className="space-y-2">
-                    {Object.entries(USER_ROLES)
+                    {Object.entries(UserRole)
                       .filter(([key]) => key !== "ADMIN")
                       .map(([key, value]) => (
                         <FormField
@@ -356,15 +380,18 @@ export function StepAccountCreation({
               <div className="flex items-center space-x-4 mb-4">
                 <Avatar className="h-16 w-16">
                   <AvatarFallback className="bg-[#00d4ff] text-black text-lg">
-                    {form.watch("first_name")?.charAt(0) || ''}
-                    {form.watch("last_name")?.charAt(0) || ''}
+                    {form.watch("first_name")?.charAt(0) || ""}
+                    {form.watch("last_name")?.charAt(0) || ""}
                   </AvatarFallback>
                 </Avatar>
                 <div>
                   <h3 className="text-xl font-semibold">
-                    {form.watch("first_name") || ''} {form.watch("last_name") || ''}
+                    {form.watch("first_name") || ""}{" "}
+                    {form.watch("last_name") || ""}
                   </h3>
-                  <p className="text-gray-400">@{form.watch("username") || ''}</p>
+                  <p className="text-gray-400">
+                    @{form.watch("username") || ""}
+                  </p>
                 </div>
               </div>
 

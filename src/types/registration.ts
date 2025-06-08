@@ -38,6 +38,7 @@ export interface AccountFormData {
 
 export interface RegistrationData {
   selectedFeatures: string[];
+  paymentMethod: string;
   recommendedPlan: SubscriptionPlanOption | null;
   accountData: AccountFormData | null;
   paymentCompleted: boolean;

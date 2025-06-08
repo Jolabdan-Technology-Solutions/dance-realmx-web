@@ -1,28 +1,33 @@
 import { useParams, useLocation } from "wouter";
-import { useQuery, useMutation, UseQueryOptions } from "@tanstack/react-query";
-import { useAuth } from "../hooks/use-auth";
-import { useState } from "react";
-import { Button } from "../components/ui/button";
-import { Separator } from "../components/ui/separator";
-import { Card, CardContent } from "../components/ui/card";
-import { useToast } from "../hooks/use-toast";
-import { Course, Category, Module } from "../../../shared/schema";
-import { VideoPreviewModal } from "../components/curriculum/video-preview-modal";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useAuth } from "../../hooks/use-auth";
+import { useState, useEffect } from "react";
+import { Button } from "../../components/ui/button";
+import { Separator } from "../../components/ui/separator";
+import { Card, CardContent } from "../../components/ui/card";
+import { useToast } from "../../hooks/use-toast";
+import { Course, Category, Module } from "@/shared/schema";
+import { VideoPreviewModal } from "../../components/curriculum/video-preview-modal";
 
 // Extended Course type that includes modules
-interface CourseWithModules extends Course {
+interface CourseWithModules extends Omit<Course, 'preview_video_url' | 'full_video_url'> {
   modules?: Module[];
   instructor?: any;
-  preview_video_url?: string;
-  full_video_url?: string;
-  price_royalty?: string;
-  price_premium?: string;
+  preview_video_url?: string | null;
+  full_video_url?: string | null;
+  price_royalty?: string | number;
+  price_premium?: string | number;
+  price?: string | number;
+  category_id?: number;
+  image_url?: string;
+  title: string;
+  description?: string;
 }
-import { apiRequest, queryClient } from "../lib/queryClient";
+import { apiRequest, queryClient } from "../../lib/queryClient";
 import { Loader2, ShoppingCart, Lock as LockClosedIcon } from "lucide-react";
-import { AuthWrapper } from "../lib/auth-wrapper";
-import { AdminEditableContent } from "../components/admin/admin-editable-content";
-import { convertToYouTubeEmbedUrl } from "../lib/utils";
+import { AuthWrapper } from "../../lib/auth-wrapper";
+import { AdminEditableContent } from "../../components/admin/admin-editable-content";
+import { convertToYouTubeEmbedUrl } from "../../lib/utils";
 
 function CourseDetailsContent() {
   const { id } = useParams<{ id: string }>();
@@ -42,22 +47,25 @@ function CourseDetailsContent() {
     error: courseError,
   } = useQuery<CourseWithModules>({
     queryKey: [`/api/courses/${courseId}`],
-    enabled: !isNaN(courseId),
+    queryFn: async () => {
+      const res = await fetch(`/api/courses/${courseId}`);
+      if (!res.ok) throw new Error("Failed to fetch course");
+      return res.json();
+    },
     retry: 2,
     staleTime: 60000,
-    onSuccess: (data: CourseWithModules) => {
-      console.log(`Course data received:`, data);
-      console.log(`Course modules:`, data?.modules);
-    },
-    onError: (error: Error) => {
-      console.error("Error fetching course details:", error);
-      toast({
-        title: "Error loading course",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
+    enabled: !isNaN(courseId),
+    gcTime: 0,
+    refetchOnWindowFocus: false
   });
+
+  // Log course data when it changes
+  useEffect(() => {
+    if (course) {
+      console.log(`Course data received:`, course);
+      console.log(`Course modules:`, course?.modules);
+    }
+  }, [course]);
 
   // Fetch category if the course has one
   const { data: category } = useQuery<Category>({
@@ -107,19 +115,19 @@ function CourseDetailsContent() {
   // Get the appropriate price based on user's subscription tier
   const getPrice = (): number => {
     if (!course) return 0;
-    if (!user) return parseFloat(course.price || "0");
+    if (!user) return Number(course.price || 0);
 
     switch (user.subscription_plan) {
       case "royalty":
         return course.price_royalty
-          ? parseFloat(course.price_royalty)
-          : parseFloat(course.price || "0");
+          ? Number(course.price_royalty)
+          : Number(course.price || 0);
       case "premium":
         return course.price_premium
-          ? parseFloat(course.price_premium)
-          : parseFloat(course.price || "0");
+          ? Number(course.price_premium)
+          : Number(course.price || 0);
       default:
-        return parseFloat(course.price || "0");
+        return Number(course.price || 0);
     }
   };
 
@@ -128,17 +136,12 @@ function CourseDetailsContent() {
     mutationFn: async () => {
       if (!user) throw new Error("You must be logged in to enroll");
 
-      // Use the Stripe checkout flow for enrollment
-      const response = await apiRequest(
-        "POST",
-        `/api/enroll-course/${courseId}`
-      );
+      const response = await apiRequest(`/api/enroll-course/${courseId}`, {
+        method: "POST"
+      });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(
-          `Failed to create enrollment checkout: ${response.status} ${response.statusText} - ${errorText}`
-        );
+        throw new Error("Failed to enroll in course");
       }
 
       return await response.json();
@@ -177,15 +180,17 @@ function CourseDetailsContent() {
         throw new Error("You must be logged in to add items to your cart");
       if (!course) throw new Error("Course information not available");
 
-      // Get the appropriate price based on subscription tier
       const price = getPrice().toString();
 
-      return await apiRequest("POST", "/api/cart", {
-        itemType: "course",
-        itemId: courseId,
-        title: course.title,
-        price,
-        quantity: 1,
+      return await apiRequest("/api/cart", {
+        method: "POST",
+        data: {
+          itemType: "course",
+          itemId: courseId,
+          title: course.title,
+          price,
+          quantity: 1,
+        }
       });
     },
     onSuccess: () => {
@@ -253,15 +258,15 @@ function CourseDetailsContent() {
           throw new Error("Course information not available");
         }
 
-        const price = parseFloat(course.price || "0");
+        const price = Number(course.price || 0);
         const newItem = {
-          id: Date.now(), // Temporary ID for guest cart
+          id: Date.now(),
           itemType: "course",
           itemId: courseId,
           title: course.title,
           price: price.toString(),
           quantity: 1,
-          imageUrl: course.imageUrl,
+          imageUrl: course.image_url,
         };
 
         const updatedCart = [...guestCart, newItem];
@@ -315,7 +320,7 @@ function CourseDetailsContent() {
   }
 
   // Use a proper image path with fallback
-  const imageUrl = course.imageUrl ? course.imageUrl : "/assets/images/5.png";
+  const imageUrl = course.image_url ? course.image_url : "/assets/images/5.png";
 
   return (
     <>
@@ -323,7 +328,7 @@ function CourseDetailsContent() {
       <AdminEditableContent
         type="image"
         id={course.id}
-        field="imageUrl"
+        field="image_url"
         endpoint="/api/courses"
         initialValue={imageUrl}
         queryKey={[`/api/courses/${courseId}`]}
@@ -469,14 +474,14 @@ function CourseDetailsContent() {
 
                 {/* Preview Modals - single implementation */}
                 <VideoPreviewModal
-                  videoUrl={course.preview_video_url || course.full_video_url}
+                  videoUrl={course.preview_video_url || course.full_video_url || null}
                   isOpen={isPreviewModalOpen}
                   onClose={() => setIsPreviewModalOpen(false)}
                   previewDuration={15}
                 />
 
                 <VideoPreviewModal
-                  videoUrl={course.full_video_url}
+                  videoUrl={course.full_video_url || null}
                   isOpen={isShortPreviewModalOpen}
                   onClose={() => setIsShortPreviewModalOpen(false)}
                   previewDuration={15}
@@ -660,7 +665,7 @@ function CourseDetailsContent() {
                   </div>
 
                   {/* Only show admin sections if user is logged in and is admin */}
-                  {user?.role === "admin" && (
+                  {user?.role === "ADMIN" && (
                     <>
                       <div className="flex justify-between py-2 border-b border-gray-800">
                         <span className="text-gray-400">Standard Price:</span>

@@ -21,7 +21,7 @@ import {
   BookOpen,
   HelpCircle
 } from "lucide-react";
-import { USER_ROLES } from "@/constants/roles";
+import { UserRole } from "@/constants/roles";
 import { StripeConnectModal } from "./stripe-connect-modal";
 import { StripeConnectGuideModal } from "./stripe-connect-guide-modal";
 
@@ -34,7 +34,7 @@ export function StripeConnectOnboarding() {
   
   // Check if user has seller or curriculum officer role
   const canUseStripeConnect = () => {
-    return user && [USER_ROLES.SELLER, USER_ROLES.CURRICULUM_OFFICER].includes(user.role as any);
+        return user && [UserRole.CURRICULUM_SELLER, UserRole.CURRICULUM_ADMIN].includes(user.role as any);
   };
   
   // Get Stripe Connect account status

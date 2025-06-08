@@ -7,39 +7,37 @@ import {
   ThumbsUp,
   Filter,
   User,
-  BadgeCheck,
-  Award,
 } from "lucide-react";
-import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
-import { CachedImage } from "../components/ui/cached-image";
-import { CachedResourceImage } from "../components/ui/cached-resource-image";
-import { DEFAULT_RESOURCE_IMAGE, DEFAULT_USER_IMAGE } from "../lib/constants";
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { CachedImage } from "../../components/ui/cached-image";
+import { CachedResourceImage } from "../../components/ui/cached-resource-image";
+import { DEFAULT_RESOURCE_IMAGE, DEFAULT_USER_IMAGE } from "../../lib/constants";
 import {
   Card,
   CardContent,
   CardFooter,
   CardHeader,
   CardTitle,
-} from "../components/ui/card";
-import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
+} from "../../components/ui/card";
+import { Avatar, AvatarImage, AvatarFallback } from "../../components/ui/avatar";
 import {
   ResourcePlaceholderGrid,
   ResourceErrorCard,
-} from "../components/ui/resource-placeholder";
-import { useAuth } from "../hooks/use-auth";
-import { useToast } from "../hooks/use-toast";
-import { useCart } from "../hooks/use-cart";
-import { useGuestCart } from "../hooks/use-guest-cart";
-import { api } from "../lib/api";
-import { Checkbox } from "../components/ui/checkbox";
+} from "../../components/ui/resource-placeholder";
+import { useAuth } from "../../hooks/use-auth";
+import { useToast } from "../../hooks/use-toast";
+import { useCart } from "../../hooks/use-cart";
+import { useGuestCart } from "../../hooks/use-guest-cart";
+import { api } from "../../lib/api";
+import { Checkbox } from "../../components/ui/checkbox";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "../components/ui/tooltip";
-import { ResourceDetailsModal } from "../components/curriculum/resource-details-modal";
+} from "../../components/ui/tooltip";
+import { ResourceDetailsModal } from "../../components/curriculum/resource-details-modal";
 
 // Define filter types
 type FilterState = {
@@ -99,16 +97,22 @@ export default function CurriculumPageSimple() {
 
         console.log("DEBUG CURRICULUM CLIENT: Starting resource fetch");
 
-        // Fetch resources from the API
-        const response = await api.get('/resources', {
+        // Fetch resources from the API with auth headers
+        const response = await api.get("/api/resources", {
           params: {
-            type: 'curriculum',
+            type: "curriculum",
             search: searchTerm,
-            ...filters
+            ...filters,
+          },
+          headers: {
+            Authorization: localStorage.getItem('access_token') ? `Bearer ${localStorage.getItem('access_token')}` : undefined
           }
         });
 
-        console.log("DEBUG CURRICULUM CLIENT: Resources fetched successfully:", response.data);
+        console.log(
+          "DEBUG CURRICULUM CLIENT: Resources fetched successfully:",
+          response.data
+        );
 
         if (response.data) {
           setResources(response.data);
@@ -121,7 +125,10 @@ export default function CurriculumPageSimple() {
           });
         }
       } catch (error) {
-        console.error("DEBUG CURRICULUM CLIENT: Error fetching resources:", error);
+        console.error(
+          "DEBUG CURRICULUM CLIENT: Error fetching resources:",
+          error
+        );
         setError(true);
         toast({
           title: "Error",
@@ -134,18 +141,21 @@ export default function CurriculumPageSimple() {
     };
 
     fetchResources();
-  }, [searchTerm, filters, toast]);
+  }, [searchTerm, filters, toast, user]);
 
-  const toggleFilter = (type: keyof FilterState, value: string) => {
-    setFilters(prev => {
+  const toggleFilter = (
+    type: keyof Omit<FilterState, "showFilters">,
+    value: string
+  ) => {
+    setFilters((prev) => {
       const currentValues = prev[type];
       const newValues = currentValues.includes(value)
-        ? currentValues.filter(v => v !== value)
+        ? currentValues.filter((v) => v !== value)
         : [...currentValues, value];
-      
+
       return {
         ...prev,
-        [type]: newValues
+        [type]: newValues,
       };
     });
   };
@@ -163,7 +173,7 @@ export default function CurriculumPageSimple() {
   };
 
   const isPriceInRange = (price: string, range: string): boolean => {
-    const [min, max] = range.split('-').map(Number);
+    const [min, max] = range.split("-").map(Number);
     const priceNum = parseFloat(price);
     return priceNum >= min && priceNum <= max;
   };
@@ -174,7 +184,7 @@ export default function CurriculumPageSimple() {
     } else {
       addToGuestCart(resource);
     }
-    
+
     toast({
       title: "Added to cart",
       description: `${resource.title} has been added to your cart.`,
@@ -188,34 +198,46 @@ export default function CurriculumPageSimple() {
   };
 
   // Filter resources based on search term and filters
-  const filteredResources = resources.filter(resource => {
+  const filteredResources = resources.filter((resource) => {
     // Search term filter
-    const matchesSearch = searchTerm === "" || 
+    const matchesSearch =
+      searchTerm === "" ||
       resource.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       resource.description.toLowerCase().includes(searchTerm.toLowerCase());
 
     // Price range filter
-    const matchesPrice = filters.priceRange.length === 0 ||
-      filters.priceRange.some(range => isPriceInRange(resource.price, range));
+    const matchesPrice =
+      filters.priceRange.length === 0 ||
+      filters.priceRange.some((range) => isPriceInRange(resource.price, range));
 
     // Dance style filter
-    const matchesDanceStyle = filters.danceStyles.length === 0 ||
+    const matchesDanceStyle =
+      filters.danceStyles.length === 0 ||
       filters.danceStyles.includes(resource.danceStyle);
 
     // Age range filter
-    const matchesAgeRange = filters.ageRanges.length === 0 ||
+    const matchesAgeRange =
+      filters.ageRanges.length === 0 ||
       filters.ageRanges.includes(resource.ageRange);
 
     // Difficulty level filter
-    const matchesDifficulty = filters.difficultyLevels.length === 0 ||
+    const matchesDifficulty =
+      filters.difficultyLevels.length === 0 ||
       filters.difficultyLevels.includes(resource.difficultyLevel);
 
     // Seller filter
-    const matchesSeller = filters.sellers.length === 0 ||
+    const matchesSeller =
+      filters.sellers.length === 0 ||
       filters.sellers.includes(resource.sellerId.toString());
 
-    return matchesSearch && matchesPrice && matchesDanceStyle && 
-           matchesAgeRange && matchesDifficulty && matchesSeller;
+    return (
+      matchesSearch &&
+      matchesPrice &&
+      matchesDanceStyle &&
+      matchesAgeRange &&
+      matchesDifficulty &&
+      matchesSeller
+    );
   });
 
   return (
@@ -234,7 +256,12 @@ export default function CurriculumPageSimple() {
           </div>
           <Button
             variant="outline"
-            onClick={() => setFilters(prev => ({ ...prev, showFilters: !prev.showFilters }))}
+            onClick={() =>
+              setFilters((prev) => ({
+                ...prev,
+                showFilters: !prev.showFilters,
+              }))
+            }
           >
             <Filter className="mr-2 h-4 w-4" />
             Filters
@@ -247,12 +274,12 @@ export default function CurriculumPageSimple() {
             {/* Price Range */}
             <div>
               <h3 className="font-semibold mb-2">Price Range</h3>
-              {['0-10', '10-20', '20-30', '30+'].map(range => (
+              {["0-10", "10-20", "20-30", "30+"].map((range) => (
                 <div key={range} className="flex items-center space-x-2">
                   <Checkbox
                     id={`price-${range}`}
                     checked={filters.priceRange.includes(range)}
-                    onCheckedChange={() => toggleFilter('priceRange', range)}
+                    onCheckedChange={() => toggleFilter("priceRange", range)}
                   />
                   <label htmlFor={`price-${range}`}>${range}</label>
                 </div>
@@ -262,27 +289,29 @@ export default function CurriculumPageSimple() {
             {/* Dance Styles */}
             <div>
               <h3 className="font-semibold mb-2">Dance Style</h3>
-              {['Ballet', 'Hip Hop', 'Contemporary', 'Jazz', 'Tap'].map(style => (
-                <div key={style} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`style-${style}`}
-                    checked={filters.danceStyles.includes(style)}
-                    onCheckedChange={() => toggleFilter('danceStyles', style)}
-                  />
-                  <label htmlFor={`style-${style}`}>{style}</label>
-                </div>
-              ))}
+              {["Ballet", "Hip Hop", "Contemporary", "Jazz", "Tap"].map(
+                (style) => (
+                  <div key={style} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`style-${style}`}
+                      checked={filters.danceStyles.includes(style)}
+                      onCheckedChange={() => toggleFilter("danceStyles", style)}
+                    />
+                    <label htmlFor={`style-${style}`}>{style}</label>
+                  </div>
+                )
+              )}
             </div>
 
             {/* Age Ranges */}
             <div>
               <h3 className="font-semibold mb-2">Age Range</h3>
-              {['5-7', '8-12', '13-18', '18+'].map(range => (
+              {["5-7", "8-12", "13-18", "18+"].map((range) => (
                 <div key={range} className="flex items-center space-x-2">
                   <Checkbox
                     id={`age-${range}`}
                     checked={filters.ageRanges.includes(range)}
-                    onCheckedChange={() => toggleFilter('ageRanges', range)}
+                    onCheckedChange={() => toggleFilter("ageRanges", range)}
                   />
                   <label htmlFor={`age-${range}`}>{range}</label>
                 </div>
@@ -292,12 +321,14 @@ export default function CurriculumPageSimple() {
             {/* Difficulty Levels */}
             <div>
               <h3 className="font-semibold mb-2">Difficulty Level</h3>
-              {['Beginner', 'Intermediate', 'Advanced'].map(level => (
+              {["Beginner", "Intermediate", "Advanced"].map((level) => (
                 <div key={level} className="flex items-center space-x-2">
                   <Checkbox
                     id={`level-${level}`}
                     checked={filters.difficultyLevels.includes(level)}
-                    onCheckedChange={() => toggleFilter('difficultyLevels', level)}
+                    onCheckedChange={() =>
+                      toggleFilter("difficultyLevels", level)
+                    }
                   />
                   <label htmlFor={`level-${level}`}>{level}</label>
                 </div>
@@ -311,7 +342,10 @@ export default function CurriculumPageSimple() {
       {loading ? (
         <ResourcePlaceholderGrid />
       ) : error ? (
-        <ResourceErrorCard onRetry={handleRetry} />
+        <ResourceErrorCard
+          message="Failed to load resources. Please try again later."
+          retryFn={handleRetry}
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredResources.map((resource) => (
@@ -319,7 +353,7 @@ export default function CurriculumPageSimple() {
               <CardHeader className="p-0">
                 <div className="relative aspect-video">
                   <CachedResourceImage
-                    src={resource.thumbnailUrl || DEFAULT_RESOURCE_IMAGE}
+                    resource={resource}
                     alt={resource.title}
                     className="object-cover w-full h-full"
                   />
@@ -334,10 +368,7 @@ export default function CurriculumPageSimple() {
                 </p>
                 <div className="flex items-center justify-between">
                   <span className="text-lg font-bold">${resource.price}</span>
-                  <Button
-                    onClick={() => addToCart(resource)}
-                    className="ml-2"
-                  >
+                  <Button onClick={() => addToCart(resource)} className="ml-2">
                     Add to Cart
                   </Button>
                 </div>

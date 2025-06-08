@@ -65,6 +65,45 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     }
   };
   
+  const isAdmin = user?.role_mappings?.some(mapping => 
+    mapping.role === 'ADMIN' || 
+    mapping.role === 'CURRICULUM_ADMIN' || 
+    mapping.role === 'INSTRUCTOR_ADMIN' || 
+    mapping.role === 'COURSE_CREATOR_ADMIN'
+  ) || false;
+
+  const isCurriculumOfficer = user?.role_mappings?.some(mapping => 
+    mapping.role === 'CURRICULUM_ADMIN'
+  ) || false;
+
+  const isSeller = user?.role_mappings?.some(mapping => 
+    mapping.role === 'SELLER'
+  ) || false;
+
+  const isInstructor = user?.role_mappings?.some(mapping => 
+    mapping.role === 'INSTRUCTOR'
+  ) || false;
+
+  const isCourseCreator = user?.role_mappings?.some(mapping => 
+    mapping.role === 'COURSE_CREATOR'
+  ) || false;
+
+  const isCertificationManager = user?.role_mappings?.some(mapping => 
+    mapping.role === 'CERTIFICATION_MANAGER'
+  ) || false;
+
+  const isDirectoryMember = user?.role_mappings?.some(mapping => 
+    mapping.role === 'DIRECTORY_MEMBER'
+  ) || false;
+
+  const isBookingProfessional = user?.role_mappings?.some(mapping => 
+    mapping.role === 'BOOKING_PROFESSIONAL'
+  ) || false;
+
+  const isBookingUser = user?.role_mappings?.some(mapping => 
+    mapping.role === 'BOOKING_USER'
+  ) || false;
+  
   // Define navigation items for different roles
   const adminNavItems = [
     {

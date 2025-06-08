@@ -11,7 +11,6 @@ export function AuthWrapper({
   // Use the hook directly instead of context for better reliability
   const { user, isLoading } = useAuth();
   
-  console.log("AuthWrapper - Current auth state:", { user, isLoading });
   
   // If we're still loading, show a loading state
   if (isLoading) {
@@ -20,14 +19,12 @@ export function AuthWrapper({
   
   // If we have a user, render the children, otherwise render the fallback
   if (user) {
-    console.log("AuthWrapper - User authenticated, showing protected content");
     return <>{children}</>;
   } else if (fallback) {
-    console.log("AuthWrapper - User not authenticated, showing fallback content");
+  
     return <>{fallback}</>;
   }
-  
+
   // Otherwise, just render nothing
-  console.log("AuthWrapper - No user and no fallback provided");
   return null;
 }

@@ -21,40 +21,51 @@ interface UpgradeModalProps {
   featureName?: string;
 }
 
-export function UpgradeModal({ isOpen, onClose, featureName }: UpgradeModalProps) {
-  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
+export function UpgradeModal({
+  isOpen,
+  onClose,
+  featureName,
+}: UpgradeModalProps) {
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">(
+    "monthly"
+  );
   const { toast } = useToast();
 
   // Fetch available plans
   const { data: plans, isLoading } = useQuery<SubscriptionPlanOption[]>({
     queryKey: ["subscription-plans"],
     queryFn: async () => {
-      const response = await apiRequest("GET", "/api/subscriptions/plans");
-      return response.json();
+      const response = await apiRequest("/api/subscriptions/plans", {
+        method: "GET",
+      });
+      return response;
     },
   });
 
   const handleUpgrade = async (plan: SubscriptionPlanOption) => {
     try {
       // Create subscription checkout session
-      const response = await apiRequest("POST", "/api/subscriptions/checkout", {
-        planSlug: plan.slug,
-        frequency: billingCycle.toUpperCase(),
+      const response = await apiRequest("/api/subscriptions/checkout", {
+        method: "POST",
+        data: {
+          planSlug: plan.slug,
+          frequency: billingCycle.toUpperCase(),
+        },
       });
-      
-      const data = await response.json();
-      
-      if (!data.url) {
-        throw new Error(data.message || "Could not initialize payment");
+
+      if (!response.url) {
+        throw new Error(response.message || "Could not initialize payment");
       }
-      
+
       // Redirect to Stripe checkout
-      window.location.href = data.url;
+      window.location.href = response.url;
     } catch (error: any) {
       console.error("Error creating subscription:", error);
       toast({
         title: "Upgrade Failed",
-        description: error.message || "There was a problem processing your upgrade. Please try again.",
+        description:
+          error.message ||
+          "There was a problem processing your upgrade. Please try again.",
         variant: "destructive",
       });
     }
@@ -64,9 +75,11 @@ export function UpgradeModal({ isOpen, onClose, featureName }: UpgradeModalProps
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[600px] bg-black text-white border border-gray-800">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">Upgrade Your Plan</DialogTitle>
+          <DialogTitle className="text-2xl font-bold">
+            Upgrade Your Plan
+          </DialogTitle>
           <DialogDescription className="text-gray-400">
-            {featureName 
+            {featureName
               ? `To access ${featureName}, you'll need to upgrade your plan.`
               : "Choose a plan that best fits your needs."}
           </DialogDescription>
@@ -76,7 +89,9 @@ export function UpgradeModal({ isOpen, onClose, featureName }: UpgradeModalProps
           <div className="flex justify-center mb-6">
             <RadioGroup
               value={billingCycle}
-              onValueChange={(value) => setBillingCycle(value as "monthly" | "yearly")}
+              onValueChange={(value) =>
+                setBillingCycle(value as "monthly" | "yearly")
+              }
               className="flex space-x-4"
             >
               <div className="flex items-center space-x-2">
@@ -116,7 +131,10 @@ export function UpgradeModal({ isOpen, onClose, featureName }: UpgradeModalProps
                   <div className="mb-4">
                     <h3 className="text-xl font-bold mb-2">{plan.name}</h3>
                     <div className="text-3xl font-bold mb-2">
-                      ${billingCycle === "monthly" ? plan.priceMonthly : plan.priceYearly}
+                      $
+                      {billingCycle === "monthly"
+                        ? plan.priceMonthly
+                        : plan.priceYearly}
                       <span className="text-sm text-gray-400 font-normal">
                         /{billingCycle === "monthly" ? "month" : "year"}
                       </span>
@@ -151,4 +169,4 @@ export function UpgradeModal({ isOpen, onClose, featureName }: UpgradeModalProps
       </DialogContent>
     </Dialog>
   );
-} 
+}

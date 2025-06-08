@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "wouter";
 import { useEffect, useState } from "react";
-import { USER_ROLES } from "@/constants/roles";
+import { UserRole } from "@/constants/roles";
 import { useQuery } from "@tanstack/react-query";
 import { 
   Loader2, ShoppingBag, BookOpen, UserCog, Users, BarChart3, Book, 
@@ -26,26 +26,26 @@ export default function MultiDashboardPage() {
   const instructorCourses = useQuery({
     queryKey: ['/api/courses'],
     // Only enabled when user is logged in and has instructor role
-    enabled: !isLoading && !!user && Array.isArray(user.roles) && user.roles.includes(USER_ROLES.INSTRUCTOR),
+    enabled: !isLoading && !!user && Array.isArray(user.role) && user.role.includes(UserRole.INSTRUCTOR_ADMIN),
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
   
   useEffect(() => {
     // Set default active tab based on user roles
-    if (user && Array.isArray(user.roles) && user.roles.length > 0) {
+    if (user && Array.isArray(user.role) && user.role.length > 0) {
       // Prioritized role order for default tab selection
       const priorityOrder = [
-        USER_ROLES.ADMIN,
-        USER_ROLES.INSTRUCTOR,
-        USER_ROLES.SELLER,
-        USER_ROLES.CURRICULUM_OFFICER,
-        USER_ROLES.MODERATOR,
-        USER_ROLES.USER
+        UserRole.ADMIN,
+        UserRole.INSTRUCTOR_ADMIN,
+        UserRole.CURRICULUM_SELLER,
+        UserRole.CURRICULUM_ADMIN,
+        UserRole.MODERATOR,
+        UserRole.USER
       ];
       
       // Find the highest priority role the user has
       for (const role of priorityOrder) {
-        if (user.roles.includes(role)) {
+          if (user.role.includes(role)) {
           setActiveTab(role);
           break;
         }
@@ -61,7 +61,7 @@ export default function MultiDashboardPage() {
     );
   }
   
-  if (!user || !Array.isArray(user.roles) || user.roles.length === 0) {
+  if (!user || !Array.isArray(user.role) || user.role.length === 0) {
     return (
       <div className="container mx-auto p-6">
         <h1 className="text-2xl font-bold mb-4">No Roles Assigned</h1>
@@ -74,10 +74,10 @@ export default function MultiDashboardPage() {
   }
   
   // Determine which role tabs to show
-  const hasSellerRole = user.roles.includes(USER_ROLES.SELLER);
-  const hasInstructorRole = user.roles.includes(USER_ROLES.INSTRUCTOR);
-  const hasAdminRole = user.roles.includes(USER_ROLES.ADMIN);
-  const hasCurriculumOfficerRole = user.roles.includes(USER_ROLES.CURRICULUM_OFFICER);
+  const hasSellerRole = user.role.includes(UserRole.CURRICULUM_SELLER);
+  const hasInstructorRole = user.role.includes(UserRole.INSTRUCTOR_ADMIN);
+  const hasAdminRole = user.role.includes(UserRole.ADMIN);
+  const hasCurriculumOfficerRole = user.role.includes(UserRole.CURRICULUM_ADMIN);
   
   return (
     <div className="container mx-auto p-6">
@@ -93,28 +93,28 @@ export default function MultiDashboardPage() {
       <Tabs defaultValue={activeTab} value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="flex flex-wrap">
           {hasSellerRole && (
-            <TabsTrigger value={USER_ROLES.SELLER}>
+            <TabsTrigger value={UserRole.CURRICULUM_SELLER}>
               <ShoppingBag className="h-4 w-4 mr-2" />
               Seller Dashboard
             </TabsTrigger>
           )}
           
           {hasInstructorRole && (
-            <TabsTrigger value={USER_ROLES.INSTRUCTOR}>
+            <TabsTrigger value={UserRole.INSTRUCTOR_ADMIN}>
               <BookOpen className="h-4 w-4 mr-2" />
               Instructor Dashboard
             </TabsTrigger>
           )}
           
           {hasAdminRole && (
-            <TabsTrigger value={USER_ROLES.ADMIN}>
+            <TabsTrigger value={UserRole.ADMIN}>
               <UserCog className="h-4 w-4 mr-2" />
               Admin Dashboard
             </TabsTrigger>
           )}
           
           {hasCurriculumOfficerRole && (
-            <TabsTrigger value={USER_ROLES.CURRICULUM_OFFICER}>
+            <TabsTrigger value={UserRole.CURRICULUM_ADMIN}>
               <Book className="h-4 w-4 mr-2" />
               Curriculum Officer
             </TabsTrigger>
@@ -123,7 +123,7 @@ export default function MultiDashboardPage() {
         
         {/* Seller Dashboard Tab */}
         {hasSellerRole && (
-          <TabsContent value={USER_ROLES.SELLER} className="space-y-4">
+          <TabsContent value={UserRole.CURRICULUM_SELLER} className="space-y-4">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-2xl font-bold">Seller Dashboard</h2>
               <div className="flex items-center space-x-2">
@@ -224,7 +224,7 @@ export default function MultiDashboardPage() {
         
         {/* Instructor Dashboard Tab */}
         {hasInstructorRole && (
-          <TabsContent value={USER_ROLES.INSTRUCTOR} className="space-y-4">
+          <TabsContent value={UserRole.INSTRUCTOR_ADMIN} className="space-y-4">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-2xl font-bold">Instructor Dashboard</h2>
               <div className="flex items-center flex-wrap gap-2">
@@ -565,7 +565,7 @@ export default function MultiDashboardPage() {
         
         {/* Admin Dashboard Tab */}
         {hasAdminRole && (
-          <TabsContent value={USER_ROLES.ADMIN} className="space-y-4">
+            <TabsContent value={UserRole.ADMIN} className="space-y-4">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-2xl font-bold">Admin Dashboard</h2>
               <div className="flex items-center space-x-2">
@@ -715,7 +715,7 @@ export default function MultiDashboardPage() {
         
         {/* Curriculum Officer Tab */}
         {hasCurriculumOfficerRole && (
-          <TabsContent value={USER_ROLES.CURRICULUM_OFFICER} className="space-y-4">
+            <TabsContent value={UserRole.CURRICULUM_ADMIN} className="space-y-4">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-2xl font-bold">Curriculum Officer Dashboard</h2>
               <div className="flex items-center space-x-2">

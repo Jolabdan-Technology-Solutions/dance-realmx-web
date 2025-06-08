@@ -10,7 +10,9 @@ import { getQueryFn, apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
 
-// Define types for our context
+// =======================
+// Type Definitions
+// =======================
 type LoginData = {
   username: string;
   password: string;
@@ -22,180 +24,179 @@ type AuthContextType = {
   error: Error | null;
   loginMutation: UseMutationResult<User, Error, LoginData>;
   logoutMutation: UseMutationResult<void, Error, void>;
-  registerMutation: UseMutationResult<User, Error, Omit<User, 'id' | 'created_at' | 'updated_at'>>;
+  registerMutation: UseMutationResult<
+    User,
+    Error,
+    Omit<User, "id" | "created_at" | "updated_at">
+  >;
 };
 
-// Create the context with a default value
+// =======================
+// Context
+// =======================
 const AuthContext = createContext<AuthContextType | null>(null);
 export { AuthContext };
 
+// =======================
+// Provider
+// =======================
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
   const [, navigate] = useLocation();
+
+  // -----------------------
+  // Fetch Current User
+  // -----------------------
   const {
     data: user,
     error,
     isLoading,
     refetch,
   } = useQuery<User | undefined, Error>({
-    queryKey: ["/api/profiles/me"],
-    queryFn: getQueryFn({ on401: "returnNull" }),
-    staleTime: 10 * 1000, // Consider data fresh for 10 seconds
+    queryKey: ["/api/me"],
+    queryFn: getQueryFn({ on401: "returnNull", requireAuth: true }),
+    staleTime: 10 * 1000,
   });
-  
-  // Listen for profile image updates and auth refresh events
+
+  // -----------------------
+  // Event Listener for Updates
+  // -----------------------
   useEffect(() => {
-    const handleProfileImageUpdate = (event: Event) => {
-      console.log("Auth provider detected profile image update, refetching user data");
+    const onProfileImageUpdate = () => {
+      console.log("Profile image updated - refetching user");
       refetch();
     };
-    
-    const handleAuthRefresh = () => {
-      console.log("Auth refresh explicitly requested, invalidating cache and refetching");
-      queryClient.invalidateQueries({ queryKey: ["/api/profiles/me"] });
-      setTimeout(() => refetch(), 100); // Small delay to ensure server-side changes are complete
-    };
-    
-    // Listen for both types of events
-    document.addEventListener('profile-image-updated', handleProfileImageUpdate);
-    document.addEventListener('auth-refresh-required', handleAuthRefresh);
-    
-    return () => {
-      document.removeEventListener('profile-image-updated', handleProfileImageUpdate);
-      document.removeEventListener('auth-refresh-required', handleAuthRefresh);
-    };
-  }, []);
 
+    const onAuthRefresh = () => {
+      console.log("Auth refresh triggered");
+      queryClient.invalidateQueries({ queryKey: ["/api/me"] });
+      setTimeout(() => refetch(), 100);
+    };
+
+    document.addEventListener("profile-image-updated", onProfileImageUpdate);
+    document.addEventListener("auth-refresh-required", onAuthRefresh);
+
+    return () => {
+      document.removeEventListener(
+        "profile-image-updated",
+        onProfileImageUpdate
+      );
+      document.removeEventListener("auth-refresh-required", onAuthRefresh);
+    };
+  }, [refetch]);
+
+  // -----------------------
+  // Login Mutation
+  // -----------------------
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
-      console.log("Login attempt with credentials:", credentials);
-      
-      const response = await api.post('/api/login', credentials);
+      const response = await api.post("/api/login", credentials);
       const data = response.data;
-      
-      // Store the access token in localStorage
+
       if (data.access_token) {
-        localStorage.setItem('access_token', data.access_token);
+        localStorage.setItem("access_token", data.access_token);
       }
-      
-      // Return the user data from the nested response
+
       return data.user;
     },
-    onSuccess: (data) => {
-      console.log("Login mutation succeeded, setting user data:", data);
-      
-      // Update user data in the query cache
-      queryClient.setQueryData(["/api/profiles/me"], data);
-      
+    onSuccess: (user) => {
+      queryClient.setQueryData(["/api/me"], user);
       toast({
         title: "Login successful",
-        description: `Welcome back, ${data.username}!`,
+        description: `Welcome back, ${user.username}!`,
       });
-      
-      // Use wouter's navigate function for redirection
-      navigate('/dashboard');
+
+      console.log("user", user);
+
+      if (
+        user.subscription_tier !== "free".toUpperCase() &&
+        user?.is_active === false
+      ) {
+        window.location.href = `/subscription?tier=${user.subscription_tier}`;
+      } else {
+        window.location.href = "/dashboard";
+      }
     },
     onError: (error: Error) => {
-      console.error("Login mutation error:", error);
-      
-      // Provide more user-friendly error messages based on error content
-      let errorMessage = error.message;
-      
-      if (error.message.includes("Unauthorized") || error.message.includes("401")) {
-        errorMessage = "Invalid username or password. Please check your credentials and try again.";
+      let message = "Login failed. Please try again.";
+      if (error.message.includes("401")) {
+        message = "Invalid username or password.";
       } else if (error.message.includes("500")) {
-        errorMessage = "A server error occurred. Please try again later.";
-      } else if (!errorMessage || errorMessage.trim() === "") {
-        errorMessage = "Login failed. Please check your connection and try again.";
+        message = "A server error occurred. Please try again later.";
       }
-      
+
       toast({
         title: "Login failed",
-        description: errorMessage,
+        description: message,
         variant: "destructive",
       });
     },
   });
 
+  // -----------------------
+  // Register Mutation
+  // -----------------------
   const registerMutation = useMutation({
-    mutationFn: async (credentials: Omit<User, 'id' | 'created_at' | 'updated_at'>) => {
-      console.log("Registration attempt with credentials:", { ...credentials, password: "[REDACTED]" });
-      
-      // Use a direct fetch approach for better error handling
-      const response = await fetch('/api/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+    mutationFn: async (
+      credentials: Omit<User, "id" | "created_at" | "updated_at">
+    ) => {
+      const response = await fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(credentials),
-        credentials: 'include'
+        credentials: "include",
       });
-      
+
       if (!response.ok) {
         const errorData = await response.text();
-        let errorMessage = "Registration failed";
-        
         try {
-          // Try to parse as JSON for structured error messages
-          const parsedError = JSON.parse(errorData);
-          errorMessage = parsedError.message || errorMessage;
-          console.error("Registration error details:", parsedError);
-        } catch (e) {
-          // If not JSON, use the raw error text
-          errorMessage = errorData || `Registration failed: ${response.status} ${response.statusText}`;
-          console.error("Registration raw error:", errorData);
+          const parsed = JSON.parse(errorData);
+          throw new Error(parsed.message || "Registration failed.");
+        } catch {
+          throw new Error(
+            errorData || `Registration failed: ${response.status}`
+          );
         }
-        
-        throw new Error(errorMessage);
       }
-      
+
       return await response.json();
     },
     onSuccess: (user: User) => {
-      console.log("Registration successful for user:", user.username);
-      queryClient.setQueryData(["/api/profiles/me"], user);
+      queryClient.setQueryData(["/api/me"], user);
       toast({
         title: "Registration successful",
         description: `Welcome to DanceRealmX, ${user.username}!`,
       });
-      
-      // Manually redirect to dashboard after successful registration
-      window.location.href = '/dashboard';
+      window.location.href = "/dashboard";
     },
     onError: (error: Error) => {
-      console.error("Registration mutation error:", error);
-      // Provide a user-friendly message
-      const errorMessage = error.message.includes("Username already exists") 
-        ? "This username is already taken. Please try another one."
-        : error.message || "Registration failed. Please check your information and try again.";
-        
+      const message = error.message.includes("Username already exists")
+        ? "Username already taken. Please choose another."
+        : error.message;
+
       toast({
         title: "Registration failed",
-        description: errorMessage,
+        description: message,
         variant: "destructive",
       });
     },
   });
 
+  // -----------------------
+  // Logout Mutation
+  // -----------------------
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest("POST", "/api/logout");
+      // Clear auth token from localStorage
+      localStorage.removeItem("access_token");
+      // Clear all queries from the cache
+      queryClient.clear();
+      // Set user to null
+      queryClient.setQueryData(["/api/me"], null);
     },
     onSuccess: () => {
-      // Clear the access token from localStorage
-      localStorage.removeItem('access_token');
-      
-      // Clear all query cache to ensure proper state update
-      queryClient.clear();
-      
-      // Set user to null immediately
-      queryClient.setQueryData(["/api/profiles/me"], null);
-      
-      toast({
-        title: "Logged out",
-        description: "You have been successfully logged out.",
-      });
-      
-      // Redirect to home page after logout
-      window.location.href = '/';
+      toast({ title: "Logged out", description: "You have been logged out." });
+      window.location.href = "/";
     },
     onError: (error: Error) => {
       toast({
@@ -222,10 +223,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// =======================
+// Hook
+// =======================
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
-  return context;
+
+  const isAdmin = context.user?.role_mappings?.some(mapping => 
+    mapping.role === 'ADMIN' || 
+    mapping.role === 'CURRICULUM_ADMIN' || 
+    mapping.role === 'INSTRUCTOR_ADMIN' || 
+    mapping.role === 'COURSE_CREATOR_ADMIN'
+  ) || false;
+
+  return {
+    ...context,
+    isAdmin,
+  };
 }

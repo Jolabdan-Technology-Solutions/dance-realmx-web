@@ -53,7 +53,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
     queryFn: async () => {
       if (!isAuthenticated) return [];
       try {
-        const response = await apiRequest("GET", "/api/cart");
+        const response = await apiRequest("/api/cart", {
+          method: "GET",
+          requireAuth: true,
+        });
         if (!response.ok) {
           console.error("Failed to fetch cart:", response.statusText);
           return [];
@@ -72,13 +75,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
   // Mutations for authenticated cart actions
   const addItemMutation = useMutation({
     mutationFn: async (item: Omit<CartItem, "id">) => {
-      const response = await apiRequest("POST", "/api/cart", item);
-      if (!response.ok) {
-        throw new Error("Failed to add item to cart");
-      }
-
-      const data = await response.json();
-      return data;
+      const response = await apiRequest("/api/cart", {
+        method: "POST",
+        data: item,
+        requireAuth: true,
+      });
+      if (!response.ok) throw new Error("Failed to add item to cart");
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
@@ -87,12 +90,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const removeItemMutation = useMutation({
     mutationFn: async (id: number) => {
-      const response = await apiRequest("DELETE", `/api/cart/${id}`);
-      if (!response.ok) {
-        throw new Error("Failed to remove item from cart");
-      }
-      const data = await response.json();
-      return data;
+      const response = await apiRequest(`/api/cart/${id}`, {
+        method: "DELETE",
+        requireAuth: true,
+      });
+      if (!response.ok) throw new Error("Failed to remove item from cart");
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
@@ -101,14 +104,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const updateQuantityMutation = useMutation({
     mutationFn: async ({ id, quantity }: { id: number; quantity: number }) => {
-      const response = await apiRequest("PATCH", `/api/cart/${id}`, {
-        quantity,
+      const response = await apiRequest(`/api/cart/${id}`, {
+        method: "PATCH",
+        data: { quantity },
+        requireAuth: true,
       });
-      if (!response.ok) {
-        throw new Error("Failed to update item quantity");
-      }
-      const data = await response.json();
-      return data;
+      if (!response.ok) throw new Error("Failed to update item quantity");
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
@@ -117,12 +119,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const clearCartMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("DELETE", "/api/cart");
-      if (!response.ok) {
-        throw new Error("Failed to clear cart");
-      }
-      const data = await response.json();
-      return data;
+      const response = await apiRequest("/api/cart", {
+        method: "DELETE",
+        requireAuth: true,
+      });
+      if (!response.ok) throw new Error("Failed to clear cart");
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/cart"] });

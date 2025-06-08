@@ -88,6 +88,7 @@ interface Module {
   description: string;
   position: number;
   lessonCount?: number;
+  lessons?: Lesson[];
 }
 
 interface Lesson {
@@ -98,6 +99,7 @@ interface Lesson {
   content: string;
   position: number;
   type: string;
+  quizzes?: Quiz[];
 }
 
 interface Quiz {
@@ -256,8 +258,8 @@ export default function CourseAdminDashboard() {
     error: coursesError
   } = useQuery({
     queryKey: ['/api/courses'],
-    queryFn: () => apiRequest("GET", "/api/courses").then(res => res.json()),
-    enabled: !!user && (user.role === "admin" || user.role === "instructor"),
+    queryFn: () => apiRequest("/api/courses", { method: "GET" }).then(res => res.json()),
+    enabled: !!user && (user.role === "ADMIN" || user.role === "INSTRUCTOR_ADMIN"),
   });
 
   const {
@@ -266,7 +268,7 @@ export default function CourseAdminDashboard() {
     error: courseDetailsError
   } = useQuery({
     queryKey: ['/api/courses', selectedCourse?.id],
-    queryFn: () => apiRequest("GET", `/api/courses/${selectedCourse?.id}`).then(res => res.json()),
+    queryFn: () => apiRequest(`/api/courses/${selectedCourse?.id}`, { method: "GET" }).then(res => res.json()),
     enabled: !!selectedCourse?.id,
   });
 
@@ -276,18 +278,19 @@ export default function CourseAdminDashboard() {
     error: instructorsError
   } = useQuery({
     queryKey: ['/api/instructors'],
-    queryFn: () => apiRequest("GET", "/api/instructors").then(res => res.json()),
-    enabled: !!user && user.role === "admin",
+    queryFn: () => apiRequest("/api/instructors", { method: "GET" }).then(res => res.json()),
+    enabled: !!user && user.role === "ADMIN",
   });
 
   // Mutations
   const createCourseMutation = useMutation({
     mutationFn: async (data: z.infer<typeof courseSchema>) => {
-      // First create the course
-      const response = await apiRequest("POST", "/api/courses", data);
+      const response = await apiRequest("/api/courses", {
+        method: "POST",
+        data
+      });
       const courseData = await response.json();
       
-      // If there's an image, upload it
       if (courseImage) {
         const formData = new FormData();
         formData.append('file', courseImage);
@@ -305,9 +308,9 @@ export default function CourseAdminDashboard() {
         
         const uploadData = await uploadResponse.json();
         
-        // Update the course with the image URL
-        await apiRequest("PATCH", `/api/courses/${courseData.id}`, {
-          imageUrl: uploadData.url
+        await apiRequest(`/api/courses/${courseData.id}`, {
+          method: "PATCH",
+          data: { imageUrl: uploadData.url }
         });
       }
       
@@ -336,11 +339,12 @@ export default function CourseAdminDashboard() {
     mutationFn: async (data: z.infer<typeof courseSchema> & { id: number }) => {
       const { id, ...courseData } = data;
       
-      // Update the course
-      const response = await apiRequest("PATCH", `/api/courses/${id}`, courseData);
+      const response = await apiRequest(`/api/courses/${id}`, {
+        method: "PATCH",
+        data: courseData
+      });
       const updatedCourse = await response.json();
       
-      // If there's a new image, upload it
       if (courseImage) {
         const formData = new FormData();
         formData.append('file', courseImage);
@@ -358,9 +362,9 @@ export default function CourseAdminDashboard() {
         
         const uploadData = await uploadResponse.json();
         
-        // Update the course with the image URL
-        await apiRequest("PATCH", `/api/courses/${id}`, {
-          imageUrl: uploadData.url
+        await apiRequest(`/api/courses/${id}`, {
+          method: "PATCH",
+          data: { imageUrl: uploadData.url }
         });
       }
       
@@ -389,7 +393,7 @@ export default function CourseAdminDashboard() {
 
   const deleteCourseMutation = useMutation({
     mutationFn: async (courseId: number) => {
-      return apiRequest("DELETE", `/api/courses/${courseId}`);
+      return apiRequest(`/api/courses/${courseId}`, { method: "DELETE" });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/courses'] });
@@ -409,7 +413,10 @@ export default function CourseAdminDashboard() {
 
   const createModuleMutation = useMutation({
     mutationFn: async (data: z.infer<typeof moduleSchema>) => {
-      return apiRequest("POST", "/api/modules", data).then(res => res.json());
+      return apiRequest("/api/modules", {
+        method: "POST",
+        data
+      }).then(res => res.json());
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/courses', data.courseId] });
@@ -432,7 +439,10 @@ export default function CourseAdminDashboard() {
   const updateModuleMutation = useMutation({
     mutationFn: async (data: z.infer<typeof moduleSchema> & { id: number }) => {
       const { id, ...moduleData } = data;
-      return apiRequest("PATCH", `/api/modules/${id}`, moduleData).then(res => res.json());
+      return apiRequest(`/api/modules/${id}`, {
+        method: "PATCH",
+        data: moduleData
+      }).then(res => res.json());
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/courses', data.courseId] });
@@ -455,7 +465,7 @@ export default function CourseAdminDashboard() {
 
   const deleteModuleMutation = useMutation({
     mutationFn: async (moduleId: number) => {
-      return apiRequest("DELETE", `/api/modules/${moduleId}`);
+      return apiRequest(`/api/modules/${moduleId}`, { method: "DELETE" });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/courses', selectedCourse?.id] });
@@ -475,7 +485,10 @@ export default function CourseAdminDashboard() {
 
   const createLessonMutation = useMutation({
     mutationFn: async (data: z.infer<typeof lessonSchema>) => {
-      return apiRequest("POST", "/api/lessons", data).then(res => res.json());
+      return apiRequest("/api/lessons", {
+        method: "POST",
+        data
+      }).then(res => res.json());
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/courses', selectedCourse?.id] });
@@ -498,7 +511,10 @@ export default function CourseAdminDashboard() {
   const updateLessonMutation = useMutation({
     mutationFn: async (data: z.infer<typeof lessonSchema> & { id: number }) => {
       const { id, ...lessonData } = data;
-      return apiRequest("PATCH", `/api/lessons/${id}`, lessonData).then(res => res.json());
+      return apiRequest(`/api/lessons/${id}`, {
+        method: "PATCH",
+        data: lessonData
+      }).then(res => res.json());
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/courses', selectedCourse?.id] });
@@ -521,7 +537,7 @@ export default function CourseAdminDashboard() {
 
   const deleteLessonMutation = useMutation({
     mutationFn: async (lessonId: number) => {
-      return apiRequest("DELETE", `/api/lessons/${lessonId}`);
+      return apiRequest(`/api/lessons/${lessonId}`, { method: "DELETE" });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/courses', selectedCourse?.id] });
@@ -541,7 +557,10 @@ export default function CourseAdminDashboard() {
 
   const createQuizMutation = useMutation({
     mutationFn: async (data: z.infer<typeof quizSchema>) => {
-      return apiRequest("POST", "/api/quizzes", data).then(res => res.json());
+      return apiRequest("/api/quizzes", {
+        method: "POST",
+        data
+      }).then(res => res.json());
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/courses', selectedCourse?.id] });
@@ -563,7 +582,10 @@ export default function CourseAdminDashboard() {
 
   const createQuestionMutation = useMutation({
     mutationFn: async (data: z.infer<typeof quizQuestionSchema>) => {
-      return apiRequest("POST", "/api/quiz-questions", data).then(res => res.json());
+      return apiRequest("/api/quiz-questions", {
+        method: "POST",
+        data
+      }).then(res => res.json());
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/courses', selectedCourse?.id] });
@@ -593,7 +615,8 @@ export default function CourseAdminDashboard() {
       description: "",
       price: "0",
       status: "draft",
-      instructorId: user?.role === "admin" ? undefined : user?.id
+      fullVideoUrl: "",
+      previewVideoUrl: "",
     });
     setCourseImage(null);
     setIsCourseDialogOpen(true);
@@ -640,7 +663,7 @@ export default function CourseAdminDashboard() {
 
   const handleCreateLesson = (moduleId: number) => {
     setIsEditing(false);
-    const module = courseDetails?.modules?.find(m => m.id === moduleId);
+    const module = courseDetails?.modules?.find((m: Module) => m.id === moduleId);
     if (!module) return;
     
     lessonForm.reset({
@@ -669,7 +692,7 @@ export default function CourseAdminDashboard() {
   };
 
   const handleCreateQuiz = (lessonId: number) => {
-    const lesson = courseDetails?.modules?.flatMap(m => m.lessons || []).find(l => l.id === lessonId);
+    const lesson = courseDetails?.modules?.flatMap((m: Module) => m.lessons || []).find((l: Lesson) => l.id === lessonId);
     if (!lesson) return;
     
     quizForm.reset({
@@ -682,7 +705,7 @@ export default function CourseAdminDashboard() {
   };
 
   const handleAddQuestion = (quizId: number) => {
-    const quiz = courseDetails?.modules?.flatMap(m => m.lessons?.flatMap(l => l.quizzes || []) || []).find(q => q.id === quizId);
+    const quiz = courseDetails?.modules?.flatMap((m: Module) => m.lessons?.flatMap((l: Lesson) => l.quizzes || []) || []).find((q: Quiz) => q.id === quizId);
     if (!quiz) return;
     
     setSelectedQuiz(quiz);
@@ -789,6 +812,23 @@ export default function CourseAdminDashboard() {
     setIsQuestionDialogOpen(false);
   };
 
+  // Helper function to render module content
+  const renderModuleContent = (module: Module) => (
+    <div key={module.id} className="space-y-4">
+      <h4 className="font-medium">{module.title}</h4>
+      {module.lessons?.map((lesson: Lesson) => (
+        <div key={lesson.id} className="ml-4">
+          <p>{lesson.title}</p>
+          {lesson.quizzes?.map((quiz: Quiz) => (
+            <div key={quiz.id} className="ml-4">
+              <p>{quiz.title}</p>
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+
   // Loading state
   if (authLoading || isCoursesLoading || (selectedCourse && isCourseDetailsLoading)) {
     return (
@@ -802,7 +842,7 @@ export default function CourseAdminDashboard() {
   }
 
   // Access check
-  if (!user || (user.role !== "admin" && user.role !== "instructor")) {
+  if (!user || (user.role !== "ADMIN" && user.role !== "INSTRUCTOR_ADMIN")) {
     return (
       <div className="container mx-auto py-10">
         <Card>
@@ -823,7 +863,7 @@ export default function CourseAdminDashboard() {
   }
 
   return (
-    <div className="container mx-auto py-8">
+    <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold">Course Administration</h1>
@@ -1199,10 +1239,7 @@ export default function CourseAdminDashboard() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Status</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select status" />
@@ -1219,7 +1256,7 @@ export default function CourseAdminDashboard() {
                     )}
                   />
 
-                  {user.role === "admin" && (
+                  {user.role === "ADMIN" && (
                     <FormField
                       control={courseForm.control}
                       name="instructorId"
@@ -1276,9 +1313,10 @@ export default function CourseAdminDashboard() {
                     <div className="mt-2">
                       <FileUpload 
                         onUploadComplete={(url, metadata) => {
-                          // Just handle the URL, actual file upload handled by component
                           console.log("File selected, metadata:", metadata);
-                          if (metadata?.file) {
+                          if (Array.isArray(metadata) && metadata[0]?.file) {
+                            setCourseImage(metadata[0].file);
+                          } else if (!Array.isArray(metadata) && metadata?.file) {
                             setCourseImage(metadata.file);
                           }
                         }}
