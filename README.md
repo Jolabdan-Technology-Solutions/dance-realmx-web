@@ -1,255 +1,98 @@
-# Dance RealmX Platform
+<p align="center">
+  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
+</p>
 
-A comprehensive platform for dance professionals and students to connect, learn, and grow together.
+[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
+[circleci-url]: https://circleci.com/gh/nestjs/nest
 
-## 🚀 Features
+  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
+    <p align="center">
+<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
+<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
+<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
+<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
+<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
+<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
+<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
+  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
+    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
+  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
+</p>
+  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
+  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
 
-### For Students
-- Book private/group lessons with professionals
-- Purchase and access dance resources
-- Track progress and earn certifications
-- Join courses and communities
-- Receive personalized recommendations
+## Description
 
-### For Professionals
-- Manage bookings and availability
-- Create and sell resources
-- Issue certifications
-- Track earnings and analytics
-- Build professional profile
+[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
 
-### For Sellers
-- Upload and sell dance resources
-- Manage digital products
-- Track sales and analytics
-- Connect with customers
-
-## 🛠 Tech Stack
-
-- **Frontend**: Next.js, React, Material-UI
-- **Backend**: Node.js, Express
-- **Database**: PostgreSQL
-- **ORM**: Prisma
-- **Authentication**: NextAuth.js
-- **Payment Processing**: Stripe
-- **File Storage**: AWS S3
-- **Deployment**: PM2, Nginx
-
-## 📋 Prerequisites
-
-- Node.js (v16 or higher)
-- PostgreSQL (v13 or higher)
-- PM2 (for production)
-- Nginx (for production)
-
-## 🔧 Environment Variables
-
-Create a `.env` file in the root directory:
-
-```env
-# Database
-DATABASE_URL="postgresql://user:password@localhost:5432/dance_realmx"
-
-# Authentication
-NEXTAUTH_URL="http://localhost:3000"
-NEXTAUTH_SECRET="your-secret-key"
-GOOGLE_CLIENT_ID="your-google-client-id"
-GOOGLE_CLIENT_SECRET="your-google-client-secret"
-
-# Stripe
-STRIPE_SECRET_KEY="your-stripe-secret-key"
-STRIPE_WEBHOOK_SECRET="your-stripe-webhook-secret"
-STRIPE_PRICE_ID="your-stripe-price-id"
-
-# AWS S3
-AWS_ACCESS_KEY_ID="your-aws-access-key"
-AWS_SECRET_ACCESS_KEY="your-aws-secret-key"
-AWS_REGION="your-aws-region"
-AWS_BUCKET_NAME="your-bucket-name"
-```
-
-## 🚀 Getting Started
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/your-username/dance-realmx.git
-   cd dance-realmx
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Set up the database**
-   ```bash
-   npx prisma migrate dev
-   npx prisma generate
-   ```
-
-4. **Run the development server**
-   ```bash
-   npm run dev
-   ```
-
-5. **Build for production**
-   ```bash
-   npm run build
-   ```
-
-6. **Start production server**
-   ```bash
-   npm run start:prod
-   ```
-
-## 📁 Project Structure
-
-```
-dance-realmx/
-├── prisma/              # Database schema and migrations
-├── src/
-│   ├── pages/          # Next.js pages
-│   ├── components/     # React components
-│   ├── hooks/          # Custom React hooks
-│   ├── lib/            # Utility functions
-│   ├── services/       # Business logic
-│   └── styles/         # Global styles
-├── public/             # Static files
-└── tests/              # Test files
-```
-
-## 🔄 Database Schema
-
-The platform uses the following main models:
-
-- `user`: Core user information and authentication
-- `profile`: Extended user profile information
-- `booking`: Lesson booking management
-- `course`: Course and curriculum management
-- `resource`: Digital resource management
-- `subscription`: Subscription and payment management
-- `certification`: User certification tracking
-
-## 💳 Payment Integration
-
-The platform uses Stripe for payment processing:
-
-1. **Subscription Plans**
-   - Monthly/Yearly billing
-   - Multiple plan tiers
-   - Automatic renewal
-
-2. **Resource Purchases**
-   - One-time payments
-   - Digital delivery
-   - Purchase history
-
-3. **Booking Payments**
-   - Secure payment processing
-   - Refund handling
-   - Payment verification
-
-## 🔐 Authentication
-
-- Google OAuth integration
-- Role-based access control
-- Session management
-- Secure password handling
-
-## 📱 API Endpoints
-
-### Authentication
-- `POST /api/auth/signin`
-- `POST /api/auth/signout`
-- `GET /api/auth/session`
-
-### Bookings
-- `GET /api/bookings`
-- `POST /api/bookings`
-- `PUT /api/bookings/:id`
-- `DELETE /api/bookings/:id`
-
-### Resources
-- `GET /api/resources`
-- `POST /api/resources`
-- `PUT /api/resources/:id`
-- `DELETE /api/resources/:id`
-
-### Courses
-- `GET /api/courses`
-- `POST /api/courses`
-- `PUT /api/courses/:id`
-- `DELETE /api/courses/:id`
-
-## 🧪 Testing
+## Project setup
 
 ```bash
-# Run unit tests
-npm run test
-
-# Run integration tests
-npm run test:integration
-
-# Run e2e tests
-npm run test:e2e
+$ npm install
 ```
 
-## 📈 Monitoring
+## Compile and run the project
 
-- PM2 process management
-- Error tracking
-- Performance monitoring
-- Usage analytics
+```bash
+# development
+$ npm run start
 
-## 🔄 Deployment
+# watch mode
+$ npm run start:dev
 
-1. **Build the application**
-   ```bash
-   npm run build
-   ```
+# production mode
+$ npm run start:prod
+```
 
-2. **Start with PM2**
-   ```bash
-   pm2 start npm --name dance-realmx -- run start:prod
-   ```
+## Run tests
 
-3. **Configure Nginx**
-   ```nginx
-   server {
-       listen 80;
-       server_name your-domain.com;
+```bash
+# unit tests
+$ npm run test
 
-       location / {
-           proxy_pass http://localhost:3000;
-           proxy_http_version 1.1;
-           proxy_set_header Upgrade $http_upgrade;
-           proxy_set_header Connection 'upgrade';
-           proxy_set_header Host $host;
-           proxy_cache_bypass $http_upgrade;
-       }
-   }
-   ```
+# e2e tests
+$ npm run test:e2e
 
-## 🤝 Contributing
+# test coverage
+$ npm run test:cov
+```
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+## Deployment
 
-## 📝 License
+When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
 
-## 👥 Team
+```bash
+$ npm install -g @nestjs/mau
+$ mau deploy
+```
 
-- Project Manager: [Name]
-- Lead Developer: [Name]
-- UI/UX Designer: [Name]
-- Backend Developer: [Name]
-- Frontend Developer: [Name]
+With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
 
-## 📞 Support
+## Resources
 
-For support, email support@dancerealmx.com or join our Slack channel.
+Check out a few resources that may come in handy when working with NestJS:
+
+- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
+- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
+- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
+- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
+- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
+- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
+- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
+- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+
+## Support
+
+Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+
+## Stay in touch
+
+- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
+- Website - [https://nestjs.com](https://nestjs.com/)
+- Twitter - [@nestframework](https://twitter.com/nestframework)
+
+## License
+
+Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).

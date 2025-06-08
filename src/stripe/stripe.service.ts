@@ -16,7 +16,27 @@ export class StripeService {
     });
   }
 
-  getStripe() {
-    return this.stripe;
+  async createPaymentIntent(data: {
+    amount: number;
+    currency: string;
+    metadata?: Record<string, string>;
+  }) {
+    return this.stripe.paymentIntents.create({
+      amount: data.amount,
+      currency: data.currency,
+      metadata: data.metadata,
+    });
   }
-} 
+
+  async retrievePaymentIntent(paymentIntentId: string) {
+    return this.stripe.paymentIntents.retrieve(paymentIntentId);
+  }
+
+  async confirmPaymentIntent(paymentIntentId: string) {
+    return this.stripe.paymentIntents.confirm(paymentIntentId);
+  }
+
+  async cancelPaymentIntent(paymentIntentId: string) {
+    return this.stripe.paymentIntents.cancel(paymentIntentId);
+  }
+}

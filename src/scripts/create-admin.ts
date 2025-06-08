@@ -5,17 +5,12 @@ const prisma = new PrismaClient();
 
 async function createAdminUser() {
   try {
-    // Check if admin user already exists
-    const existingAdmin = await prisma.user.findFirst({
+    // Delete existing admin user if exists
+    await prisma.user.deleteMany({
       where: {
-        username: 'admin',
+        username: 'superadmin',
       },
     });
-
-    if (existingAdmin) {
-      console.log('Admin user already exists');
-      return;
-    }
 
     // Create default tenant if it doesn't exist
     let tenant = await prisma.tenant.findFirst({
@@ -28,6 +23,8 @@ async function createAdminUser() {
       tenant = await prisma.tenant.create({
         data: {
           name: 'Default Tenant',
+          created_at: new Date(),
+          updated_at: new Date()
         },
       });
     }
@@ -39,30 +36,28 @@ async function createAdminUser() {
     // Create admin user
     const admin = await prisma.user.create({
       data: {
-        username: 'admin',
-        email: 'admin@example.com',
+        username: 'superadmin',
+        email: 'superadmin@example.com',
         password: hashedPassword,
-        first_name: 'Admin',
-        last_name: 'User',
+        first_name: 'Super',
+        last_name: 'Admin',
+        role: [UserRole.ADMIN],
+        created_at: new Date(),
+        updated_at: new Date()
       },
     });
 
-    // Assign all roles to admin one by one
-    const roles = Object.values(UserRole);
-    for (const role of roles) {
-      try {
-        await prisma.userRoleMapping.create({
-          data: {
-            user_id: admin.id,
-            role,
-          },
-        });
-      } catch (error) {
-        console.log(`Role ${role} already assigned or error:`, error);
+    // Create role mapping
+    await prisma.userRoleMapping.create({
+      data: {
+        user_id: admin.id,
+        role: UserRole.ADMIN,
+        createdAt: new Date(),
+        updatedAt: new Date()
       }
-    }
+    });
 
-    console.log('Admin user created successfully with all roles');
+    console.log('Admin user created successfully with ADMIN role');
   } catch (error) {
     console.error('Error creating admin user:', error);
   } finally {

@@ -6,7 +6,7 @@ export function useSubscription() {
 
   const hasRole = (role: UserRole) => {
     if (!user?.role) return false;
-    return user.role === role;
+    return user.role.includes(role);
   };
 
   const canSellResources = hasRole('CURRICULUM_SELLER');

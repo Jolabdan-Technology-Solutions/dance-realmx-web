@@ -6,10 +6,11 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
-import { User, UserRole } from '@prisma/client';
+import { User, UserRole, $Enums } from '@prisma/client';
 import { CreateUserDto } from './dto/create-user-dto';
 import { LoginDto } from './dto/login-dto';
 import { LoginResponseDto } from './dto/login-response-dto';
+import { UpdateUserDto } from './dto/update-user-dto';
 
 @Injectable()
 export class UsersService {
@@ -20,17 +21,8 @@ export class UsersService {
 
   async findAll(): Promise<User[]> {
     return this.prisma.user.findMany({
-      select: {
-        id: true,
-        email: true,
-        username: true,
-        first_name: true,
-        last_name: true,
-        role: true,
-        profile_image_url: true,
-        created_at: true,
-        updated_at: true,
-        subscription_tier: true,
+      include: {
+        role_mappings: true,
       },
     });
   }
@@ -38,17 +30,8 @@ export class UsersService {
   async findOne(id: number): Promise<User | null> {
     return this.prisma.user.findUnique({
       where: { id },
-      select: {
-        id: true,
-        email: true,
-        username: true,
-        first_name: true,
-        last_name: true,
-        role: true,
-        profile_image_url: true,
-        created_at: true,
-        updated_at: true,
-        subscription_tier: true,
+      include: {
+        role_mappings: true,
       },
     });
   }
@@ -56,142 +39,178 @@ export class UsersService {
   async findByEmail(email: string): Promise<User | null> {
     return this.prisma.user.findUnique({
       where: { email },
+      include: {
+        role_mappings: true,
+      },
     });
   }
 
-  async findByUsername(username: string): Promise<User | null> {
-    return this.prisma.user.findUnique({
-      where: { username },
+  async findByName(name: string): Promise<User | null> {
+    return this.prisma.user.findFirst({
+      where: { name },
     });
   }
 
   async findByEmailOrUsername(identifier: string): Promise<User | null> {
     return this.prisma.user.findFirst({
       where: {
-        OR: [{ email: identifier }, { username: identifier }],
+        OR: [{ email: identifier }, { name: identifier }],
       },
     });
   }
 
-  async create(data: CreateUserDto): Promise<User> {
-    // Check if user already exists
-    const existingUser = await this.findByEmailOrUsername(data.email);
-    if (existingUser) {
-      throw new ConflictException('User with this email already exists');
-    }
-
-    const existingUsername = await this.findByUsername(data.username);
-    if (existingUsername) {
-      throw new ConflictException('Username is already taken');
-    }
-
-    // Hash password
-    const saltRounds = 12;
-    const hashedPassword = await bcrypt.hash(data.password, saltRounds);
-
+  async create(data: any): Promise<User> {
+    const hashedPassword = await bcrypt.hash(data.password, 12);
     const user = await this.prisma.user.create({
       data: {
         ...data,
         password: hashedPassword,
+        role: [UserRole.GUEST_USER],
+        created_at: new Date(),
+        updated_at: new Date(),
       },
     });
 
-    // Remove password from response
-    const { password, ...userWithoutPassword } = user;
-    return userWithoutPassword as User;
+    await this.prisma.userRoleMapping.create({
+      data: {
+        user_id: user.id,
+        role: UserRole.GUEST_USER,
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+    });
+
+    const createdUser = await this.findOne(user.id);
+    if (!createdUser) {
+      throw new Error('Failed to create user');
+    }
+    return createdUser;
   }
 
-  async login(loginDto: LoginDto): Promise<LoginResponseDto> {
-    try {
-      console.log('[LOGIN] Attempting login for:', loginDto.username);
-      // Find user by email or username
-      const user = await this.findByEmailOrUsername(loginDto.username);
+  async login(username: string, password: string): Promise<LoginResponseDto> {
+    const user = await this.prisma.user.findUnique({
+      where: { username },
+      include: {
+        role_mappings: true,
+      },
+    });
 
-      if (!user) {
-        console.error('[LOGIN] User not found:', loginDto.username);
-        throw new UnauthorizedException('Invalid credentials');
-      }
-      if (!user.password) {
-        console.error('[LOGIN] User has no password set:', loginDto.username);
-        throw new UnauthorizedException('Invalid credentials');
-      }
+    if (!user || !user.password) {
+      throw new Error('Invalid credentials');
+    }
 
-      // Verify password
-      const isPasswordValid = await bcrypt.compare(
-        loginDto.password,
-        user.password,
-      );
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      throw new Error('Invalid credentials');
+    }
 
-      if (!isPasswordValid) {
-        console.error('[LOGIN] Invalid password for user:', loginDto.username);
-        throw new UnauthorizedException('Invalid credentials');
-      }
-
-      // Generate JWT token
-      const payload = {
-        sub: user.id,
+    const payload = { email: user.email, sub: user.id, role: user.role };
+    return {
+      user: {
+        id: user.id.toString(),
         email: user.email,
-        username: user.username,
-        role: user.role,
-      };
-      const access_token = await this.jwtService.signAsync(payload);
-
-      // Return user info and token
-      const { password, ...userInfo } = user;
-
-      console.log('[LOGIN] Successful login for:', loginDto.username);
-      return {
-        user: userInfo,
-        access_token,
-      };
-    } catch (err) {
-      console.error('[LOGIN] Unexpected error during login:', err);
-      throw err;
-    }
+        name: user.first_name,
+        image: user.profile_image_url,
+        role: user.role[0],
+        created_at: user.created_at,
+        updated_at: user.updated_at,
+      },
+      access_token: this.jwtService.sign(payload),
+    };
   }
 
-  async update(id: number, data: Partial<User>): Promise<User> {
-    // If password is being updated, hash it
+  async update(id: number, data: any): Promise<User> {
     if (data.password) {
-      const saltRounds = 12;
-      data.password = await bcrypt.hash(data.password, saltRounds);
+      data.password = await bcrypt.hash(data.password, 12);
     }
-
-    const user = await this.prisma.user.update({
+    return this.prisma.user.update({
       where: { id },
-      data,
-      select: {
-        id: true,
-        email: true,
-        username: true,
-        first_name: true,
-        last_name: true,
-        role: true,
-        profile_image_url: true,
-        created_at: true,
-        updated_at: true,
-        subscription_tier: true,
+      data: {
+        ...data,
+        updated_at: new Date(),
+      },
+      include: {
+        role_mappings: true,
       },
     });
-
-    return user;
   }
 
   async delete(id: number): Promise<User> {
     return this.prisma.user.delete({
       where: { id },
-      select: {
-        id: true,
-        email: true,
-        username: true,
-        first_name: true,
-        last_name: true,
-        role: true,
-        profile_image_url: true,
-        created_at: true,
-        updated_at: true,
-        // Exclude password from results
+    });
+  }
+
+  async getUserRoles(userId: number): Promise<string[]> {
+    const roleMappings = await this.prisma.userRoleMapping.findMany({
+      where: { user_id: userId },
+      select: { role: true },
+    });
+    return roleMappings.map((mapping) => mapping.role);
+  }
+
+  async hasRole(userId: number, role: UserRole): Promise<boolean> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        role_mappings: true,
       },
     });
+
+    if (!user) return false;
+
+    return user.role_mappings.some((mapping) => mapping.role === role);
+  }
+
+  async isAdmin(userId: number): Promise<boolean> {
+    return this.hasRole(userId, UserRole.ADMIN);
+  }
+
+  async isCurriculumAdmin(userId: number): Promise<boolean> {
+    return this.hasRole(userId, UserRole.CURRICULUM_ADMIN);
+  }
+
+  async isInstructorAdmin(userId: number): Promise<boolean> {
+    return this.hasRole(userId, UserRole.INSTRUCTOR_ADMIN);
+  }
+
+  async isCourseCreatorAdmin(userId: number): Promise<boolean> {
+    return this.hasRole(userId, UserRole.COURSE_CREATOR_ADMIN);
+  }
+
+  async isCurriculumOfficer(userId: number): Promise<boolean> {
+    return this.hasRole(userId, UserRole.CURRICULUM_ADMIN);
+  }
+
+  async isInstructor(userId: number): Promise<boolean> {
+    return this.hasRole(userId, UserRole.CURRICULUM_SELLER);
+  }
+
+  async isSeller(userId: number): Promise<boolean> {
+    return this.hasRole(userId, UserRole.CURRICULUM_SELLER);
+  }
+
+  async isCourseCreator(userId: number): Promise<boolean> {
+    return this.hasRole(userId, UserRole.COURSE_CREATOR_ADMIN);
+  }
+
+  async isCertificationManager(userId: number): Promise<boolean> {
+    return this.hasRole(userId, UserRole.CERTIFICATION_MANAGER);
+  }
+
+  async isDirectoryMember(userId: number): Promise<boolean> {
+    return this.hasRole(userId, UserRole.DIRECTORY_MEMBER);
+  }
+
+  async isBookingProfessional(userId: number): Promise<boolean> {
+    return this.hasRole(userId, UserRole.BOOKING_USER);
+  }
+
+  async isBookingUser(userId: number): Promise<boolean> {
+    return this.hasRole(userId, UserRole.BOOKING_USER);
+  }
+
+  async isStudent(userId: number): Promise<boolean> {
+    return this.hasRole(userId, UserRole.STUDENT);
   }
 }

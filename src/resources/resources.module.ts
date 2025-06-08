@@ -3,9 +3,10 @@ import { ResourcesService } from './resources.service';
 import { ResourcesController } from './resources.controller';
 import { CloudinaryModule } from '../cloudinary/cloudinary.module';
 import { PrismaModule } from '../prisma/prisma.module';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 @Module({
-  imports: [CloudinaryModule, PrismaModule],
+  imports: [CloudinaryModule, PrismaModule, SubscriptionsModule],
   providers: [ResourcesService],
   controllers: [ResourcesController],
   exports: [ResourcesService],

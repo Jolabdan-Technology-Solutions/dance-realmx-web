@@ -51,7 +51,7 @@ export class ProfilesService {
       where: {
         is_professional: true,
       },
-      include: {
+      select: {
         user: {
           select: {
             id: true,

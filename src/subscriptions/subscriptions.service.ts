@@ -1,44 +1,58 @@
-import { Injectable, HttpException } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { SubscriptionPlan, Subscription } from '@prisma/client';
+import { MailService } from '../mail/mail.service';
+import { Subscription, SubscriptionTier } from '@prisma/client';
 import { SubscriptionStatus } from './enums/subscription-status.enum';
+import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
 
 @Injectable()
 export class SubscriptionsService {
   private stripe: Stripe;
 
-  constructor(private prisma: PrismaService) {
-    const stripeKey = process.env.STRIPE_SECRET_KEY;
-    if (!stripeKey) {
-      throw new Error('STRIPE_SECRET_KEY is not set in environment variables');
+  constructor(
+    private prisma: PrismaService,
+    private mailService: MailService,
+    private configService: ConfigService,
+  ) {
+    const stripeSecretKey = this.configService.get<string>('STRIPE_SECRET_KEY');
+    if (!stripeSecretKey) {
+      throw new Error('STRIPE_SECRET_KEY is not defined');
     }
-    this.stripe = new Stripe(stripeKey, {
+    this.stripe = new Stripe(stripeSecretKey, {
       apiVersion: '2025-05-28.basil',
     });
   }
 
-  async getActiveSubscription(userId: string) {
-    return this.prisma.subscription.findFirst({
-      where: {
-        userId,
-        status: 'ACTIVE',
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
+  async findAll(): Promise<Subscription[]> {
+    return this.prisma.subscription.findMany({
       include: {
-        plan: true,
+        user: true,
       },
     });
   }
 
-  async findActive(userId: string): Promise<Subscription | null> {
+  async findOne(id: number): Promise<Subscription | null> {
+    return this.prisma.subscription.findUnique({
+      where: { id },
+      include: {
+        user: true,
+      },
+    });
+  }
+
+  async findByUser(userId: number): Promise<Subscription[]> {
+    return this.prisma.subscription.findMany({
+      where: { user_id: userId },
+    });
+  }
+
+  async findActive(userId: number): Promise<Subscription | null> {
     return this.prisma.subscription.findFirst({
       where: {
-        userId,
+        user_id: userId,
         status: SubscriptionStatus.ACTIVE,
-        currentPeriodEnd: {
+        current_period_end: {
           gt: new Date(),
         },
       },
@@ -54,116 +68,318 @@ export class SubscriptionsService {
     });
   }
 
-  async getSubscriptionPlan(planId: string): Promise<SubscriptionPlan | null> {
-    return this.prisma.subscriptionPlan.findUnique({
-      where: { id: parseInt(planId) },
+  async findByUserId(userId: number): Promise<Subscription[]> {
+    return this.prisma.subscription.findMany({
+      where: { user_id: userId },
+      orderBy: {
+        created_at: 'desc',
+      },
     });
   }
 
-  async getSubscriptionPlanBySlug(slug: string): Promise<SubscriptionPlan | null> {
-    return this.prisma.subscriptionPlan.findUnique({
-      where: { slug },
+  async create(data: {
+    user_id: number;
+    tier: SubscriptionTier;
+    stripe_subscription_id: string;
+    current_period_start: Date;
+    current_period_end: Date;
+    status: SubscriptionStatus;
+  }): Promise<Subscription> {
+    const subscription = await this.prisma.subscription.create({
+      data,
+      include: {
+        user: true,
+      },
     });
+
+    // Get user details for email
+    const user = await this.prisma.user.findUnique({
+      where: { id: data.user_id },
+    });
+
+    if (user) {
+      await this.mailService.sendSubscriptionConfirmation(
+        user.email,
+        user.first_name || user.username,
+        data.tier,
+        data.current_period_start,
+        data.current_period_end,
+      );
+    }
+
+    return subscription;
   }
 
-  async createCheckoutSession(
-    planSlug: string,
-    frequency: 'MONTHLY' | 'YEARLY' | 'month' | 'year',
-    email: string,
-    userId: string,
-  ) {
-    const plan = await this.getSubscriptionPlanBySlug(planSlug);
-    if (!plan) {
-      throw new HttpException('Plan not found', 404);
-    }
-
-    let priceId: string | undefined;
-    const isMonthly = frequency.toLowerCase() === 'monthly' || frequency.toLowerCase() === 'month';
-
-    switch (planSlug.toLowerCase()) {
-      case 'silver':
-        priceId = isMonthly ? process.env.STRIPE_PRICE_SILVER_MONTHLY : process.env.STRIPE_PRICE_SILVER_YEARLY;
-        break;
-      case 'gold':
-        priceId = isMonthly ? process.env.STRIPE_PRICE_GOLD_MONTHLY : process.env.STRIPE_PRICE_GOLD_YEARLY;
-        break;
-      case 'platinum':
-        priceId = isMonthly ? process.env.STRIPE_PRICE_PLATINUM_MONTHLY : process.env.STRIPE_PRICE_PLATINUM_YEARLY;
-        break;
-      default:
-        throw new HttpException('Invalid plan', 400);
-    }
-
-    if (!priceId) {
-      throw new HttpException(`Stripe price ID for ${planSlug} ${frequency} plan is not set`, 400);
-    }
-
-    try {
-      const session = await this.stripe.checkout.sessions.create({
-        payment_method_types: ['card'],
-        line_items: [
-          {
-            price: priceId,
-            quantity: 1,
-          },
-        ],
-        mode: 'subscription',
-        success_url: `${process.env.FRONTEND_URL}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${process.env.FRONTEND_URL}/subscription`,
-        customer_email: email,
-        metadata: {
-          userId,
-          planId: plan.id.toString(),
-        },
-      });
-
-      // Create a pending subscription
-      await this.prisma.subscription.create({
-        data: {
-          userId,
-          planId: plan.id,
-          stripeSessionId: session.id,
-          status: SubscriptionStatus.PENDING,
-          frequency: frequency.toLowerCase(),
-          currentPeriodStart: new Date(),
-          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
-        },
-      });
-
-      return { sessionId: session.id, url: session.url };
-    } catch (error) {
-      console.error('Stripe checkout error:', error);
-      throw new HttpException('Failed to create checkout session', 500);
-    }
-  }
-
-  async update(
-    id: string,
-    updateSubscriptionDto: Partial<{
-      status: SubscriptionStatus;
-      planId: number;
-      stripeSubscriptionId: string;
-      stripeCustomerId: string;
-      stripePriceId: string;
-      stripeSessionId: string;
-    }>,
-  ) {
+  async update(id: number, data: Partial<Subscription>): Promise<Subscription> {
     return this.prisma.subscription.update({
-      where: { id: parseInt(id) },
-      data: updateSubscriptionDto,
+      where: { id },
+      data,
+      include: {
+        user: true,
+      },
     });
   }
 
-  async updateStatus(id: string, status: SubscriptionStatus) {
+  async updateStatus(
+    stripeSessionId: string,
+    status: SubscriptionStatus,
+  ): Promise<Subscription> {
+    // First find the subscription by stripe_session_id
+    const subscription = await this.prisma.subscription.findFirst({
+      where: { stripe_session_id: stripeSessionId },
+    });
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: subscription.user_id },
+    });
+
+    if (!subscription) {
+      throw new Error('Subscription not found');
+    }
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    if (user.subscription_tier === 'free') {
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { is_active: true },
+      });
+    } else {
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { is_active: true },
+      });
+    }
+
+    // Then update using the subscription's id
     return this.prisma.subscription.update({
-      where: { id: parseInt(id) },
+      where: { id: subscription.id },
       data: { status },
     });
   }
 
-  async remove(id: string) {
+  async delete(id: number): Promise<Subscription> {
     return this.prisma.subscription.delete({
-      where: { id: parseInt(id) },
+      where: { id },
+    });
+  }
+
+  async createCheckoutSession(data: {
+    planSlug: string;
+    frequency: 'MONTHLY' | 'YEARLY';
+    email: string;
+  }) {
+    // Get the subscription plan from the database
+    const plan = await this.prisma.subscriptionPlan.findUnique({
+      where: { slug: data.planSlug },
+    });
+
+    if (!plan) {
+      throw new Error('Subscription plan not found');
+    }
+
+    // Get the user by email
+    const user = await this.prisma.user.findUnique({
+      where: { email: data.email },
+    });
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // Check for existing pending subscription
+    const existingPendingSubscription =
+      await this.prisma.subscription.findFirst({
+        where: {
+          user_id: user.id,
+          plan_id: plan.id,
+          status: 'PENDING',
+        },
+      });
+
+    if (existingPendingSubscription) {
+      // Retrieve the existing session
+      const session = await this.stripe.checkout.sessions.retrieve(
+        existingPendingSubscription.stripe_session_id,
+      );
+
+      // If session is expired, create a new one
+      if (session.status === 'expired') {
+        await this.prisma.subscription.delete({
+          where: { id: existingPendingSubscription.id },
+        });
+      } else {
+        return { url: session.url };
+      }
+    }
+
+    const priceId =
+      data.frequency === 'MONTHLY'
+        ? plan.stripePriceIdMonthly
+        : plan.stripePriceIdYearly;
+
+    if (!priceId) {
+      throw new Error(
+        `Stripe price ID for ${data.frequency.toLowerCase()} plan is not set.`,
+      );
+    }
+
+    // Create a Stripe checkout session
+    const session = await this.stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      customer_email: user.email,
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ],
+      mode: 'subscription',
+      success_url: `${this.configService.get('FRONTEND_URL')}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${this.configService.get('FRONTEND_URL')}/subscription?canceled=true`,
+      metadata: {
+        userId: user.id,
+        planId: plan.id,
+        frequency: data.frequency,
+      },
+    });
+
+    // Create a pending subscription record only if we don't have one
+    if (!existingPendingSubscription) {
+      await this.prisma.subscription.create({
+        data: {
+          user_id: user.id,
+          plan_id: plan.id,
+          stripe_session_id: session.id,
+          status: 'PENDING',
+          frequency: data.frequency,
+          current_period_start: new Date(),
+          current_period_end: new Date(), // Will be updated by webhook
+        },
+      });
+    }
+
+    return { url: session.url };
+  }
+
+  async findAllPlans() {
+    return this.prisma.subscriptionPlan.findMany();
+  }
+
+  // Helper to find a plan by slug
+  async findPlanBySlug(slug: string) {
+    return this.prisma.subscriptionPlan.findUnique({ where: { slug } });
+  }
+
+  // Helper to find a user by email
+  async findUserByEmail(email: string) {
+    return this.prisma.user.findUnique({ where: { email } });
+  }
+
+  // Helper to create a Stripe subscription session
+  async createStripeSubscriptionSession(
+    user: any,
+    plan: any,
+    priceAmount: number,
+    frequency: 'MONTHLY' | 'YEARLY',
+  ) {
+    if (!user?.email || !plan?.name || !priceAmount) {
+      throw new HttpException(
+        'Missing required data for Stripe session',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    try {
+      // 1. Create Stripe Product
+      const product = await this.stripe.products.create({
+        name: `${plan.name} - ${frequency}`,
+      });
+
+      // 2. Create Stripe Price
+      const price = await this.stripe.prices.create({
+        unit_amount: priceAmount * 100, // Amount in cents
+        currency: 'usd',
+        recurring: {
+          interval: frequency === 'YEARLY' ? 'year' : 'month', // Convert to Stripe interval format
+        },
+        product: product.id,
+      });
+
+      // 3. Create Checkout Session
+      const session = await this.stripe.checkout.sessions.create({
+        mode: 'subscription',
+        payment_method_types: ['card'],
+        customer_email: user.email,
+        line_items: [{ price: price.id, quantity: 1 }],
+        success_url: `${this.configService.get('FRONTEND_URL')}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${this.configService.get('FRONTEND_URL')}/subscription/cancel`,
+        metadata: {
+          userId: user.id,
+          planId: plan.id,
+          frequency,
+        },
+      });
+
+      return session;
+    } catch (error) {
+      console.error('Stripe session creation error:', error);
+      throw new HttpException(
+        error.message || 'Failed to create Stripe checkout session',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  // Helper to create a pending subscription record
+  async createPendingSubscription({
+    userId,
+    planId,
+    stripeSessionId,
+    status,
+    frequency,
+    currentPeriodStart,
+    currentPeriodEnd,
+  }) {
+    return this.prisma.subscription.create({
+      data: {
+        user_id: userId,
+        plan_id: planId,
+        stripe_session_id: stripeSessionId,
+        status,
+        frequency,
+        current_period_start: currentPeriodStart,
+        current_period_end: currentPeriodEnd,
+      },
+    });
+  }
+
+  async getActiveSubscription(userId: number): Promise<Subscription | null> {
+    return this.prisma.subscription.findFirst({
+      where: {
+        user_id: userId,
+        status: SubscriptionStatus.ACTIVE,
+        current_period_end: {
+          gt: new Date(),
+        },
+      },
+      include: {
+        plan: true,
+      },
+    });
+  }
+
+  async getSubscriptionPlan(planId: number) {
+    return this.prisma.subscriptionPlan.findUnique({
+      where: { id: planId },
+    });
+  }
+
+  async findPlanById(id: number) {
+    return this.prisma.subscriptionPlan.findUnique({
+      where: { id }
     });
   }
 }

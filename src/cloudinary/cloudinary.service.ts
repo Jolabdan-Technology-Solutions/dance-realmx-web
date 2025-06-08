@@ -13,6 +13,11 @@ export class CloudinaryService implements OnModuleInit {
     const apiKey = process.env.CLOUDINARY_API_KEY;
     const apiSecret = process.env.CLOUDINARY_API_SECRET;
 
+    console.log('Cloudinary Config Check:');
+    console.log('CLOUDINARY_CLOUD_NAME exists:', !!cloudName);
+    console.log('CLOUDINARY_API_KEY exists:', !!apiKey);
+    console.log('CLOUDINARY_API_SECRET exists:', !!apiSecret);
+
     if (!cloudName || !apiKey || !apiSecret) {
       console.warn('Cloudinary configuration is incomplete. File uploads will be disabled.');
       return;
@@ -25,6 +30,7 @@ export class CloudinaryService implements OnModuleInit {
     });
 
     this.isConfigured = true;
+    console.log('Cloudinary configuration successful');
   }
 
   async uploadFile(

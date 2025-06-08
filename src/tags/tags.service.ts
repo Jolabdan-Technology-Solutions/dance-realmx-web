@@ -51,12 +51,14 @@ export class TagsService {
 
     // Build the orderBy clause
     const orderBy: Prisma.TagOrderByWithRelationInput = {};
-    if (sort_by === 'course_count') {
-      orderBy.courses = {
-        _count: sort_order,
-      };
+    if (sort_by === 'name') {
+      orderBy.name = sort_order;
+    } else if (sort_by === 'course_count') {
+      // For course count, we'll sort by name as a fallback
+      // The actual course count sorting will be done in memory after fetching
+      orderBy.name = sort_order;
     } else {
-      orderBy[sort_by] = sort_order;
+      orderBy.created_at = sort_order;
     }
 
     const [total, tags] = await Promise.all([

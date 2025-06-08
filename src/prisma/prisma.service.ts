@@ -102,4 +102,12 @@ export class PrismaService
   get review() {
     return this.review;
   }
+
+  get cartItem() {
+    return this.cartItem;
+  }
+
+  get order() {
+    return this.order;
+  }
 }

@@ -4,6 +4,7 @@ import { UsersService } from './users.service';
 import { UsersController } from './users.controller';
 import { AuthController } from './users.controller';
 import { PrismaService } from '../prisma/prisma.service';
+import { PermissionsModule } from 'src/permissions/permissions.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { PrismaService } from '../prisma/prisma.service';
       secret: process.env.JWT_SECRET || 'your-secret-key', // Use environment variable
       signOptions: { expiresIn: '24h' },
     }),
+    PermissionsModule,
   ],
   controllers: [UsersController, AuthController],
   providers: [UsersService, PrismaService],

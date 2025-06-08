@@ -9,7 +9,7 @@ import { User } from '@prisma/client';
 
 interface RequestWithUser extends Request {
   user: {
-    id: number;
+    sub: number;
     email: string;
     role: string;
   };
@@ -25,12 +25,12 @@ export class ProfilesController {
 
   @Get('me')
   async getMyProfile(@Req() req: RequestWithUser) {
-    return this.profilesService.findOne(req.user.id);
+    return this.profilesService.findOne(req.user.sub);
   }
 
   @Patch('me')
   async updateMyProfile(@Req() req: RequestWithUser, @Body() updateData: any) {
-    return this.profilesService.update(req.user.id, updateData);
+    return this.profilesService.update(req.user.sub, updateData);
   }
 
   @Post('upload')
@@ -45,7 +45,7 @@ export class ProfilesController {
 
     try {
       const result = await this.cloudinaryService.uploadFile(file) as { secure_url: string };
-      await this.profilesService.update(req.user.id, {
+      await this.profilesService.update(req.user.sub, {
         profile_image_url: result.secure_url,
       });
       return { url: result.secure_url };

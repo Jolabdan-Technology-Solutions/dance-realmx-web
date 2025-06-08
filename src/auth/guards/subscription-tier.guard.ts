@@ -43,7 +43,7 @@ export class SubscriptionTierGuard implements CanActivate {
     }
 
     // Check if user's subscription tier has the required role
-    const plan = await this.subscriptionsService.getSubscriptionPlan(subscription.planId);
+    const plan = await this.subscriptionsService.getSubscriptionPlan(subscription.plan_id);
     
     if (!plan) {
       return false;

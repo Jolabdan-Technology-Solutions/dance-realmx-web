@@ -24,7 +24,7 @@ export class ResourcesController {
 
   @Get()
   async findAll(@Request() req) {
-    return this.resourcesService.findAll(req.user.id);
+    return this.resourcesService.findAll(req.user.sub);
   }
 
   @Get(':id')

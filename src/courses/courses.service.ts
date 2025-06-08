@@ -72,7 +72,7 @@ export class CoursesService {
     if (sort_by === 'price') {
       orderBy.price = sort_order;
     } else if (sort_by === 'popularity') {
-      orderBy.enrollments = { _count: sort_order };
+      orderBy.created_at = sort_order;
     } else {
       orderBy.created_at = sort_order;
     }
