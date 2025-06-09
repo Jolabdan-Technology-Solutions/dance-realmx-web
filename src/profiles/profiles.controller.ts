@@ -1,4 +1,16 @@
-import { Controller, Get, Patch, Body, UseGuards, Req, Post, UploadedFile, UseInterceptors, BadRequestException, Param } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Patch,
+  Body,
+  UseGuards,
+  Req,
+  Post,
+  UploadedFile,
+  UseInterceptors,
+  BadRequestException,
+  Param,
+} from '@nestjs/common';
 import { ProfilesService } from './profiles.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Request } from 'express';
@@ -44,14 +56,18 @@ export class ProfilesController {
     }
 
     try {
-      const result = await this.cloudinaryService.uploadFile(file) as { secure_url: string };
+      const result = (await this.cloudinaryService.uploadFile(file)) as {
+        secure_url: string;
+      };
       await this.profilesService.update(req.user.sub, {
         profile_image_url: result.secure_url,
       });
       return { url: result.secure_url };
     } catch (error) {
       if (error.message.includes('Cloudinary is not configured')) {
-        throw new BadRequestException('File upload service is not configured. Please contact support.');
+        throw new BadRequestException(
+          'File upload service is not configured. Please contact support.',
+        );
       }
       throw new BadRequestException(`Failed to upload file: ${error.message}`);
     }

@@ -67,10 +67,6 @@ export class AuthService {
         throw new UnauthorizedException('Invalid credentials');
       }
 
-      if (!user.is_active) {
-        throw new UnauthorizedException('Account is inactive');
-      }
-
       // Update last login
       await this.prisma.user.update({
         where: { id: user.id },
@@ -136,7 +132,7 @@ export class AuthService {
       });
 
       // Send verification email
-      await this.sendVerificationEmail(user.email);
+      // await this.sendVerificationEmail(user.email);
 
       const tokens = await this.generateTokens(user);
       this.logger.log(`User registered: ${user.username}`);
@@ -161,13 +157,13 @@ export class AuthService {
         where: {
           OR: [{ username }, { email: username.toLowerCase().trim() }],
         },
-        include: {
-          role_mappings: {
-            include: {
-              role: true,
-            },
-          },
-        },
+        // include: {
+        //   role_mappings: {
+        //     include: {
+        //       role: true,
+        //     },
+        //   },
+        // },
       });
 
       if (user && (await bcrypt.compare(password, user.password))) {
@@ -209,7 +205,7 @@ export class AuthService {
       frequency: user.frequency,
       is_active: user.is_active,
       subscription_tier: user.subscription_tier,
-      role: user.role_mappings?.map((rm) => rm.role.name) || [],
+      role: user?.role || [],
       profile_image_url: user.profile_image_url,
       auth_provider: user.auth_provider,
       created_at: user.created_at,
@@ -686,21 +682,10 @@ export class AuthService {
     try {
       const user = await this.prisma.user.findUnique({
         where: { id: userId },
-        include: {
-          role_mappings: {
-            include: {
-              role: true,
-            },
-          },
-        },
       });
 
       if (!user) {
         throw new NotFoundException('User not found');
-      }
-
-      if (!user.is_active) {
-        throw new UnauthorizedException('Account is inactive');
       }
 
       return await this.formatUserResponse(user);

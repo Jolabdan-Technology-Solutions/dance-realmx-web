@@ -60,7 +60,7 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Token refreshed' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async refresh(@Req() req) {
-    return this.authService.refreshToken(req.user.sub, req.user.refresh_token);
+    return this.authService.refreshToken(req.user.id, req.user.refresh_token);
   }
 
   @Post('forgot-password')
@@ -88,7 +88,7 @@ export class AuthController {
     @Body() changeDto: ChangePasswordDto,
     @Req() req: RequestWithUser,
   ) {
-    return this.authService.changePassword(req.user.sub, changeDto);
+    return this.authService.changePassword(req.user.id, changeDto);
   }
 
   @Post('verify-email')
@@ -113,6 +113,7 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @UseGuards(JwtAuthGuard)
   async getProfile(@Req() req: RequestWithUser) {
-    return this.authService.getProfile(req.user.sub);
+    console.log(req.user);
+    return this.authService.getProfile(req.user.id);
   }
 }

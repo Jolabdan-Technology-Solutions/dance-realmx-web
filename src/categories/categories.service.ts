@@ -4,6 +4,8 @@ import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { QueryCategoryDto } from './dto/query-category.dto';
 import { Prisma } from '@prisma/client';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Role } from "../auth/enums/role.enum";
 
 type CategoryWithCount = {
   _count: {
@@ -21,6 +23,7 @@ type CategoryResult = {
   id: number;
   name: string;
   description: string | null;
+  image_url: string | null;
   parent_id: number | null;
   created_at: Date;
   updated_at: Date;
@@ -32,6 +35,9 @@ export class CategoriesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createCategoryDto: CreateCategoryDto) {
+    console.log("createCategoryDto");
+    console.log(createCategoryDto);
+
     return this.prisma.category.create({
       data: createCategoryDto,
       include: {
@@ -42,7 +48,7 @@ export class CategoriesService {
         },
       },
     });
-  }
+  } 
 
   async findAll(query: QueryCategoryDto) {
     const {

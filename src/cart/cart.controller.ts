@@ -37,13 +37,14 @@ export class CartController {
     @Request() req,
     @Body() addToCartDto: AddToCartDto,
   ): Promise<CartItem> {
-    return this.cartService.addToCart(req?.user?.sub, addToCartDto);
+    return this.cartService.addToCart(req?.user?.id, addToCartDto);
   }
 
   @Get()
   @Roles(UserRole.STUDENT, UserRole.BOOKING_USER)
   getCart(@Request() req): Promise<{ items: CartItem[]; total: number }> {
-    return this.cartService.getCart(req.user.id);
+    console.log(req.user);
+    return this.cartService.getCart(req?.user?.id);
   }
 
   @Delete(':id')

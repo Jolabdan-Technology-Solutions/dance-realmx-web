@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
-import { UsersModule } from './users/users.module';
 import { CoursesModule } from './courses/courses.module';
 import { BookingsModule } from './bookings/bookings.module';
 import { ResourcesModule } from './resources/resources.module';
@@ -23,7 +22,6 @@ import { FeaturesModule } from './features/features.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import { CartModule } from './cart/cart.module';
 import { EnrollmentsModule } from './enrollments/enrollments.module';
-import { UserModule } from './user/user.module';
 import { EventsModule } from './events/events.module';
 import { CertificatesModule } from './certificates/certificates.module';
 
@@ -35,7 +33,6 @@ import { CertificatesModule } from './certificates/certificates.module';
       ttl: 300, // 5 minutes
     }),
     PrismaModule,
-    UsersModule,
     CoursesModule,
     BookingsModule,
     ResourcesModule,
@@ -54,7 +51,6 @@ import { CertificatesModule } from './certificates/certificates.module';
     FeaturesModule,
     CartModule,
     EnrollmentsModule,
-    UserModule,
     EventsModule,
     CertificatesModule,
   ],

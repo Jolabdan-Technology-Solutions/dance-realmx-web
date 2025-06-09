@@ -24,7 +24,7 @@ model User {
   password            String
   first_name          String?
   last_name           String?
-  role                UserRole             @default(GUEST_USER)
+  role                UserRole[]             @default([GUEST_USER])
   profile_image_url   String?
   auth_provider       String?
   created_at          DateTime             @default(now())
@@ -56,6 +56,32 @@ model User {
   role_mappings       UserRoleMapping[]
   tenant              Tenant?              @relation(fields: [tenant_id], references: [id])
   CartItem            CartItem[]
+  passwordResets       PasswordReset[]
+  emailVerifications   EmailVerification[]
+}
+
+model PasswordReset {
+  id         Int       @id @default(autoincrement())
+  email      String
+  token      String
+  expires_at DateTime
+  used_at    DateTime?
+  user_id    Int
+  created_at DateTime  @default(now())
+  
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model EmailVerification {
+  id         Int       @id @default(autoincrement())
+  email      String
+  token      String
+  expires_at DateTime
+  used_at    DateTime?
+  user_id    Int
+  created_at DateTime  @default(now())
+  
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
 
 model Profile {
@@ -312,6 +338,7 @@ model Category {
   id          Int        @id @default(autoincrement())
   name        String     @unique
   description String?
+  image_url   String?
   parent_id   Int?
   created_at  DateTime   @default(now())
   updated_at  DateTime   @updatedAt

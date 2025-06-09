@@ -24,7 +24,7 @@ export class ResourcesController {
 
   @Get()
   async findAll(@Request() req) {
-    return this.resourcesService.findAll(req.user.sub);
+    return this.resourcesService.findAll(req.user.id);
   }
 
   @Get(':id')
@@ -34,7 +34,10 @@ export class ResourcesController {
 
   @Post()
   @RequireSubscription('CURRICULUM_SELLER')
-  async create(@Body() createResourceDto: CreateResourceDto, @Req() req: { user: User }) {
+  async create(
+    @Body() createResourceDto: CreateResourceDto,
+    @Req() req: { user: User },
+  ) {
     return this.resourcesService.create(createResourceDto, req.user.id);
   }
 
