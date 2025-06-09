@@ -265,7 +265,14 @@ export class SubscriptionsService {
   }
 
   async findAllPlans() {
-    return this.prisma.subscriptionPlan.findMany();
+    return this.prisma.subscriptionPlan.findMany({
+      where: {
+        isActive: true,
+      },
+      orderBy: {
+        priceMonthly: 'asc',
+      },
+    });
   }
 
   // Helper to find a plan by slug
@@ -374,12 +381,6 @@ export class SubscriptionsService {
   async getSubscriptionPlan(planId: number) {
     return this.prisma.subscriptionPlan.findUnique({
       where: { id: planId },
-    });
-  }
-
-  async findPlanById(id: number) {
-    return this.prisma.subscriptionPlan.findUnique({
-      where: { id }
     });
   }
 }

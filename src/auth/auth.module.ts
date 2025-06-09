@@ -16,6 +16,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { StripeModule } from '../stripe/stripe.module';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 import { SubscriptionTierGuard } from './guards/subscription-tier.guard';
+import { AuthController } from './auth.controller';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { SubscriptionTierGuard } from './guards/subscription-tier.guard';
     JwtStrategy,
     SubscriptionTierGuard,
   ],
+  controllers: [AuthController],
   exports: [
     JwtAuthGuard,
     RolesGuard,

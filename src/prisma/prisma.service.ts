@@ -110,4 +110,12 @@ export class PrismaService
   get order() {
     return this.order;
   }
+
+  get passwordReset() {
+    return this.passwordReset;
+  }
+
+  get emailVerification() {
+    return this.emailVerification;
+  }
 }

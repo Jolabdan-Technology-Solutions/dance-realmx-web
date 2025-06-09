@@ -35,7 +35,6 @@ import { CertificatesModule } from './certificates/certificates.module';
       ttl: 300, // 5 minutes
     }),
     PrismaModule,
-    AuthModule,
     UsersModule,
     CoursesModule,
     BookingsModule,
@@ -46,6 +45,7 @@ import { CertificatesModule } from './certificates/certificates.module';
     CategoriesModule,
     TagsModule,
     NotificationsModule,
+    AuthModule,
     MessagesModule,
     CloudinaryModule,
     ProfilesModule,

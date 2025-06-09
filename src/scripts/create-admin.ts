@@ -24,7 +24,7 @@ async function createAdminUser() {
         data: {
           name: 'Default Tenant',
           created_at: new Date(),
-          updated_at: new Date()
+          updated_at: new Date(),
         },
       });
     }
@@ -34,16 +34,24 @@ async function createAdminUser() {
     const hashedPassword = await bcrypt.hash('admin123', saltRounds);
 
     // Create admin user
+    const adminData = {
+      email: 'admin@dancerealm.com',
+      password: 'admin123',
+      firstName: 'Admin',
+      lastName: 'User',
+      role: UserRole.ADMIN,
+    };
+
     const admin = await prisma.user.create({
       data: {
         username: 'superadmin',
-        email: 'superadmin@example.com',
+        email: adminData.email,
         password: hashedPassword,
-        first_name: 'Super',
-        last_name: 'Admin',
-        role: [UserRole.ADMIN],
+        first_name: adminData.firstName,
+        last_name: adminData.lastName,
+        role: adminData.role,
         created_at: new Date(),
-        updated_at: new Date()
+        updated_at: new Date(),
       },
     });
 
@@ -53,8 +61,8 @@ async function createAdminUser() {
         user_id: admin.id,
         role: UserRole.ADMIN,
         createdAt: new Date(),
-        updatedAt: new Date()
-      }
+        updatedAt: new Date(),
+      },
     });
 
     console.log('Admin user created successfully with ADMIN role');
@@ -65,4 +73,4 @@ async function createAdminUser() {
   }
 }
 
-createAdminUser(); 
+createAdminUser();

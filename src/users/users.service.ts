@@ -59,32 +59,27 @@ export class UsersService {
     });
   }
 
-  async create(data: any): Promise<User> {
-    const hashedPassword = await bcrypt.hash(data.password, 12);
+  async create(createUserDto: CreateUserDto) {
     const user = await this.prisma.user.create({
       data: {
-        ...data,
-        password: hashedPassword,
-        role: [UserRole.GUEST_USER],
-        created_at: new Date(),
-        updated_at: new Date(),
-      },
-    });
-
-    await this.prisma.userRoleMapping.create({
-      data: {
-        user_id: user.id,
+        ...createUserDto,
         role: UserRole.GUEST_USER,
         created_at: new Date(),
         updated_at: new Date(),
       },
     });
 
-    const createdUser = await this.findOne(user.id);
-    if (!createdUser) {
-      throw new Error('Failed to create user');
-    }
-    return createdUser;
+    // Create role mapping
+    await this.prisma.userRoleMapping.create({
+      data: {
+        user_id: user.id,
+        role: UserRole.GUEST_USER,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+
+    return user;
   }
 
   async login(username: string, password: string): Promise<LoginResponseDto> {

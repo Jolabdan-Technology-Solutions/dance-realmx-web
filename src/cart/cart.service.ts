@@ -5,14 +5,17 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AddToCartDto, CartItemType } from './dto/add-to-cart.dto';
-import {
-  CartItem,
-  Order,
-  OrderItem,
-  PaymentStatus,
-  PaymentType,
-} from '@prisma/client';
 import { StripeService } from '../stripe/stripe.service';
+
+interface CartItem {
+  id: number;
+  user_id: number;
+  course_id?: number;
+  resource_id?: number;
+  quantity: number;
+  created_at: Date;
+  updated_at: Date;
+}
 
 @Injectable()
 export class CartService {

@@ -7,10 +7,7 @@ import {
 } from 'class-validator';
 import { UserRole } from '@prisma/client';
 
-export class RegisterDto {
-  @IsEmail()
-  email: string;
-
+export class CreateUserDto {
   @IsString()
   @MinLength(3)
   username: string;
@@ -19,26 +16,24 @@ export class RegisterDto {
   @MinLength(6)
   password: string;
 
+  @IsString()
+  first_name: string;
+
+  @IsString()
+  last_name: string;
+
+  @IsEmail()
+  email: string;
+
+  @IsString()
   @IsOptional()
+  profile_image_url?: string;
+
   @IsString()
   @IsOptional()
   auth_provider?: string;
 
+  @IsString()
   @IsOptional()
-  @IsString()
-  subscription_tier?: string;
-
-  @IsString()
-  first_name?: string;
-
-  @IsOptional()
-  @IsString()
-  last_name?: string;
-
-  @IsEnum(UserRole)
-  role: UserRole;
-
-  @IsOptional()
-  @IsString()
-  profile_image_url?: string;
+  role?: string;
 }

@@ -18,42 +18,44 @@ model Tenant {
 }
 
 model User {
-  id                  Int                 @id @default(autoincrement())
-  email               String              @unique
-  username            String              @unique
+  id                  Int                  @id @default(autoincrement())
+  email               String               @unique
+  username            String               @unique
   password            String
   first_name          String?
   last_name           String?
+  role                UserRole             @default(GUEST_USER)
   profile_image_url   String?
   auth_provider       String?
-  created_at          DateTime            @default(now())
-  updated_at          DateTime            @updatedAt
+  created_at          DateTime             @default(now())
+  updated_at          DateTime             @updatedAt
   subscription_tier   SubscriptionTier?
   tenant_id           Int?
-  role                UserRole[]          @default([GUEST_USER])
+  accountType         AccountType?
+  stripeAccountId     String?              @unique
+  stripeAccountStatus StripeAccountStatus? @default(PENDING)
   frequency           String?
   is_active           Boolean?
-  instructor_bookings Booking[]           @relation("InstructorBookings")
+  instructor_bookings Booking[]            @relation("InstructorBookings")
   bookings            Booking[]
-  courses             Course[]            @relation("InstructorCourses")
+  courses             Course[]             @relation("InstructorCourses")
   enrollments         Enrollment[]
-  receivedMessages    Message[]           @relation("ReceivedMessages")
-  sentMessages        Message[]           @relation("SentMessages")
+  receivedMessages    Message[]            @relation("ReceivedMessages")
+  sentMessages        Message[]            @relation("SentMessages")
   notifications       Notification[]
   payments            Payment[]
   profile             Profile?
-  resources           Resource[]          @relation("SellerResources")
+  resources           Resource[]           @relation("SellerResources")
   resource_purchases  ResourcePurchase[]
   reviews             Review[]
   stripe_customer     StripeCustomer?
   subscriptions       Subscription[]
   testimonials        Testimonial[]
   certifications      UserCertification[]
-  features            UserFeature[]       @relation("UserFeatures")
+  features            UserFeature[]        @relation("UserFeatures")
   role_mappings       UserRoleMapping[]
-  tenant              Tenant?             @relation(fields: [tenant_id], references: [id])
-  cartItems           CartItem[]
-  orders              Order[]
+  tenant              Tenant?              @relation(fields: [tenant_id], references: [id])
+  CartItem            CartItem[]
 }
 
 model Profile {
@@ -90,8 +92,7 @@ model Course {
   certifications    UserCertification[]
   categories        Category[]          @relation("CourseCategories")
   tags              Tag[]               @relation("CourseTags")
-  cartItems         CartItem[]
-  orderItems        OrderItem[]
+  CartItem          CartItem[]
 }
 
 model Module {
@@ -219,8 +220,7 @@ model Resource {
   seller          User               @relation("SellerResources", fields: [sellerId], references: [id])
   purchases       ResourcePurchase[]
   category        ResourceCategory?  @relation(fields: [categoryId], references: [id])
-  cartItems       CartItem[]
-  orderItems      OrderItem[]
+  CartItem        CartItem[]
 }
 
 model ResourcePurchase {
@@ -393,37 +393,13 @@ model CartItem {
   quantity    Int       @default(1)
   created_at  DateTime  @default(now())
   updated_at  DateTime  @updatedAt
-  user        User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  course      Course?   @relation(fields: [course_id], references: [id], onDelete: Cascade)
-  resource    Resource? @relation(fields: [resource_id], references: [id], onDelete: Cascade)
-
-  @@unique([user_id, course_id])
-  @@unique([user_id, resource_id])
-}
-
-model Order {
-  id         Int         @id @default(autoincrement())
-  user_id    Int
-  status     String      @default("PENDING")
-  total      Float
-  created_at DateTime    @default(now())
-  updated_at DateTime    @updatedAt
-  user       User        @relation(fields: [user_id], references: [id])
-  items      OrderItem[]
-}
-
-model OrderItem {
-  id          Int       @id @default(autoincrement())
-  order_id    Int
-  course_id   Int?
-  resource_id Int?
-  quantity    Int
-  price       Float
-  created_at  DateTime  @default(now())
-  updated_at  DateTime  @updatedAt
-  order       Order     @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [user_id], references: [id])
   course      Course?   @relation(fields: [course_id], references: [id])
   resource    Resource? @relation(fields: [resource_id], references: [id])
+
+  @@index([user_id])
+  @@index([course_id])
+  @@index([resource_id])
 }
 
 enum UserRole {
@@ -479,4 +455,15 @@ enum SubscriptionStatus {
   CANCELED
   FAILED
   PENDING
+}
+
+enum AccountType {
+  INSTRUCTOR
+  SELLER
+}
+
+enum StripeAccountStatus {
+  PENDING
+  ACTIVE
+  DEAUTHORIZED
 }

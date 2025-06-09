@@ -4,12 +4,16 @@ import * as nodemailer from 'nodemailer';
 import * as handlebars from 'handlebars';
 import * as fs from 'fs';
 import * as path from 'path';
+import { MailerService } from '@nestjs-modules/mailer';
 
 @Injectable()
 export class MailService {
   private transporter: nodemailer.Transporter;
 
-  constructor(private configService: ConfigService) {
+  constructor(
+    private readonly mailerService: MailerService,
+    private readonly configService: ConfigService,
+  ) {
     this.transporter = nodemailer.createTransport({
       host: this.configService.get('SMTP_HOST'),
       port: this.configService.get('SMTP_PORT'),
@@ -39,6 +43,20 @@ export class MailService {
     const template = await this.loadTemplate(templateName);
     const compiledTemplate = handlebars.compile(template);
     return compiledTemplate(data);
+  }
+
+  private async sendMail(options: {
+    to: string;
+    subject: string;
+    template: string;
+    context?: Record<string, any>;
+  }): Promise<void> {
+    await this.mailerService.sendMail({
+      to: options.to,
+      subject: options.subject,
+      template: options.template,
+      context: options.context,
+    });
   }
 
   async sendWelcomeEmail(email: string, name: string) {
@@ -122,6 +140,49 @@ export class MailService {
       to: email,
       subject: 'Booking Confirmation',
       html,
+    });
+  }
+
+  async sendPasswordResetEmail(email: string, token: string): Promise<void> {
+    const resetUrl = `${this.configService.get('FRONTEND_URL')}/reset-password?token=${token}`;
+    await this.sendMail({
+      to: email,
+      subject: 'Password Reset Request',
+      template: 'password-reset',
+      context: {
+        resetUrl,
+      },
+    });
+  }
+
+  async sendPasswordResetConfirmationEmail(email: string): Promise<void> {
+    await this.sendMail({
+      to: email,
+      subject: 'Password Reset Successful',
+      template: 'password-reset-confirmation',
+    });
+  }
+
+  async sendPasswordChangeNotificationEmail(email: string): Promise<void> {
+    await this.sendMail({
+      to: email,
+      subject: 'Password Changed',
+      template: 'password-change-notification',
+    });
+  }
+
+  async sendEmailVerificationEmail(
+    email: string,
+    token: string,
+  ): Promise<void> {
+    const verifyUrl = `${this.configService.get('FRONTEND_URL')}/verify-email?token=${token}`;
+    await this.sendMail({
+      to: email,
+      subject: 'Verify Your Email',
+      template: 'email-verification',
+      context: {
+        verifyUrl,
+      },
     });
   }
 }
