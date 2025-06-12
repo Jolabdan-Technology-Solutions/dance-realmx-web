@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import {
   NotFoundException,
   BadRequestException,
@@ -16,12 +16,15 @@ import { PaymentStatus } from '@prisma/client';
 
 @Injectable()
 export class CoursesService implements OnModuleInit {
+  private readonly logger = new Logger(CoursesService.name);
   private stripe: Stripe;
 
   constructor(
     private prisma: PrismaService,
     private mailService: MailService,
-  ) {}
+  ) {
+    this.logger.log('CoursesService initialized');
+  }
 
   async onModuleInit() {
     const stripeKey = process.env.STRIPE_SECRET_KEY;
@@ -330,6 +333,26 @@ export class CoursesService implements OnModuleInit {
           );
         }
       }
+      throw error;
+    }
+  }
+
+  async toggleVisibility(id: number) {
+    try {
+      const course = await this.prisma.course.findUnique({
+        where: { id },
+      });
+      if (!course) {
+        throw new NotFoundException(`Course with ID ${id} not found`);
+      }
+
+      return await this.prisma.course.update({
+        where: { id },
+        data: {
+          visible: !course.visible,
+        },
+      });
+    } catch (error) {
       throw error;
     }
   }
@@ -908,14 +931,19 @@ export class CoursesService implements OnModuleInit {
 
   async verifyPayment(sessionId: string, courseId: number, userId: number) {
     try {
+      console.log('Verifying payment:', { sessionId, courseId, userId });
+
       // Retrieve session from Stripe
       const session = await this.stripe.checkout.sessions.retrieve(sessionId);
+      console.log('Stripe session:', session);
 
       if (!session) {
+        console.error('Payment session not found');
         throw new NotFoundException('Payment session not found');
       }
 
       if (!session.metadata?.userId || !session.metadata?.courseId) {
+        console.error('Missing metadata:', session.metadata);
         throw new BadRequestException(
           'Missing user or course metadata in session',
         );
@@ -926,6 +954,12 @@ export class CoursesService implements OnModuleInit {
         parseInt(session.metadata.userId) !== userId ||
         parseInt(session.metadata.courseId) !== courseId
       ) {
+        console.error('Invalid session metadata:', {
+          sessionUserId: session.metadata.userId,
+          providedUserId: userId,
+          sessionCourseId: session.metadata.courseId,
+          providedCourseId: courseId,
+        });
         throw new BadRequestException(
           'Invalid session for this user and course',
         );
@@ -940,8 +974,10 @@ export class CoursesService implements OnModuleInit {
           reference_type: 'COURSE',
         },
       });
+      console.log('Found payment:', payment);
 
       if (!payment) {
+        console.error('Payment record not found');
         throw new NotFoundException('Payment record not found');
       }
 
@@ -956,22 +992,64 @@ export class CoursesService implements OnModuleInit {
               id: true,
               title: true,
               description: true,
-              thumbnail_url: true,
+              image_url: true,
             },
           },
         },
       });
+      console.log('Found enrollment:', enrollment);
 
       if (!enrollment) {
+        console.error('Enrollment record not found');
         throw new NotFoundException('Enrollment record not found');
+      }
+
+      // Update payment and enrollment status based on session status
+      if (session.payment_status === 'paid') {
+        await this.prisma.$transaction([
+          this.prisma.payment.update({
+            where: { id: payment.id },
+            data: {
+              status: PaymentStatus.SUCCEEDED,
+              // completed_at: new Date(),
+              updated_at: new Date(),
+            },
+          }),
+          this.prisma.enrollment.update({
+            where: { id: enrollment.id },
+            data: {
+              status: 'ACTIVE',
+              updated_at: new Date(),
+            },
+          }),
+        ]);
+      } else if (session.payment_status === 'unpaid') {
+        await this.prisma.$transaction([
+          this.prisma.payment.update({
+            where: { id: payment.id },
+            data: {
+              status: PaymentStatus.FAILED,
+              updated_at: new Date(),
+            },
+          }),
+          this.prisma.enrollment.update({
+            where: { id: enrollment.id },
+            data: {
+              status: 'CANCELLED',
+              updated_at: new Date(),
+            },
+          }),
+        ]);
       }
 
       return {
         payment,
         enrollment,
         session_status: session.status,
+        payment_status: session.payment_status,
       };
     } catch (error) {
+      console.error('Payment verification error:', error);
       if (
         error instanceof NotFoundException ||
         error instanceof BadRequestException
@@ -1049,7 +1127,6 @@ export class CoursesService implements OnModuleInit {
     };
   }
 
-  // Add this method to your CoursesService
   async getUserEnrolledCourses(
     userId: number,
     options: {
@@ -1058,15 +1135,23 @@ export class CoursesService implements OnModuleInit {
       limit?: number;
     } = {},
   ) {
-    const { status, page = 1, limit = 10 } = options;
+    this.logger.log(`[getUserEnrolledCourses] Starting with userId: ${userId}`);
+    this.logger.log(
+      `[getUserEnrolledCourses] Options: ${JSON.stringify(options)}`,
+    );
 
     try {
       // Verify user exists
+      this.logger.log(`[getUserEnrolledCourses] Checking user: ${userId}`);
       const user = await this.prisma.user.findUnique({
         where: { id: userId },
       });
+      this.logger.log(
+        `[getUserEnrolledCourses] User found: ${JSON.stringify(user)}`,
+      );
 
       if (!user) {
+        this.logger.error(`[getUserEnrolledCourses] User not found: ${userId}`);
         throw new NotFoundException('User not found');
       }
 
@@ -1076,127 +1161,185 @@ export class CoursesService implements OnModuleInit {
       };
 
       // Filter by enrollment status if provided
-      if (status) {
+      if (options.status) {
         const validStatuses = ['PENDING', 'ACTIVE', 'COMPLETED', 'CANCELLED'];
-        if (!validStatuses.includes(status.toUpperCase())) {
+        if (!validStatuses.includes(options.status.toUpperCase())) {
+          this.logger.error(
+            `[getUserEnrolledCourses] Invalid status: ${options.status}`,
+          );
           throw new BadRequestException(
             'Invalid status. Valid statuses: PENDING, ACTIVE, COMPLETED, CANCELLED',
           );
         }
-        whereClause.status = status.toUpperCase();
+        whereClause.status = options.status.toUpperCase();
       }
-
-      // Calculate pagination
-      const skip = (page - 1) * limit;
-
-      // Get enrollments with course details
-      const [enrollments, totalCount] = await Promise.all([
-        this.prisma.enrollment.findMany({
-          where: whereClause,
-          include: {
-            course: {
-              select: {
-                id: true,
-                title: true,
-                description: true,
-                price: true,
-                duration_hours: true,
-                level: true,
-                thumbnail_url: true,
-                instructor_id: true,
-                instructor: {
-                  select: {
-                    id: true,
-                    first_name: true,
-                    last_name: true,
-                    username: true,
-                    profile_picture_url: true,
-                  },
-                },
-                category: {
-                  select: {
-                    id: true,
-                    name: true,
-                  },
-                },
-                created_at: true,
-                updated_at: true,
-              },
-            },
-          },
-          orderBy: {
-            created_at: 'desc',
-          },
-          skip,
-          take: limit,
-        }),
-        this.prisma.enrollment.count({
-          where: whereClause,
-        }),
-      ]);
-
-      // Calculate pagination info
-      const totalPages = Math.ceil(totalCount / limit);
-      const hasNextPage = page < totalPages;
-      const hasPrevPage = page > 1;
-
-      // Format response
-      const courses = enrollments.map((enrollment) => ({
-        enrollment: {
-          id: enrollment.id,
-          status: enrollment.status,
-          enrolled_at: enrollment.created_at,
-          progress: enrollment.progress || 0,
-        },
-        course: enrollment.course,
-      }));
-
-      // Get enrollment summary
-      const enrollmentSummary = await this.prisma.enrollment.groupBy({
-        by: ['status'],
-        where: {
-          user_id: userId,
-        },
-        _count: {
-          status: true,
-        },
-      });
-
-      const summary = enrollmentSummary.reduce(
-        (acc, item) => {
-          acc[item.status.toLowerCase()] = item._count.status;
-          return acc;
-        },
-        {} as Record<string, number>,
+      this.logger.log(
+        `[getUserEnrolledCourses] Where clause: ${JSON.stringify(whereClause)}`,
       );
 
-      return {
-        courses,
-        pagination: {
-          currentPage: page,
-          totalPages,
-          totalCount,
-          hasNextPage,
-          hasPrevPage,
-          limit,
-        },
-        summary: {
-          total: totalCount,
-          active: summary.active || 0,
-          completed: summary.completed || 0,
-          pending: summary.pending || 0,
-          cancelled: summary.cancelled || 0,
-        },
-      };
+      // Calculate pagination
+      const page = options.page || 1;
+      const limit = options.limit || 10;
+      const skip = (page - 1) * limit;
+      this.logger.log(
+        `[getUserEnrolledCourses] Pagination: ${JSON.stringify({ page, limit, skip })}`,
+      );
+
+      try {
+        // Get enrollments with course details
+        this.logger.log('[getUserEnrolledCourses] Fetching enrollments...');
+        const [enrollments, totalCount] = await Promise.all([
+          this.prisma.enrollment.findMany({
+            where: whereClause,
+            include: {
+              course: {
+                include: {
+                  instructor: {
+                    select: {
+                      id: true,
+                      username: true,
+                      first_name: true,
+                      last_name: true,
+                      profile_image_url: true,
+                    },
+                  },
+                  categories: {
+                    select: {
+                      id: true,
+                      name: true,
+                    },
+                  },
+                },
+              },
+            },
+            orderBy: {
+              created_at: 'desc',
+            },
+            skip,
+            take: limit,
+          }),
+          this.prisma.enrollment.count({
+            where: whereClause,
+          }),
+        ]);
+        this.logger.log(
+          `[getUserEnrolledCourses] Found ${enrollments.length} enrollments`,
+        );
+        this.logger.log(`[getUserEnrolledCourses] Total count: ${totalCount}`);
+
+        // Calculate pagination info
+        const totalPages = Math.ceil(totalCount / limit);
+        const hasNextPage = page < totalPages;
+        const hasPrevPage = page > 1;
+
+        // Format response
+        const courses = enrollments.map((enrollment) => ({
+          enrollment: {
+            id: enrollment.id,
+            status: enrollment.status,
+            enrolled_at: enrollment.created_at,
+            progress: enrollment.progress || 0,
+          },
+          course: enrollment.course,
+        }));
+
+        // Get enrollment summary
+        this.logger.log(
+          '[getUserEnrolledCourses] Fetching enrollment summary...',
+        );
+        const enrollmentSummary = await this.prisma.enrollment.groupBy({
+          by: ['status'],
+          where: {
+            user_id: userId,
+          },
+          _count: {
+            status: true,
+          },
+        });
+
+        const summary = enrollmentSummary.reduce(
+          (acc, item) => {
+            acc[item.status.toLowerCase()] = item._count.status;
+            return acc;
+          },
+          {} as Record<string, number>,
+        );
+
+        const response = {
+          courses,
+          pagination: {
+            currentPage: page,
+            totalPages,
+            totalCount,
+            hasNextPage,
+            hasPrevPage,
+            limit,
+          },
+          summary: {
+            total: totalCount,
+            active: summary.active || 0,
+            completed: summary.completed || 0,
+            pending: summary.pending || 0,
+            cancelled: summary.cancelled || 0,
+          },
+        };
+        this.logger.log(
+          `[getUserEnrolledCourses] Success response: ${JSON.stringify(response)}`,
+        );
+        return response;
+      } catch (dbError) {
+        this.logger.error(
+          `[getUserEnrolledCourses] Database error: ${dbError.message}`,
+          dbError.stack,
+        );
+        throw new InternalServerErrorException(
+          'Database error while fetching enrollments',
+        );
+      }
     } catch (error) {
-      console.error('Error fetching user enrolled courses:', error);
-      throw error;
+      this.logger.error(
+        `[getUserEnrolledCourses] Error: ${error.message}`,
+        error.stack,
+      );
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        'Failed to fetch course enrollment',
+      );
     }
   }
 
   // Additional helper method to get enrollment details for a specific course
   async getUserCourseEnrollment(userId: number, courseId: number) {
+    console.log('Getting user course enrollment:', { userId, courseId });
     try {
+      // Verify user exists
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+      });
+      console.log('Found user:', user);
+
+      if (!user) {
+        console.error('User not found:', userId);
+        throw new NotFoundException('User not found');
+      }
+
+      // Verify course exists
+      const course = await this.prisma.course.findUnique({
+        where: { id: courseId },
+      });
+      console.log('Found course:', course);
+
+      if (!course) {
+        console.error('Course not found:', courseId);
+        throw new NotFoundException('Course not found');
+      }
+
+      console.log('Fetching enrollment details...');
       const enrollment = await this.prisma.enrollment.findFirst({
         where: {
           user_id: userId,
@@ -1211,14 +1354,14 @@ export class CoursesService implements OnModuleInit {
               price: true,
               duration_hours: true,
               level: true,
-              thumbnail_url: true,
+              image_url: true,
               instructor: {
                 select: {
                   id: true,
                   first_name: true,
                   last_name: true,
                   username: true,
-                  profile_picture_url: true,
+                  profile_image_url: true,
                 },
               },
             },
@@ -1235,12 +1378,19 @@ export class CoursesService implements OnModuleInit {
           },
         },
       });
+      console.log('Found enrollment:', enrollment);
 
       if (!enrollment) {
+        console.error(
+          'Enrollment not found for user:',
+          userId,
+          'course:',
+          courseId,
+        );
         throw new NotFoundException('Enrollment not found');
       }
 
-      return {
+      const response = {
         enrollment: {
           id: enrollment.id,
           status: enrollment.status,
@@ -1251,9 +1401,17 @@ export class CoursesService implements OnModuleInit {
         course: enrollment.course,
         payment: enrollment.payments[0] || null,
       };
+      console.log('Returning response:', response);
+      return response;
     } catch (error) {
-      console.error('Error fetching user course enrollment:', error);
-      throw error;
+      console.error('Error in getUserCourseEnrollment:', error);
+      console.error('Error stack:', error.stack);
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        'Failed to fetch enrollment details',
+      );
     }
   }
 }

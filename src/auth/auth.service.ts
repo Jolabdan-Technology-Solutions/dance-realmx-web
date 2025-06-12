@@ -682,13 +682,46 @@ export class AuthService {
     try {
       const user = await this.prisma.user.findUnique({
         where: { id: userId },
+        include: {
+          enrollments: {
+            include: {
+              course: {
+                include: {
+                  enrollments: true,
+                },
+              },
+            },
+          },
+          courses: true,
+        },
       });
 
       if (!user) {
         throw new NotFoundException('User not found');
       }
 
-      return await this.formatUserResponse(user);
+      const formattedUser = await this.formatUserResponse(user);
+
+      // Get enrolled courses with enrollment status and instructor stats
+      const enrolledCourses = user.enrollments.map((enrollment) => {
+        const course = enrollment.course;
+        const totalStudents = course.enrollments.length;
+        const totalCourses = user.courses.length;
+
+        return {
+          ...course,
+          enrollment_status: enrollment.status,
+          instructor_stats: {
+            total_students: totalStudents,
+            total_courses: totalCourses,
+          },
+        };
+      });
+
+      return {
+        ...formattedUser,
+        enrolled_courses: enrolledCourses,
+      };
     } catch (error) {
       this.logger.error(`Get profile error: ${error.message}`, error.stack);
       if (
@@ -729,6 +762,254 @@ export class AuthService {
     } catch (error) {
       this.logger.error(`Token cleanup error: ${error.message}`, error.stack);
       throw new BadRequestException('Token cleanup failed');
+    }
+  }
+
+  async getUserAnalytics() {
+    try {
+      // Get total users count
+      const totalUsers = await this.prisma.user.count();
+
+      // Get all users with their roles
+      const users = await this.prisma.user.findMany({
+        select: {
+          role: true,
+        },
+      });
+
+      // Count users by role
+      const roleCounts = users.reduce((acc, user) => {
+        user.role.forEach((role) => {
+          acc[role] = (acc[role] || 0) + 1;
+        });
+        return acc;
+      }, {});
+
+      // Get users by subscription tier
+      const usersByTier = await this.prisma.user.groupBy({
+        by: ['subscription_tier'],
+        _count: true,
+      });
+
+      // Get active vs inactive users
+      const activeUsers = await this.prisma.user.count({
+        where: { is_active: true },
+      });
+
+      // Get users by account type
+      const usersByAccountType = await this.prisma.user.groupBy({
+        by: ['accountType'],
+        _count: true,
+      });
+
+      // Get revenue from subscriptions
+      const subscriptionAnalytics = await this.prisma.subscription.groupBy({
+        by: ['plan_id', 'status'],
+        _count: true,
+        _sum: {
+          plan_id: true,
+        },
+      });
+
+      // Get plan details for the analytics
+      const plans = await this.prisma.subscriptionPlan.findMany({
+        select: {
+          id: true,
+          name: true,
+          priceMonthly: true,
+          priceYearly: true,
+        },
+      });
+
+      // Combine subscription analytics with plan details
+      const subscriptionAnalyticsWithPlans = subscriptionAnalytics.map(
+        (analytics) => ({
+          ...analytics,
+          plan: plans.find((plan) => plan.id === analytics.plan_id),
+        }),
+      );
+
+      // Get revenue from course enrollments
+      const courseRevenue = await this.prisma.payment.aggregate({
+        _sum: {
+          amount: true,
+        },
+        where: {
+          status: 'SUCCEEDED',
+          reference_type: 'COURSE',
+        },
+      });
+
+      // Get revenue from resource purchases
+      const resourceRevenue = await this.prisma.payment.aggregate({
+        _sum: {
+          amount: true,
+        },
+        where: {
+          status: 'SUCCEEDED',
+          reference_type: 'RESOURCE',
+        },
+      });
+
+      // Get monthly user growth
+      const monthlyGrowth = await this.prisma.user.groupBy({
+        by: ['created_at'],
+        _count: true,
+        orderBy: {
+          created_at: 'asc',
+        },
+        having: {
+          created_at: {
+            gte: new Date(new Date().setMonth(new Date().getMonth() - 6)), // Last 6 months
+          },
+        },
+      });
+
+      // Calculate subscription revenue based on plan prices
+      const activeSubscriptions = await this.prisma.subscription.findMany({
+        where: {
+          status: 'ACTIVE',
+        },
+        include: {
+          plan: true,
+        },
+      });
+
+      const subscriptionRevenueTotal = activeSubscriptions.reduce(
+        (total, sub) => {
+          const price =
+            sub.frequency === 'MONTHLY'
+              ? Number(sub.plan.priceMonthly)
+              : Number(sub.plan.priceYearly);
+          return total + price;
+        },
+        0,
+      );
+
+      return {
+        userStats: {
+          total: totalUsers,
+          active: activeUsers,
+          inactive: totalUsers - activeUsers,
+          byRole: roleCounts,
+          byTier: usersByTier.reduce((acc, curr) => {
+            acc[curr.subscription_tier || 'FREE'] = curr._count;
+            return acc;
+          }, {}),
+          byAccountType: usersByAccountType.reduce((acc, curr) => {
+            acc[curr.accountType || 'NONE'] = curr._count;
+            return acc;
+          }, {}),
+        },
+        revenue: {
+          subscriptions: subscriptionRevenueTotal,
+          subscriptionAnalytics: subscriptionAnalyticsWithPlans,
+          courses: courseRevenue._sum.amount || 0,
+          resources: resourceRevenue._sum.amount || 0,
+          total:
+            subscriptionRevenueTotal +
+            (courseRevenue._sum.amount || 0) +
+            (resourceRevenue._sum.amount || 0),
+        },
+        growth: {
+          monthly: monthlyGrowth.map((month) => ({
+            month: month.created_at,
+            newUsers: month._count,
+          })),
+        },
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error in getUserAnalytics: ${error.message}`,
+        error.stack,
+      );
+      throw new BadRequestException('Failed to fetch user analytics');
+    }
+  }
+
+  async getInstructorAnalytics() {
+    try {
+      // Get total instructors
+      const totalInstructors = await this.prisma.user.count({
+        where: {
+          accountType: 'INSTRUCTOR',
+        },
+      });
+
+      // Get active instructors
+      const activeInstructors = await this.prisma.user.count({
+        where: {
+          accountType: 'INSTRUCTOR',
+          is_active: true,
+        },
+      });
+
+      // Get instructor revenue
+      const instructorRevenue = await this.prisma.payment.groupBy({
+        by: ['user_id'],
+        _sum: {
+          amount: true,
+        },
+        where: {
+          status: 'SUCCEEDED',
+          reference_type: 'COURSE',
+        },
+      });
+
+      // Get instructor course stats
+      const instructorCourses = await this.prisma.course.groupBy({
+        by: ['instructor_id'],
+        _count: true,
+        _avg: {
+          price: true,
+        },
+      });
+
+      // Get instructor enrollment stats
+      const enrollments = await this.prisma.enrollment.findMany({
+        include: {
+          course: {
+            select: {
+              instructor_id: true,
+            },
+          },
+        },
+      });
+
+      // Group enrollments by instructor
+      const instructorEnrollments = enrollments.reduce((acc, enrollment) => {
+        const instructorId = enrollment.course.instructor_id;
+        acc[instructorId] = (acc[instructorId] || 0) + 1;
+        return acc;
+      }, {});
+
+      return {
+        overview: {
+          total: totalInstructors,
+          active: activeInstructors,
+          inactive: totalInstructors - activeInstructors,
+        },
+        performance: {
+          revenue: instructorRevenue.reduce((acc, curr) => {
+            acc[curr.user_id] = curr._sum.amount || 0;
+            return acc;
+          }, {}),
+          courses: instructorCourses.reduce((acc, curr) => {
+            acc[curr.instructor_id] = {
+              totalCourses: curr._count,
+              averagePrice: curr._avg.price,
+            };
+            return acc;
+          }, {}),
+          enrollments: instructorEnrollments,
+        },
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error in getInstructorAnalytics: ${error.message}`,
+        error.stack,
+      );
+      throw new BadRequestException('Failed to fetch instructor analytics');
     }
   }
 }

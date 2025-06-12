@@ -1,7 +1,13 @@
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import {
+  Injectable,
+  HttpException,
+  HttpStatus,
+  NotFoundException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
-import { Subscription, SubscriptionTier } from '@prisma/client';
+import { Subscription, SubscriptionTier, UserRole } from '@prisma/client';
 import { SubscriptionStatus } from './enums/subscription-status.enum';
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
@@ -32,13 +38,27 @@ export class SubscriptionsService {
     });
   }
 
-  async findOne(id: number): Promise<Subscription | null> {
-    return this.prisma.subscription.findUnique({
-      where: { id },
-      include: {
-        user: true,
-      },
-    });
+  async findOne(id: number) {
+    try {
+      const subscription = await this.prisma.subscription.findUnique({
+        where: { id },
+        include: {
+          user: true,
+          plan: true,
+        },
+      });
+
+      if (!subscription) {
+        throw new NotFoundException(`Subscription with ID ${id} not found`);
+      }
+
+      return subscription;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Failed to fetch subscription');
+    }
   }
 
   async findByUser(userId: number): Promise<Subscription[]> {
@@ -382,5 +402,192 @@ export class SubscriptionsService {
     return this.prisma.subscriptionPlan.findUnique({
       where: { id: planId },
     });
+  }
+
+  async getTotalSubscriptions() {
+    return this.prisma.subscription.count();
+  }
+
+  async getActiveSubscriptions() {
+    return this.prisma.subscription.count({
+      where: { status: 'ACTIVE' },
+    });
+  }
+
+  async getExpiredSubscriptions() {
+    return this.prisma.subscription.count({
+      where: { status: 'EXPIRED' },
+    });
+  }
+
+  async getSubscriptionsByPlan() {
+    return this.prisma.subscription.groupBy({
+      by: ['plan_id'],
+      _count: true,
+    });
+  }
+
+  async getSubscriptionsByFrequency() {
+    return this.prisma.subscription.groupBy({
+      by: ['frequency'],
+      _count: true,
+    });
+  }
+
+  async getSubscriptionRevenueMetrics() {
+    const subscriptions = await this.prisma.subscription.findMany({
+      where: { status: 'ACTIVE' },
+      include: { plan: true },
+    });
+
+    const monthlyRevenue = subscriptions.reduce((acc, sub) => {
+      if (sub.frequency === 'MONTHLY') {
+        return acc + Number(sub.plan.priceMonthly);
+      }
+      return acc + Number(sub.plan.priceYearly) / 12;
+    }, 0);
+
+    const yearlyRevenue = monthlyRevenue * 12;
+
+    return {
+      monthly: monthlyRevenue,
+      yearly: yearlyRevenue,
+    };
+  }
+
+  async getChurnRate() {
+    const totalSubscriptions = await this.prisma.subscription.count();
+    const cancelledSubscriptions = await this.prisma.subscription.count({
+      where: { status: 'CANCELLED' },
+    });
+
+    return totalSubscriptions > 0
+      ? (cancelledSubscriptions / totalSubscriptions) * 100
+      : 0;
+  }
+
+  async getSubscriptionGrowth() {
+    const now = new Date();
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const [lastMonthCount, thisMonthCount] = await Promise.all([
+      this.prisma.subscription.count({
+        where: {
+          created_at: {
+            gte: lastMonth,
+            lt: thisMonth,
+          },
+        },
+      }),
+      this.prisma.subscription.count({
+        where: {
+          created_at: {
+            gte: thisMonth,
+          },
+        },
+      }),
+    ]);
+
+    return lastMonthCount > 0
+      ? ((thisMonthCount - lastMonthCount) / lastMonthCount) * 100
+      : 0;
+  }
+
+  async getInstructorCourseStats() {
+    const instructorStats = await this.prisma.user.findMany({
+      where: {
+        role: {
+          has: 'INSTRUCTOR',
+        },
+      },
+      select: {
+        id: true,
+        username: true,
+        first_name: true,
+        last_name: true,
+        _count: {
+          select: {
+            courses: true,
+          },
+        },
+      },
+    });
+
+    return instructorStats.map((instructor) => ({
+      instructor_id: instructor.id,
+      instructor_name:
+        `${instructor.first_name || ''} ${instructor.last_name || ''}`.trim() ||
+        instructor.username,
+      total_courses: instructor._count.courses,
+    }));
+  }
+
+  async getCourseEnrollmentStats() {
+    const courseStats = await this.prisma.course.findMany({
+      select: {
+        id: true,
+        title: true,
+        instructor: {
+          select: {
+            id: true,
+            username: true,
+            first_name: true,
+            last_name: true,
+          },
+        },
+        _count: {
+          select: {
+            enrollments: true,
+          },
+        },
+      },
+    });
+
+    return courseStats.map((course) => ({
+      course_id: course.id,
+      course_title: course.title,
+      instructor_id: course.instructor.id,
+      instructor_name:
+        `${course.instructor.first_name || ''} ${course.instructor.last_name || ''}`.trim() ||
+        course.instructor.username,
+      total_enrollments: course._count.enrollments,
+    }));
+  }
+
+  async getInstructorEnrollmentStats() {
+    const instructorStats = await this.prisma.user.findMany({
+      where: {
+        role: {
+          has: 'INSTRUCTOR',
+        },
+      },
+      select: {
+        id: true,
+        username: true,
+        first_name: true,
+        last_name: true,
+        courses: {
+          select: {
+            _count: {
+              select: {
+                enrollments: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return instructorStats.map((instructor) => ({
+      instructor_id: instructor.id,
+      instructor_name:
+        `${instructor.first_name || ''} ${instructor.last_name || ''}`.trim() ||
+        instructor.username,
+      total_enrollments: instructor.courses.reduce(
+        (acc, course) => acc + course._count.enrollments,
+        0,
+      ),
+    }));
   }
 }

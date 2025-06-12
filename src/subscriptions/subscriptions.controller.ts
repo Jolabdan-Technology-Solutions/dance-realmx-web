@@ -11,9 +11,14 @@ import {
   HttpException,
   HttpStatus,
   Put,
+  Logger,
 } from '@nestjs/common';
+import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { SubscriptionsService } from './subscriptions.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { UserRole } from '@prisma/client';
 import { Request } from 'express';
 import { Prisma, Subscription, SubscriptionTier } from '@prisma/client';
 import { SubscriptionStatus } from './enums/subscription-status.enum';
@@ -28,6 +33,8 @@ interface RequestWithUser extends Request {
 
 @Controller('subscriptions')
 export class SubscriptionsController {
+  private readonly logger = new Logger(SubscriptionsController.name);
+
   constructor(private readonly subscriptionsService: SubscriptionsService) {}
 
   @Get('plans')
@@ -46,6 +53,106 @@ export class SubscriptionsController {
   findByUser(@Req() req: RequestWithUser) {
     console.log('findByUser', req.user);
     return this.subscriptionsService.findByUserId(req.user.sub);
+  }
+
+  @Get('course-stats')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Get course and enrollment statistics' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns course and enrollment statistics',
+  })
+  async getCourseStats() {
+    try {
+      const [instructorCourses, courseEnrollments, instructorEnrollments] =
+        await Promise.all([
+          this.subscriptionsService.getInstructorCourseStats(),
+          this.subscriptionsService.getCourseEnrollmentStats(),
+          this.subscriptionsService.getInstructorEnrollmentStats(),
+        ]);
+
+      return {
+        instructor_courses: instructorCourses,
+        course_enrollments: courseEnrollments,
+        instructor_enrollments: instructorEnrollments,
+      };
+    } catch (error) {
+      this.logger.error(`Course stats error: ${error.message}`, error.stack);
+      throw new HttpException(
+        'Failed to fetch course statistics',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('analytics')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Get subscription analytics' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns subscription statistics and metrics',
+  })
+  async getSubscriptionAnalytics() {
+    try {
+      // Get total subscriptions
+      const totalSubscriptions =
+        await this.subscriptionsService.getTotalSubscriptions();
+
+      // Get active subscriptions
+      const activeSubscriptions =
+        await this.subscriptionsService.getActiveSubscriptions();
+
+      // Get expired subscriptions
+      const expiredSubscriptions =
+        await this.subscriptionsService.getExpiredSubscriptions();
+
+      // Get subscriptions by plan
+      const subscriptionsByPlan =
+        await this.subscriptionsService.getSubscriptionsByPlan();
+
+      // Get subscriptions by frequency (monthly/yearly)
+      const subscriptionsByFrequency =
+        await this.subscriptionsService.getSubscriptionsByFrequency();
+
+      // Get revenue metrics
+      const revenueMetrics =
+        await this.subscriptionsService.getSubscriptionRevenueMetrics();
+
+      // Get churn rate
+      const churnRate = await this.subscriptionsService.getChurnRate();
+
+      // Get subscription growth
+      const subscriptionGrowth =
+        await this.subscriptionsService.getSubscriptionGrowth();
+
+      return {
+        overview: {
+          total: totalSubscriptions,
+          active: activeSubscriptions,
+          expired: expiredSubscriptions,
+        },
+        distribution: {
+          byPlan: subscriptionsByPlan,
+          byFrequency: subscriptionsByFrequency,
+        },
+        metrics: {
+          revenue: revenueMetrics,
+          churnRate,
+          growth: subscriptionGrowth,
+        },
+      };
+    } catch (error) {
+      this.logger.error(
+        `Subscription analytics error: ${error.message}`,
+        error.stack,
+      );
+      throw new HttpException(
+        'Failed to fetch subscription analytics',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 
   @Get(':id')

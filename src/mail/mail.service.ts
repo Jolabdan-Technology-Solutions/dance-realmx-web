@@ -2,6 +2,7 @@ import {
   Injectable,
   Logger,
   InternalServerErrorException,
+  OnModuleInit,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as handlebars from 'handlebars';
@@ -11,8 +12,10 @@ import { MailerService } from '@nestjs-modules/mailer';
 import * as SendGrid from '@sendgrid/mail';
 
 @Injectable()
-export class MailService {
+export class MailService implements OnModuleInit {
   private readonly logger = new Logger(MailService.name);
+  private readonly mailFrom: string;
+  private isSendGridVerified = false;
 
   constructor(
     private readonly mailerService: MailerService,
@@ -20,11 +23,78 @@ export class MailService {
   ) {
     const sendgridApiKey = this.configService.get<string>('SENDGRID_API_KEY');
     if (!sendgridApiKey) {
-      throw new Error(
-        'SENDGRID_API_KEY is not defined in environment variables',
+      this.logger.warn(
+        'SENDGRID_API_KEY is not defined in environment variables. Email functionality will be disabled.',
       );
+      return;
     }
     SendGrid.setApiKey(sendgridApiKey);
+
+    const mailFrom = this.configService.get<string>('MAIL_FROM');
+    if (!mailFrom) {
+      this.logger.warn(
+        'MAIL_FROM is not defined in environment variables. Email functionality will be disabled.',
+      );
+      return;
+    }
+    this.mailFrom = mailFrom;
+  }
+
+  async onModuleInit() {
+    try {
+      await this.verifySendGridConnection();
+    } catch (error) {
+      this.logger.error(
+        'SendGrid verification failed, but continuing application startup. Email functionality may be limited.',
+      );
+      this.logger.error(
+        'Please check your SendGrid API key and ensure it is valid and has the necessary permissions.',
+      );
+      this.logger.error(
+        'You can get a new API key from: https://app.sendgrid.com/settings/api_keys',
+      );
+    }
+  }
+
+  private async verifySendGridConnection(): Promise<void> {
+    try {
+      // SendGrid doesn't have a direct connection test API
+      // We'll verify by making a test API call to get account info
+      const response = await SendGrid.send({
+        to: 'test@example.com',
+        from: this.mailFrom,
+        subject: 'SendGrid Connection Test',
+        text: 'This is a test email to verify SendGrid connection.',
+        mailSettings: {
+          sandboxMode: {
+            enable: true, // This prevents the email from actually being sent
+          },
+        },
+      });
+
+      this.isSendGridVerified = true;
+      this.logger.log('SendGrid connection verified successfully');
+      this.logger.log(`SendGrid API key is valid and connection is working`);
+    } catch (error) {
+      this.isSendGridVerified = false;
+      this.logger.error('SendGrid connection verification failed:', error);
+      if (error.response) {
+        const errorBody = error.response.body;
+        if (errorBody?.errors?.[0]?.message) {
+          this.logger.error(
+            `SendGrid API Error: ${errorBody.errors[0].message}`,
+          );
+          if (errorBody.errors[0].help) {
+            this.logger.error(`Help: ${errorBody.errors[0].help}`);
+          }
+        } else {
+          this.logger.error(`SendGrid API Error: ${JSON.stringify(errorBody)}`);
+        }
+      }
+      throw new InternalServerErrorException(
+        'Failed to verify SendGrid connection. Please check your API key and permissions.',
+      );
+    }
   }
 
   private async loadTemplate(templateName: string): Promise<string> {
@@ -73,20 +143,22 @@ export class MailService {
     template: string;
     context?: Record<string, any>;
   }): Promise<void> {
+    if (!this.isSendGridVerified) {
+      this.logger.warn(
+        `Attempted to send email to ${options.to} but SendGrid is not properly configured.`,
+      );
+      return;
+    }
+
     try {
       const html = await this.compileTemplate(
         options.template,
         options.context,
       );
-      const from = this.configService.get<string>('MAIL_FROM');
-
-      if (!from) {
-        throw new Error('MAIL_FROM is not defined in environment variables');
-      }
 
       const msg = {
         to: options.to,
-        from,
+        from: this.mailFrom,
         subject: options.subject,
         html,
       };
@@ -99,9 +171,14 @@ export class MailService {
         error.stack,
       );
       if (error.response) {
-        this.logger.error(
-          `SendGrid API Error: ${JSON.stringify(error.response.body)}`,
-        );
+        const errorBody = error.response.body;
+        if (errorBody?.errors?.[0]?.message) {
+          this.logger.error(
+            `SendGrid API Error: ${errorBody.errors[0].message}`,
+          );
+        } else {
+          this.logger.error(`SendGrid API Error: ${JSON.stringify(errorBody)}`);
+        }
       }
       throw new InternalServerErrorException('Failed to send email');
     }

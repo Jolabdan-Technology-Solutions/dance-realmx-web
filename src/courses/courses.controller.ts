@@ -16,6 +16,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Req,
+  UnauthorizedException,
 } from '@nestjs/common';
 import Stripe from 'stripe';
 import { CoursesService } from './courses.service';
@@ -39,10 +40,12 @@ import {
   ApiQuery,
   ApiResponse,
 } from '@nestjs/swagger';
+import { Logger } from '@nestjs/common';
 
 @Controller('courses')
-@UseGuards(JwtAuthGuard, RolesGuard, SubscriptionGuard)
 export class CoursesController {
+  private readonly logger = new Logger(CoursesController.name);
+
   constructor(private readonly coursesService: CoursesService) {}
 
   @Get()
@@ -69,6 +72,7 @@ export class CoursesController {
   }
 
   @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard, SubscriptionGuard)
   @ApiOperation({ summary: 'Create a new course' })
   @ApiBody({ type: CreateCourseDto })
   @ApiResponse({ status: 201, description: 'Course created successfully' })
@@ -81,6 +85,7 @@ export class CoursesController {
   }
 
   @Post('enroll-course/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard, SubscriptionGuard)
   @ApiOperation({ summary: 'Enroll a user in a course' })
   @ApiParam({ name: 'id', type: 'string', description: 'Course ID' })
   @ApiBody({
@@ -100,6 +105,7 @@ export class CoursesController {
   }
 
   @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard, SubscriptionGuard)
   @ApiOperation({ summary: 'Update a course' })
   @ApiParam({ name: 'id', type: 'string', description: 'Course ID' })
   @ApiBody({ type: UpdateCourseDto })
@@ -115,6 +121,7 @@ export class CoursesController {
   }
 
   @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard, SubscriptionGuard)
   @ApiOperation({ summary: 'Delete a course' })
   @ApiParam({ name: 'id', type: 'string', description: 'Course ID' })
   @ApiResponse({ status: 200, description: 'Course deleted successfully' })
@@ -128,6 +135,8 @@ export class CoursesController {
   }
 
   @Post(':courseId/modules')
+  // @UseGuards(JwtAuthGuard, RolesGuard, SubscriptionGuard)
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Create a new module for a course' })
   @ApiParam({ name: 'courseId', type: 'string', description: 'Course ID' })
   @ApiBody({
@@ -146,7 +155,7 @@ export class CoursesController {
   @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 404, description: 'Course not found' })
   @Roles(UserRole.INSTRUCTOR_ADMIN, UserRole.ADMIN, UserRole.STUDENT)
-  @ResourceOwner('course')
+  // @ResourceOwner('course')
   createModule(
     @Param('courseId') courseId: string,
     @Body()
@@ -163,6 +172,7 @@ export class CoursesController {
   }
 
   @Get(':courseId/modules')
+  @UseGuards(JwtAuthGuard, RolesGuard, SubscriptionGuard)
   @ApiOperation({ summary: 'Get all modules for a course' })
   @ApiParam({ name: 'courseId', type: 'string', description: 'Course ID' })
   @ApiResponse({ status: 200, description: 'Returns all modules' })
@@ -175,7 +185,25 @@ export class CoursesController {
     return this.coursesService.getModules(+courseId);
   }
 
+  @Patch(':id/visibility')
+  @UseGuards(JwtAuthGuard, RolesGuard, SubscriptionGuard)
+  @ApiOperation({ summary: 'Toggle course visibility' })
+  @ApiParam({ name: 'id', type: 'string', description: 'Course ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Course visibility toggled successfully',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 404, description: 'Course not found' })
+  @Roles(UserRole.INSTRUCTOR_ADMIN, UserRole.ADMIN)
+  @ResourceOwner('course')
+  toggleVisibility(@Param('id') id: string) {
+    return this.coursesService.toggleVisibility(+id);
+  }
+
   @Patch('modules/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard, SubscriptionGuard)
   @ApiOperation({ summary: 'Update a module' })
   @ApiParam({ name: 'id', type: 'string', description: 'Module ID' })
   @ApiBody({
@@ -201,6 +229,7 @@ export class CoursesController {
   }
 
   @Delete('modules/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard, SubscriptionGuard)
   @ApiOperation({ summary: 'Delete a module' })
   @ApiParam({ name: 'id', type: 'string', description: 'Module ID' })
   @Roles(UserRole.INSTRUCTOR_ADMIN, UserRole.ADMIN)
@@ -210,6 +239,7 @@ export class CoursesController {
   }
 
   @Post('modules/:moduleId/lessons')
+  @UseGuards(JwtAuthGuard, RolesGuard, SubscriptionGuard)
   @ApiOperation({ summary: 'Create a new lesson for a module' })
   @ApiParam({ name: 'moduleId', type: 'string', description: 'Module ID' })
   @ApiBody({
@@ -242,6 +272,7 @@ export class CoursesController {
   }
 
   @Patch('lessons/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard, SubscriptionGuard)
   @ApiOperation({ summary: 'Update a lesson' })
   @ApiParam({ name: 'id', type: 'string', description: 'Lesson ID' })
   @ApiBody({
@@ -271,6 +302,7 @@ export class CoursesController {
   }
 
   @Delete('lessons/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard, SubscriptionGuard)
   @ApiOperation({ summary: 'Delete a lesson' })
   @ApiParam({ name: 'id', type: 'string', description: 'Lesson ID' })
   @Roles(UserRole.INSTRUCTOR_ADMIN, UserRole.ADMIN)
@@ -280,6 +312,7 @@ export class CoursesController {
   }
 
   @Get('user/:userId/enrolled')
+  @UseGuards(JwtAuthGuard, RolesGuard, SubscriptionGuard)
   @ApiOperation({ summary: 'Get courses enrolled by a specific user' })
   @UseGuards(JwtAuthGuard)
   async getUserEnrolledCourses(
@@ -295,15 +328,26 @@ export class CoursesController {
     });
   }
 
-  @Get('my-enrollments')
-  @ApiOperation({ summary: 'Get enrolled courses for the authenticated user' })
+  @Get('enrollment/me')
   @UseGuards(JwtAuthGuard)
+  @Roles(UserRole.STUDENT, UserRole.INSTRUCTOR_ADMIN, UserRole.ADMIN)
+  @ApiOperation({ summary: 'Get enrolled courses for the authenticated user' })
   async getMyEnrolledCourses(
-    @Req() req,
+    @Req() req: Request & { user: { id: number } },
     @Query('status') status?: string,
     @Query('page', new ParseIntPipe({ optional: true })) page: number = 1,
     @Query('limit', new ParseIntPipe({ optional: true })) limit: number = 10,
   ) {
+    this.logger.debug('Getting my enrollments:', {
+      userId: req.user?.id,
+      status,
+      page,
+      limit,
+    });
+    if (!req.user?.id) {
+      this.logger.error('User not found in request');
+      throw new UnauthorizedException('User not authenticated');
+    }
     return this.coursesService.getUserEnrolledCourses(req.user.id, {
       status,
       page,
@@ -312,6 +356,7 @@ export class CoursesController {
   }
 
   @Get('user/:userId/course/:courseId/enrollment')
+  @UseGuards(JwtAuthGuard, RolesGuard, SubscriptionGuard)
   @ApiOperation({
     summary: 'Get enrollment details for a specific course and user',
   })
@@ -324,6 +369,7 @@ export class CoursesController {
   }
 
   @Post('webhook/stripe')
+  @UseGuards(JwtAuthGuard, RolesGuard, SubscriptionGuard)
   @ApiOperation({ summary: 'Handle Stripe webhook events' })
   @HttpCode(HttpStatus.OK)
   async handleStripeWebhook(
@@ -340,6 +386,7 @@ export class CoursesController {
   }
 
   @Post('verify-payment')
+  @UseGuards(JwtAuthGuard, RolesGuard, SubscriptionGuard)
   @ApiOperation({ summary: 'Verify a payment manually' })
   @UseGuards(JwtAuthGuard)
   async verifyPayment(
@@ -348,13 +395,14 @@ export class CoursesController {
   ) {
     return this.coursesService.verifyPayment(
       verifyPaymentDto.sessionId,
-      verifyPaymentDto.courseId,
+      Number(verifyPaymentDto.courseId),
       req.user.id,
     );
   }
 
   // Check payment status
   @Get('payment/:sessionId/status')
+  @UseGuards(JwtAuthGuard, RolesGuard, SubscriptionGuard)
   @UseGuards(JwtAuthGuard)
   async getPaymentStatus(
     @Param('sessionId') sessionId: string,
@@ -364,6 +412,7 @@ export class CoursesController {
   }
 
   @Get('user/:userId/course/:courseId/access')
+  @UseGuards(JwtAuthGuard, RolesGuard, SubscriptionGuard)
   @UseGuards(JwtAuthGuard)
   async checkCourseAccess(
     @Param('userId', ParseIntPipe) userId: number,

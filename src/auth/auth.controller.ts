@@ -7,6 +7,9 @@ import {
   Req,
   HttpCode,
   HttpStatus,
+  UnauthorizedException,
+  ConflictException,
+  GoneException,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
@@ -17,6 +20,7 @@ import {
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiBody,
 } from '@nestjs/swagger';
 import { EmailDto } from './dto/email.dto';
 import { ResetPasswordDto } from './dto/password.dto';
@@ -24,11 +28,20 @@ import { ChangePasswordDto } from './dto/password.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { Request } from 'express';
 import { RequestWithUser } from './interfaces/request.interface';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { JwtService } from '@nestjs/jwt';
+import {
+  UserAnalyticsResponseDto,
+  InstructorAnalyticsResponseDto,
+} from './dto/analytics.dto';
 
 @ApiTags('Authentication')
 @Controller('')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly jwtService: JwtService,
+  ) {}
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
@@ -58,9 +71,26 @@ export class AuthController {
   @Post('refresh')
   @ApiOperation({ summary: 'Refresh token' })
   @ApiResponse({ status: 200, description: 'Token refreshed' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async refresh(@Req() req) {
-    return this.authService.refreshToken(req.user.id, req.user.refresh_token);
+  @ApiResponse({ status: 409, description: 'Token expired' })
+  @ApiResponse({ status: 410, description: 'Invalid refresh token' })
+  @ApiBody({ type: RefreshTokenDto })
+  async refresh(@Body() refreshTokenDto: RefreshTokenDto) {
+    try {
+      // Verify the refresh token to get the user ID
+      const decoded = this.jwtService.verify(refreshTokenDto.refresh_token);
+      if (!decoded.sub) {
+        throw new GoneException('Invalid refresh token');
+      }
+      return this.authService.refreshToken(
+        decoded.sub,
+        refreshTokenDto.refresh_token,
+      );
+    } catch (error) {
+      if (error.name === 'TokenExpiredError') {
+        throw new ConflictException('Token has expired');
+      }
+      throw new GoneException('Invalid refresh token');
+    }
   }
 
   @Post('forgot-password')
@@ -115,5 +145,33 @@ export class AuthController {
   async getProfile(@Req() req: RequestWithUser) {
     console.log(req.user);
     return this.authService.getProfile(req.user.id);
+  }
+
+  @Get('analytics/users')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get user analytics' })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Returns user statistics including total users, role distribution, and revenue metrics',
+    type: UserAnalyticsResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async getUserAnalytics(): Promise<UserAnalyticsResponseDto> {
+    return this.authService.getUserAnalytics();
+  }
+
+  @Get('analytics/instructors')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get instructor analytics' })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Returns instructor statistics including total instructors, performance metrics, and revenue',
+    type: InstructorAnalyticsResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async getInstructorAnalytics(): Promise<InstructorAnalyticsResponseDto> {
+    return this.authService.getInstructorAnalytics();
   }
 }

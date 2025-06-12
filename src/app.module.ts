@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.modules';
 import { InstructorModule } from './instructor/instructor.module';
 import { CoursesModule } from './courses/courses.module';
 import { BookingsModule } from './bookings/bookings.module';
@@ -39,6 +40,7 @@ import { CertificatesModule } from './certificates/certificates.module';
     ResourcesModule,
     SubscriptionsModule,
     ReviewsModule,
+    UsersModule,
     PaymentsModule,
     CategoriesModule,
     TagsModule,
