@@ -24,7 +24,7 @@ model User {
   password            String
   first_name          String?
   last_name           String?
-  role                UserRole[]             @default([GUEST_USER])
+  role                UserRole[]           @default([GUEST_USER])
   profile_image_url   String?
   auth_provider       String?
   created_at          DateTime             @default(now())
@@ -56,8 +56,8 @@ model User {
   role_mappings       UserRoleMapping[]
   tenant              Tenant?              @relation(fields: [tenant_id], references: [id])
   CartItem            CartItem[]
-  passwordResets       PasswordReset[]
-  emailVerifications   EmailVerification[]
+  passwordResets      PasswordReset[]
+  emailVerifications  EmailVerification[]
 }
 
 model PasswordReset {
@@ -68,7 +68,7 @@ model PasswordReset {
   used_at    DateTime?
   user_id    Int
   created_at DateTime  @default(now())
-  
+
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
 
@@ -80,7 +80,7 @@ model EmailVerification {
   used_at    DateTime?
   user_id    Int
   created_at DateTime  @default(now())
-  
+
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
 
@@ -101,24 +101,29 @@ model Profile {
 }
 
 model Course {
-  id                Int                 @id @default(autoincrement())
-  title             String
-  description       String
-  price             Float
-  image_url         String?
-  instructor_id     Int
-  preview_video_url String
-  video_url         String
-  created_at        DateTime            @default(now())
-  updated_at        DateTime            @updatedAt
-  instructor        User                @relation("InstructorCourses", fields: [instructor_id], references: [id])
-  enrollments       Enrollment[]
-  modules           Module[]
-  reviews           Review[]
-  certifications    UserCertification[]
-  categories        Category[]          @relation("CourseCategories")
-  tags              Tag[]               @relation("CourseTags")
-  CartItem          CartItem[]
+  id                   Int                 @id @default(autoincrement())
+  title                String
+  short_name           String?             @unique
+  duration             String
+  difficulty_level     String
+  detailed_description String
+  description          String
+  price                Float
+  image_url            String?
+  visible              Boolean
+  instructor_id        Int
+  preview_video_url    String
+  video_url            String
+  created_at           DateTime            @default(now())
+  updated_at           DateTime            @updatedAt
+  instructor           User                @relation("InstructorCourses", fields: [instructor_id], references: [id])
+  enrollments          Enrollment[]
+  modules              Module[]
+  reviews              Review[]
+  certifications       UserCertification[]
+  categories           Category[]          @relation("CourseCategories")
+  tags                 Tag[]               @relation("CourseTags")
+  CartItem             CartItem[]
 }
 
 model Module {
@@ -436,6 +441,7 @@ enum UserRole {
   ADMIN
   DIRECTORY_MEMBER
   CERTIFICATION_MANAGER
+  INSTRUCTOR
   INSTRUCTOR_ADMIN
   CURRICULUM_ADMIN
   COURSE_CREATOR_ADMIN

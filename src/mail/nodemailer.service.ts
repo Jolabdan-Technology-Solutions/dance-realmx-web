@@ -4,27 +4,42 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import * as nodemailer from 'nodemailer';
 import * as handlebars from 'handlebars';
 import * as fs from 'fs';
 import * as path from 'path';
-import { MailerService } from '@nestjs-modules/mailer';
-import * as SendGrid from '@sendgrid/mail';
 
 @Injectable()
-export class MailService {
-  private readonly logger = new Logger(MailService.name);
+export class NodemailerService {
+  private readonly logger = new Logger(NodemailerService.name);
+  private transporter: nodemailer.Transporter;
 
-  constructor(
-    private readonly mailerService: MailerService,
-    private readonly configService: ConfigService,
-  ) {
-    const sendgridApiKey = this.configService.get<string>('SENDGRID_API_KEY');
-    if (!sendgridApiKey) {
-      throw new Error(
-        'SENDGRID_API_KEY is not defined in environment variables',
+  constructor(private readonly configService: ConfigService) {
+    // Initialize nodemailer transporter
+    this.transporter = nodemailer.createTransport({
+      host: this.configService.get<string>('SMTP_HOST'),
+      port: this.configService.get<number>('SMTP_PORT'),
+      secure: this.configService.get<boolean>('SMTP_SECURE', false),
+      auth: {
+        user: this.configService.get<string>('SMTP_USER'),
+        pass: this.configService.get<string>('SMTP_PASS'),
+      },
+    });
+
+    // Verify transporter configuration
+    this.verifyTransporter();
+  }
+
+  private async verifyTransporter(): Promise<void> {
+    try {
+      await this.transporter.verify();
+      this.logger.log('SMTP connection verified successfully');
+    } catch (error) {
+      this.logger.error('SMTP connection verification failed:', error);
+      throw new InternalServerErrorException(
+        'Failed to verify SMTP connection',
       );
     }
-    SendGrid.setApiKey(sendgridApiKey);
   }
 
   private async loadTemplate(templateName: string): Promise<string> {
@@ -84,25 +99,23 @@ export class MailService {
         throw new Error('MAIL_FROM is not defined in environment variables');
       }
 
-      const msg = {
-        to: options.to,
+      const mailOptions = {
         from,
+        to: options.to,
         subject: options.subject,
         html,
       };
 
-      await SendGrid.send(msg);
-      this.logger.log(`Email sent successfully to ${options.to}`);
+      const info = await this.transporter.sendMail(mailOptions);
+      this.logger.log(
+        `Email sent successfully to ${options.to}`,
+        info.messageId,
+      );
     } catch (error) {
       this.logger.error(
         `Error sending email to ${options.to}: ${error.message}`,
         error.stack,
       );
-      if (error.response) {
-        this.logger.error(
-          `SendGrid API Error: ${JSON.stringify(error.response.body)}`,
-        );
-      }
       throw new InternalServerErrorException('Failed to send email');
     }
   }

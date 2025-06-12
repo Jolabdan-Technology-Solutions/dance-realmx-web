@@ -99,6 +99,7 @@ export class CartService {
   }
 
   async getCart(userId: number) {
+    console.log(userId);
     const cartItems = await this.prisma.cartItem.findMany({
       where: { user_id: userId },
       include: {

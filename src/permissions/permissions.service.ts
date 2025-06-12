@@ -74,42 +74,33 @@ export class PermissionsService {
     // Define role-based permissions
     const rolePermissions: Record<UserRole, string[]> = {
       [UserRole.ADMIN]: ['*'],
-      [UserRole.CURRICULUM_ADMIN]: [
-        'manage_courses',
-        'manage_modules',
-        'manage_lessons',
-        'view_analytics',
-      ],
-      [UserRole.COURSE_CREATOR_ADMIN]: [
-        'create_courses',
-        'edit_courses',
-        'delete_courses',
-        'view_analytics',
-      ],
-      [UserRole.INSTRUCTOR_ADMIN]: [
-        'manage_schedule',
-        'manage_bookings',
-        'view_analytics',
+      [UserRole.CURRICULUM_ADMIN]: ['*'],
+      [UserRole.COURSE_CREATOR_ADMIN]: ['*'],
+      [UserRole.INSTRUCTOR_ADMIN]: ['*'],
+      [UserRole.INSTRUCTOR]: [
+        'view_own_courses',
+        'edit_own_courses',
+        'view_own_analytics',
+        'view_own_enrollments',
+        'view_own_revenue',
       ],
       [UserRole.CURRICULUM_SELLER]: [
-        'create_courses',
-        'edit_courses',
-        'view_analytics',
+        'view_own_resources',
+        'edit_own_resources',
+        'view_own_sales',
       ],
       [UserRole.BOOKING_PROFESSIONAL]: [
-        'manage_schedule',
-        'manage_bookings',
-        'view_analytics',
+        'view_own_bookings',
+        'manage_own_bookings',
       ],
-      [UserRole.STUDENT]: ['view_courses', 'enroll_courses', 'view_progress'],
-      [UserRole.BOOKING_USER]: [
-        'view_schedule',
-        'book_sessions',
-        'view_history',
+      [UserRole.STUDENT]: ['view_own_enrollments', 'view_own_progress'],
+      [UserRole.BOOKING_USER]: ['view_own_bookings'],
+      [UserRole.GUEST_USER]: ['view_public_content'],
+      [UserRole.DIRECTORY_MEMBER]: ['view_directory', 'edit_own_profile'],
+      [UserRole.CERTIFICATION_MANAGER]: [
+        'view_certifications',
+        'manage_certifications',
       ],
-      [UserRole.GUEST_USER]: ['view_public_courses', 'view_instructors'],
-      [UserRole.DIRECTORY_MEMBER]: ['view_directory', 'manage_directory'],
-      [UserRole.CERTIFICATION_MANAGER]: ['manage_certifications', 'issue_certificates'],
     };
 
     const permissions = rolePermissions[role] || [];

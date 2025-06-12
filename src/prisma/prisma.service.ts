@@ -23,6 +23,10 @@ export class PrismaService
     return this.category;
   }
 
+  get instructor() {
+    return this.instructor;
+  }
+
   get user() {
     return this.user;
   }
@@ -117,5 +121,9 @@ export class PrismaService
 
   get emailVerification() {
     return this.emailVerification;
+  }
+
+  get UserRole() {
+    return this.UserRole;
   }
 }

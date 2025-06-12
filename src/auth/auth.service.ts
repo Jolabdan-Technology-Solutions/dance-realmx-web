@@ -46,7 +46,7 @@ export class AuthService {
   private readonly VERIFICATION_TOKEN_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours
   private readonly MAX_RESET_ATTEMPTS = 3;
   private readonly RATE_LIMIT_WINDOW = 60 * 60 * 1000; // 1 hour
-  private readonly ACCESS_TOKEN_EXPIRY = '15m';
+  private readonly ACCESS_TOKEN_EXPIRY = '1h';
   private readonly REFRESH_TOKEN_EXPIRY = '7d';
 
   constructor(

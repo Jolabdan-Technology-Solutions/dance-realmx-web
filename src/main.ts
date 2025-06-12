@@ -3,11 +3,13 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as bodyParser from 'body-parser';
-
+import * as dotenv from 'dotenv';
 
 async function bootstrap() {
+  // Load environment variables before creating the app
+  dotenv.config();
 
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { rawBody: true });
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,
@@ -15,6 +17,24 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
     }),
   );
+
+  // Configure raw body parser for Stripe webhooks
+  app.use(
+    '/api/courses/webhook/stripe',
+    bodyParser.raw({ type: 'application/json' }),
+  );
+
+  // app.enableCors({
+  //   origin: [
+  //     'http://localhost:5173',
+  //     'http://localhost:5174',
+  //     'http://127.0.0.1:5174',
+  //     'http://127.0.0.1:5173',
+  //     'https://livetestdomain.com',
+  //   ],
+  //   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  //   allowedHeaders: ['Content-Type', 'Authorization'],
+  // });
 
   app.use(bodyParser.json());
 
@@ -56,10 +76,12 @@ async function bootstrap() {
     customSiteTitle: 'Dance Realm API Documentation',
   });
 
+  const port = process.env.PORT || 3000;
+
   await app
-    .listen(process.env.PORT ?? 3000)
+    .listen(port)
     .then(() => {
-      console.log(`Server is running on port ${process.env.PORT ?? 3000}`);
+      console.log(`Server is running on port ${port}`);
       console.log(`Swagger documentation is available at /docs`);
     })
     .catch((error) => {

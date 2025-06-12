@@ -52,7 +52,7 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Logout successful' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async logout(@Req() req) {
-    return this.authService.logout(req.user.email);
+    return this.authService.logout(req?.user?.id);
   }
 
   @Post('refresh')
