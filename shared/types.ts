@@ -122,6 +122,13 @@ export interface InsertUser {
 }
 
 export interface Course {
+  short_name: string;
+  detailed_description: string;
+  difficulty_level: string;
+  duration: string;
+  image_url: string;
+  instructor_id: any;
+  categories: any;
   id: number;
   title: string;
   shortName: string;

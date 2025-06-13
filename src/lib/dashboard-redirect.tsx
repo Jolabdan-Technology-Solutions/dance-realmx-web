@@ -26,6 +26,10 @@ export function DashboardRedirect() {
     Array.isArray(user?.role) && user?.role && user?.role.length > 0;
   const hasMultipleRoles = hasRolesArray && user?.role && user?.role.length > 1;
 
+  if (user?.role.includes(UserRole.ADMIN)) {
+    return <Redirect to="/admin" />;
+  }
+
   // If user has multiple roles, redirect to multi-role dashboard
   if (hasMultipleRoles) {
     return <Redirect to="/multi-dashboard" />;
@@ -35,13 +39,13 @@ export function DashboardRedirect() {
   if (hasRolesArray && user?.role && user?.role.length === 1) {
     switch (user?.role[0]) {
       case UserRole.CURRICULUM_SELLER:
-        return <Redirect to="/seller-dashboard" />;
+        return <Redirect to="/multi-dashboard" />;
       case UserRole.INSTRUCTOR_ADMIN:
-        return <Redirect to="/instructor/dashboard" />;
+        return <Redirect to="/multi-dashboard" />;
       case UserRole.ADMIN:
         return <Redirect to="/admin" />;
       case UserRole.CURRICULUM_ADMIN:
-        return <Redirect to="/admin/curriculum-officer" />;
+        return <Redirect to="/multi-dashboard" />;
     }
   }
 
@@ -49,13 +53,13 @@ export function DashboardRedirect() {
   // Redirect based on the primary role
   switch (user?.role) {
     case UserRole.CURRICULUM_SELLER:
-      return <Redirect to="/seller-dashboard" />;
+      return <Redirect to="/multi-dashboard" />;
     case UserRole.INSTRUCTOR_ADMIN:
-      return <Redirect to="/instructor/dashboard" />;
+      return <Redirect to="/multi-dashboard" />;
     case UserRole.ADMIN:
       return <Redirect to="/admin" />;
     case UserRole.CURRICULUM_ADMIN:
-      return <Redirect to="/admin/curriculum-officer" />;
+      return <Redirect to="/multi-dashboard" />;
     default:
       // All other roles go to the regular dashboard
       return <Redirect to="/dashboard/user" />;

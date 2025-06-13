@@ -1,14 +1,14 @@
-import { useParams } from 'wouter';
-import { useAuth } from '@/hooks/use-auth';
-import ResourceDetails from '@/components/curriculum/resource-details';
-import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
-import { Link } from 'wouter';
+import { useParams } from "wouter";
+import { useAuth } from "@/hooks/use-auth";
+import ResourceDetails from "@/components/curriculum/resource-details";
+import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
+import { Link } from "wouter";
 
 const CurriculumDetailsPage = () => {
   const { id } = useParams<{ id: string }>();
   const { user, isLoading } = useAuth();
-  const resourceId = parseInt(id || '0');
+  const resourceId = parseInt(id || "0");
 
   if (isLoading) {
     return (
@@ -34,7 +34,8 @@ const CurriculumDetailsPage = () => {
         <div className="text-center py-12">
           <h1 className="text-2xl font-bold mb-4">Resource Not Found</h1>
           <p className="text-muted-foreground mb-6">
-            The curriculum resource you are looking for does not exist or has been removed.
+            The curriculum resource you are looking for does not exist or has
+            been removed.
           </p>
           <Link href="/curriculum">
             <Button>Browse Curriculum Resources</Button>

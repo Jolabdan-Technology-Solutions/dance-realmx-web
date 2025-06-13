@@ -2,7 +2,7 @@ import { useState, useContext, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AuthContext } from "@/hooks/use-auth";
 import { SubscriptionPlan } from "@/shared/schema";
-import { Check, Loader2, Star } from "lucide-react";
+import { Check, Loader2, Star, CheckCircle } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -40,6 +40,10 @@ interface Subscription {
 
 type CurrentSubscription = Subscription[];
 
+// Constants
+const API_BASE_URL = "https://api.livetestdomain.com/api";
+const ACTIVE_STATUSES = ["ACTIVE", "TRIALING"]; // Add other valid active statuses if needed
+
 // Helper function to get URL parameters
 const getURLParam = (name: string): string | null => {
   if (typeof window !== "undefined") {
@@ -73,7 +77,7 @@ export default function SubscriptionPage() {
     queryKey: ["subscription-plans"],
     queryFn: async () => {
       const response = await apiClient.get(
-        "https://api.livetestdomain.com/api/subscriptions/plans",
+        `${API_BASE_URL}/subscriptions/plans`,
         false
       );
       return response;
@@ -82,19 +86,22 @@ export default function SubscriptionPage() {
   });
 
   // Fetch user's current subscription
-  const { data: currentSubscription, isLoading: isLoadingSubscription } =
-    useQuery<CurrentSubscription>({
-      queryKey: ["current-subscription"],
-      queryFn: async () => {
-        const response = await apiClient.get(
-          "https://api.livetestdomain.com/api/subscriptions/user",
-          true
-        );
-        return response;
-      },
-      enabled: !!user,
-      staleTime: 2 * 60 * 1000, // 2 minutes
-    });
+  const { 
+    data: currentSubscription, 
+    isLoading: isLoadingSubscription,
+    error: subscriptionError 
+  } = useQuery<CurrentSubscription>({
+    queryKey: ["current-subscription"],
+    queryFn: async () => {
+      const response = await apiClient.get(
+        `${API_BASE_URL}/subscriptions/user`,
+        true
+      );
+      return response;
+    },
+    enabled: !!user,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  });
 
   const redirectToAuth = useCallback(() => {
     window.location.href = "/auth?redirect=/subscription";
@@ -112,34 +119,27 @@ export default function SubscriptionPage() {
   );
 
   const createCheckoutSession = async (request: CheckoutRequest) => {
-    try {
-      const response = await apiRequest("/api/subscriptions/checkout", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        data: request,
-        requireAuth: true,
-      });
+    const response = await apiRequest("/api/subscriptions/checkout", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      data: request,
+      requireAuth: true,
+    });
 
-      console.log("Checkout response:", response);
+    console.log("Checkout response:", response);
 
-      if (!response?.url) {
-        throw new Error(
-          response?.message || "Failed to create checkout session"
-        );
-      }
-
-      return response.url;
-    } catch (error) {
-      console.error("Checkout session error:", error);
-      throw error;
+    if (!response?.url) {
+      throw new Error(response?.message || "Failed to create checkout session");
     }
+
+    return response.url;
   };
 
   const handleSubscribe = async (plan: SubscriptionPlan) => {
     // Validation
-    if (!plan?.slug) {
+    if (!plan.slug) {
       showError("Invalid subscription plan");
       return;
     }
@@ -157,15 +157,14 @@ export default function SubscriptionPage() {
 
     try {
       const checkoutUrl = await createCheckoutSession({
-        planSlug: plan.slug.toUpperCase(),
+        planSlug: plan.slug, // Don't convert to uppercase - use as-is from API
         frequency: "MONTHLY",
         email: user.email,
       });
 
-      // Redirect to checkout
       window.location.href = checkoutUrl;
     } catch (error) {
-      console.error("Subscription error:", error);
+      console.error("Checkout error:", error);
       showError(
         error instanceof Error
           ? error.message
@@ -181,37 +180,45 @@ export default function SubscriptionPage() {
 
   const getPlanStatus = (plan: SubscriptionPlan) => {
     const userSubscriptions = currentSubscription || [];
+    
+    // Check for active subscriptions (not pending)
     const isCurrentPlan = userSubscriptions.some(
       (subscription: Subscription) =>
-        subscription.plan_id === plan.id &&
-        subscription.is_active &&
-        subscription.status === "ACTIVE"
+        subscription.plan_id === plan.id && 
+        ACTIVE_STATUSES.includes(subscription.status) &&
+        subscription.is_active // Additional check using is_active field
     );
 
-    const isPopular = plan.name?.toLowerCase().includes("pro");
+    const isPopular = plan.isPopular || false; // Fallback to false if undefined
 
     return { isCurrentPlan, isPopular };
   };
 
   const getButtonText = (plan: SubscriptionPlan, isCurrentPlan: boolean) => {
-    if (!user) return "Login to Subscribe";
-
-    if (isCurrentPlan) return "Current Plan";
-
     const userSubscriptions = currentSubscription || [];
+    
     const hasPendingSubscription = userSubscriptions.some(
-      (sub: Subscription) => sub.plan_id === plan.id && sub.status === "PENDING"
+      (sub: Subscription) => 
+        sub.plan_id === plan.id && 
+        sub.status === "PENDING"
     );
 
-    if (plan.name?.toUpperCase() && hasPendingSubscription) {
+    // If user has active subscription for this plan
+    if (isCurrentPlan && !hasPendingSubscription) {
+      return "Current Plan";
+    }
+
+    // If user has pending subscription and this matches selected tier
+    if (selectedTier === plan.name && hasPendingSubscription) {
       return "Proceed to Pay";
     }
 
-    if (selectedTier === plan.name?.toUpperCase() && !hasPendingSubscription) {
-      return "Activate";
+    // Check if user has any pending subscription for this plan
+    if (hasPendingSubscription) {
+      return "Payment Pending";
     }
 
-    return "Subscribe";
+    return user ? "Subscribe" : "Login to Subscribe";
   };
 
   const renderPlanCard = (plan: SubscriptionPlan) => {
@@ -223,51 +230,40 @@ export default function SubscriptionPage() {
     return (
       <Card
         key={plan.id}
-        className={`flex flex-col relative transition-all duration-200 hover:shadow-lg ${
-          isPopular ? "border-blue-500 shadow-lg ring-1 ring-blue-500/20" : ""
+        className={`flex flex-col relative ${
+          isPopular ? "border-blue-500 shadow-lg" : ""
         }`}
       >
         {isPopular && (
-          <Badge className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-blue-500 hover:bg-blue-600">
+          <Badge className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-blue-500">
             <Star className="h-3 w-3 mr-1" />
             Most Popular
           </Badge>
         )}
 
-        {buttonText === "Activate" && (
-          <Badge className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-blue-500 hover:bg-blue-600">
-            <Check className="h-3 w-3 mr-1" />
-            Activate
-          </Badge>
-        )}
-
         <CardHeader>
           <CardTitle className="text-2xl">{plan.name}</CardTitle>
-          <CardDescription className="text-lg">
-            <span className="font-bold text-2xl text-foreground">
-              ${Number(plan.priceMonthly || 0).toFixed(2)}
-            </span>
-            <span className="text-muted-foreground"> / month</span>
+          <CardDescription>
+            <span className="font-bold text-lg">
+              ${Number(plan.priceMonthly).toFixed(2)}
+            </span>{" "}
+            per month
           </CardDescription>
         </CardHeader>
 
         <CardContent className="flex-grow">
           {plan.description && (
-            <p className="text-sm text-muted-foreground mb-4">
-              {plan.description}
-            </p>
+            <p className="text-sm text-gray-300 mb-4">{plan.description}</p>
           )}
 
-          {plan.features && plan.features.length > 0 && (
-            <ul className="space-y-2">
-              {plan.features.map((feature: string, index: number) => (
-                <li key={index} className="flex items-start">
-                  <Check className="h-4 w-4 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                  <span className="text-sm">{feature}</span>
-                </li>
-              ))}
-            </ul>
-          )}
+          <ul className="space-y-2">
+            {plan.features.map((feature: string, index: number) => (
+              <li key={index} className="flex items-center">
+                <Check className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
+                <span className="text-sm">{feature}</span>
+              </li>
+            ))}
+          </ul>
         </CardContent>
 
         <CardFooter>
@@ -302,18 +298,19 @@ export default function SubscriptionPage() {
       <div className="flex justify-center items-center min-h-[70vh]">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading subscription plans...</p>
+          <p className="text-gray-300">Loading subscription plans...</p>
         </div>
       </div>
     );
   }
 
-  if (plansError) {
+  // Handle errors
+  if (plansError || subscriptionError) {
     return (
       <div className="flex justify-center items-center min-h-[70vh]">
         <div className="text-center">
-          <p className="text-destructive mb-4">
-            Failed to load subscription plans
+          <p className="text-red-400 mb-4">
+            Failed to load {plansError ? "subscription plans" : "subscription data"}
           </p>
           <Button onClick={() => window.location.reload()}>Try Again</Button>
         </div>
@@ -321,43 +318,131 @@ export default function SubscriptionPage() {
     );
   }
 
-  if (!plans || plans.length === 0) {
+  if (plans.length === 0) {
     return (
       <div className="flex justify-center items-center min-h-[70vh]">
-        <p className="text-muted-foreground">No subscription plans available</p>
+        <p className="text-gray-300">No subscription plans available</p>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-12 min-h-screen">
+    <div className="container mx-auto px-4 py-12 bg-gray-900 text-white min-h-screen">
+        {/* Membership Plans Section */}
+                <section className="py-20 bg-black">
+        <div className="container mx-auto px-4 max-w-[80%]">
+          <h2 className="text-4xl font-bold mb-4 text-center text-white">
+            Plans & Pricing
+          </h2>
+          <p className="text-xl text-gray-300 mb-10 text-center max-w-3xl mx-auto">
+            Browse Dance Professionals, Certifications, and Purchase Curriculum with a free membership
+          </p>
+          <h3 className="text-2xl font-bold mb-8 text-center text-white">
+            Which Plan is Right for Me?
+          </h3>
+          <div className="overflow-x-auto">
+            <table className="min-w-full border-separate border-spacing-y-2">
+              <thead>
+                <tr>
+                  <th className="bg-gray-900 text-white text-lg font-bold py-4 px-2 rounded-tl-xl"></th>
+                  <th className="bg-gray-900 text-white text-lg font-bold py-4 px-6">Free</th>
+                  <th className="bg-gray-900 text-white text-lg font-bold py-4 px-6">Nobility<br /><span className="text-[#00d4ff] text-base font-semibold">$9.99/mo</span></th>
+                  <th className="bg-gray-900 text-white text-lg font-bold py-4 px-6">Royalty<br /><span className="text-[#00d4ff] text-base font-semibold">$19.99/mo</span></th>
+                  <th className="bg-gray-900 text-white text-lg font-bold py-4 px-6 rounded-tr-xl">Imperial<br /><span className="text-[#00d4ff] text-base font-semibold">$29.99/mo</span></th>
+                </tr>
+              </thead>
+              <tbody className="text-gray-200 text-base">
+                {/* Feature: Purchase Curriculum */}
+                <tr className="bg-gray-900">
+                  <td className="py-4 px-2 font-semibold">Purchase Curriculum</td>
+                  <td className="text-center"><CheckCircle className="inline h-6 w-6 text-[#00d4ff]" /></td>
+                  <td className="text-center"><CheckCircle className="inline h-6 w-6 text-[#00d4ff]" /></td>
+                  <td className="text-center"><CheckCircle className="inline h-6 w-6 text-[#00d4ff]" /></td>
+                  <td className="text-center"><CheckCircle className="inline h-6 w-6 text-[#00d4ff]" /></td>
+                </tr>
+                {/* Feature: Search Dance Professionals */}
+                <tr className="bg-gray-800">
+                  <td className="py-4 px-2 font-semibold">Search Dance Professionals</td>
+                  <td className="text-center"><CheckCircle className="inline h-6 w-6 text-[#00d4ff]" /></td>
+                  <td className="text-center"><CheckCircle className="inline h-6 w-6 text-[#00d4ff]" /></td>
+                  <td className="text-center"><CheckCircle className="inline h-6 w-6 text-[#00d4ff]" /></td>
+                  <td className="text-center"><CheckCircle className="inline h-6 w-6 text-[#00d4ff]" /></td>
+                </tr>
+                {/* Feature: Take a Certification Course */}
+                <tr className="bg-gray-900">
+                  <td className="py-4 px-2 font-semibold">Take a Certification Course</td>
+                  <td className="text-center"><CheckCircle className="inline h-6 w-6 text-[#00d4ff]" /></td>
+                  <td className="text-center"><CheckCircle className="inline h-6 w-6 text-[#00d4ff]" /></td>
+                  <td className="text-center"><CheckCircle className="inline h-6 w-6 text-[#00d4ff]" /></td>
+                  <td className="text-center"><CheckCircle className="inline h-6 w-6 text-[#00d4ff]" /></td>
+                </tr>
+                {/* Feature: Be Booked as a Dance Professional */}
+                <tr className="bg-gray-800">
+                  <td className="py-4 px-2 font-semibold">Be Booked as a Dance Professional</td>
+                  <td className="text-center text-gray-500">—</td>
+                  <td className="text-center"><CheckCircle className="inline h-6 w-6 text-[#00d4ff]" /></td>
+                  <td className="text-center"><CheckCircle className="inline h-6 w-6 text-[#00d4ff]" /></td>
+                  <td className="text-center"><CheckCircle className="inline h-6 w-6 text-[#00d4ff]" /></td>
+                </tr>
+                {/* Feature: Sell Curriculum */}
+                <tr className="bg-gray-900">
+                  <td className="py-4 px-2 font-semibold">Sell Curriculum</td>
+                  <td className="text-center text-gray-500">—</td>
+                  <td className="text-center"><CheckCircle className="inline h-6 w-6 text-[#00d4ff]" /></td>
+                  <td className="text-center"><CheckCircle className="inline h-6 w-6 text-[#00d4ff]" /></td>
+                  <td className="text-center"><CheckCircle className="inline h-6 w-6 text-[#00d4ff]" /></td>
+                </tr>
+                {/* Feature: Contact and Book Dance Professionals */}
+                <tr className="bg-gray-800">
+                  <td className="py-4 px-2 font-semibold">Contact and Book Dance Professionals</td>
+                  <td className="text-center text-gray-500">—</td>
+                  <td className="text-center text-gray-500">—</td>
+                  <td className="text-center"><CheckCircle className="inline h-6 w-6 text-[#00d4ff]" /></td>
+                  <td className="text-center"><CheckCircle className="inline h-6 w-6 text-[#00d4ff]" /></td>
+                </tr>
+                {/* Feature: Be Featured as a Premium Seller */}
+                <tr className="bg-gray-900">
+                  <td className="py-4 px-2 font-semibold">Be Featured as a Premium Seller</td>
+                  <td className="text-center text-gray-500">—</td>
+                  <td className="text-center text-gray-500">—</td>
+                  <td className="text-center text-gray-500">—</td>
+                  <td className="text-center"><CheckCircle className="inline h-6 w-6 text-[#00d4ff]" /></td>
+                </tr>
+               
+              </tbody>
+            </table>
+            {/* a button that says COMPARE PLANS - this button will take them to the plans and pricing page */}
+            
+          </div>
+        </div>
+      </section>
       {/* Header */}
       <div className="text-center mb-12">
         <h1 className="text-4xl font-bold mb-4">Choose Your Plan</h1>
-        <p className="text-muted-foreground text-xl max-w-3xl mx-auto">
+        <p className="text-gray-300 text-xl max-w-3xl mx-auto">
           Select the membership level that best fits your needs and unlock
           premium features.
         </p>
       </div>
 
       {/* Plans Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 mb-16">
         {plans.map(renderPlanCard)}
       </div>
 
       {/* FAQ Section */}
-      <div className="bg-card rounded-lg p-8 border">
+      <div className="bg-gray-800 rounded-lg p-8">
         <div className="max-w-3xl mx-auto">
-          <h2 className="text-2xl font-bold mb-8 text-center">
+          <h2 className="text-2xl font-bold mb-8 text-white text-center">
             Frequently Asked Questions
           </h2>
 
           <div className="space-y-6">
             <div>
-              <h3 className="font-semibold text-lg mb-2">
+              <h3 className="font-semibold text-lg text-white mb-2">
                 What's the difference between the plans?
               </h3>
-              <p className="text-muted-foreground">
+              <p className="text-gray-300">
                 Each plan offers different features and benefits. Higher-tier
                 plans include more advanced features, increased limits, and
                 priority support.
@@ -365,10 +450,10 @@ export default function SubscriptionPage() {
             </div>
 
             <div>
-              <h3 className="font-semibold text-lg mb-2">
+              <h3 className="font-semibold text-lg text-white mb-2">
                 Can I change my plan later?
               </h3>
-              <p className="text-muted-foreground">
+              <p className="text-gray-300">
                 Yes, you can upgrade or downgrade your plan at any time from
                 your account settings. Changes will be reflected in your next
                 billing cycle.
@@ -376,10 +461,10 @@ export default function SubscriptionPage() {
             </div>
 
             <div>
-              <h3 className="font-semibold text-lg mb-2">
+              <h3 className="font-semibold text-lg text-white mb-2">
                 What happens after I subscribe?
               </h3>
-              <p className="text-muted-foreground">
+              <p className="text-gray-300">
                 After subscribing, you'll have immediate access to all features
                 included in your chosen plan. You can manage your subscription
                 and billing from your account dashboard.
@@ -387,10 +472,10 @@ export default function SubscriptionPage() {
             </div>
 
             <div>
-              <h3 className="font-semibold text-lg mb-2">
+              <h3 className="font-semibold text-lg text-white mb-2">
                 Is there a free trial?
               </h3>
-              <p className="text-muted-foreground">
+              <p className="text-gray-300">
                 We offer a 14-day free trial for new users. You can cancel
                 anytime during the trial period without being charged.
               </p>

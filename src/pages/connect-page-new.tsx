@@ -54,7 +54,7 @@ export default function ConnectPage() {
   return (
     <div className="container mx-auto py-10 px-4 max-w-[95%]">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Connect</h1>
+        <h1 className="text-3xl font-bold mb-2 text-center">Connect</h1>
         <p className="text-muted-foreground">
           Find dance professionals or offer your services to dancers around the world.
         </p>

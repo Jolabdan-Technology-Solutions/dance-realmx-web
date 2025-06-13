@@ -317,20 +317,15 @@ export default function AdminSubscriptionsPage() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <span className="text-2xl font-bold">${parseFloat(plan.priceMonthly).toFixed(2)}</span>
+                    <span className="text-2xl font-bold">${parseFloat(plan.price).toFixed(2)}</span>
                     <span className="text-gray-400 ml-1">/month</span>
                   </div>
-                  <div>
-                    <span className="text-lg font-bold">${parseFloat(plan.priceYearly).toFixed(2)}</span>
-                    <span className="text-gray-400 ml-1">/year</span>
-                  </div>
                 </div>
-                <p className="text-gray-400 mb-4">{plan.description}</p>
                 <div className="space-y-2">
-                  {plan.features && plan.features.map((feature, i) => (
+                  {plan.features && Object.entries(plan.features).map(([key, value], i) => (
                     <div key={i} className="flex items-center">
                       <Check className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
-                      <span className="text-sm">{feature}</span>
+                      <span className="text-sm">{key}: {value}</span>
                     </div>
                   ))}
                 </div>

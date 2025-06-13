@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useParams } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest } from "@/lib/queryClient";
@@ -91,6 +91,7 @@ export default function SellerStorePage() {
   const [, navigate] = useLocation();
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [selectedTab, setSelectedTab] = useState("resources");
   
   // Filter states
@@ -129,7 +130,7 @@ export default function SellerStorePage() {
     queryFn: async () => {
       const params = buildQueryParams();
       const endpoint = `/api/resources/seller/${sellerIdNum}${params ? `?${params}` : ''}`;
-      const response = await apiRequest('GET', endpoint);
+      const response = await apiRequest(endpoint, { method: 'GET' });
       return response.json();
     }
   });
@@ -157,7 +158,13 @@ export default function SellerStorePage() {
   const toggleFeatureMutation = useMutation({
     mutationFn: async ({ resourceId, isFeatured }: { resourceId: number, isFeatured: boolean }) => {
       const endpoint = API_ENDPOINTS.RESOURCES.TOGGLE_FEATURED(resourceId);
-      const response = await apiRequest('PATCH', endpoint, { isFeatured });
+      const response = await apiRequest(endpoint, { 
+        method: 'PATCH',
+        data: { isFeatured },
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || 'Failed to update resource');
@@ -550,7 +557,7 @@ export default function SellerStorePage() {
                               <Card key={`featured-${resource.id}`} className="overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200">
                                 <div className="h-44 bg-gray-100 relative">
                                   <CachedImage 
-                                    src={resource.image_url} 
+                                    src={resource.image_url || DEFAULT_RESOURCE_IMAGE} 
                                     alt={resource.title}
                                     className="w-full h-full"
                                     imgClassName="object-cover transition-transform hover:scale-105"

@@ -9,6 +9,7 @@ import { User } from "@/types/user";
 import { getQueryFn, apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
+import { UserRole } from "@/constants/roles";
 
 // =======================
 // Type Definitions
@@ -112,7 +113,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user.subscription_tier !== "free".toUpperCase() &&
         user?.is_active === false
       ) {
-        window.location.href = `/subscription?tier=${user.subscription_tier}`;
+        if (user?.role.includes(UserRole.ADMIN)) {
+          window.location.href = `/admin/dashboard`;
+        } else {
+          window.location.href = `/subscription?tier=${user.subscription_tier}`;
+        }
       } else {
         window.location.href = "/dashboard";
       }
@@ -232,12 +237,14 @@ export function useAuth() {
     throw new Error("useAuth must be used within an AuthProvider");
   }
 
-  const isAdmin = context.user?.role_mappings?.some(mapping => 
-    mapping.role === 'ADMIN' || 
-    mapping.role === 'CURRICULUM_ADMIN' || 
-    mapping.role === 'INSTRUCTOR_ADMIN' || 
-    mapping.role === 'COURSE_CREATOR_ADMIN'
-  ) || false;
+  const isAdmin =
+    context.user?.role_mappings?.some(
+      (mapping) =>
+        mapping.role === "ADMIN" ||
+        mapping.role === "CURRICULUM_ADMIN" ||
+        mapping.role === "INSTRUCTOR_ADMIN" ||
+        mapping.role === "COURSE_CREATOR_ADMIN"
+    ) || false;
 
   return {
     ...context,

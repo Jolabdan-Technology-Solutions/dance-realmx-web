@@ -1,5 +1,5 @@
 import React from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/use-auth';
 import { useSubscription } from '@/hooks/useSubscription';
 import { UserRole } from '@/types/user';
 import { UpgradeModal } from '@/components/modals/UpgradeModal';

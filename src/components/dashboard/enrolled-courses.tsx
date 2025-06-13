@@ -10,7 +10,6 @@ import {
   Calendar,
   Award,
   AlertCircle,
-  Eye,
   BookOpen,
   BarChart,
   Brain,
@@ -24,77 +23,86 @@ import {
   TooltipTrigger,
 } from "../../components/ui/tooltip";
 import { useAuth } from "../../hooks/use-auth";
+import { apiRequest } from "@/lib/queryClient";
 
-// Define the types for enrollments and related entities
-interface Module {
+interface Course {
   id: number;
   title: string;
-  position: number;
-  lesson_count: number;
-  completed_lessons: number;
-}
-
-interface CourseProgress {
-  total_modules: number;
-  completed_modules: number;
-  total_lessons: number;
-  completed_lessons: number;
-  total_quizzes: number;
-  completed_quizzes: number;
-  overall_progress: number;
-  last_accessed_at?: string;
+  short_name: string;
+  duration: string;
+  difficulty_level: string;
+  description: string;
+  detailed_description: string;
+  price: number;
+  image_url: string;
+  visible: boolean;
+  instructor_id: number;
+  preview_video_url: string;
+  video_url: string;
+  created_at: string;
+  updated_at: string;
+  instructor: {
+    id: number;
+    username: string;
+    first_name: string;
+    last_name: string;
+    profile_image_url: string;
+  };
+  categories: {
+    id: number;
+    name: string;
+  }[];
 }
 
 interface Enrollment {
   id: number;
-  user_id: number;
-  course_id: number;
   status: string;
-  progress: number;
   enrolled_at: string;
-  last_accessed_at?: string;
-  completed_at?: string;
-  course?: {
-    id: number;
-    title: string;
-    description?: string;
-    image_url?: string;
-    level?: string;
-    duration?: string;
-    instructor_id?: number;
-    instructor?: {
-      name: string;
-      profile_image_url?: string;
-    };
-  };
-  modules?: Module[];
-  course_progress?: CourseProgress;
+  progress: number;
 }
 
-interface Instructor {
-  id: number;
-  username: string;
-  first_name?: string;
-  last_name?: string;
-  profile_image_url?: string;
+interface EnrolledCourse {
+  enrollment: Enrollment;
+  course: Course;
+}
+
+interface EnrollmentsResponse {
+  courses: EnrolledCourse[];
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalCount: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+    limit: number;
+  };
+  summary: {
+    total: number;
+    active: number;
+    completed: number;
+    pending: number;
+    cancelled: number;
+  };
 }
 
 export default function EnrolledCourses() {
   const { user } = useAuth();
 
   // Fetch enrollments
-  const { data: enrollments = [], isLoading: enrollmentsLoading } = useQuery<
-    Enrollment[]
-  >({
-    queryKey: ["/api/enrollments"],
-    enabled: !!user,
-  });
+  const { data: enrollmentsData, isLoading: enrollmentsLoading } =
+    useQuery<EnrollmentsResponse>({
+      queryKey: ["/api/courses/enrollment/me"],
+      queryFn: async () => {
+        const response = await apiRequest("/api/courses/enrollment/me", {
+          method: "GET",
+          requireAuth: true,
+        });
+        return response;
+      },
+      enabled: !!user,
+    });
 
-  // Fetch course progress analytics
-  const { data: courseProgress, isLoading: progressLoading } = useQuery({
-    queryKey: ["/api/user/course-progress"],
-    enabled: !!user,
-  });
+  const enrollments = enrollmentsData?.courses || [];
 
   // Set up state for which enrollment details to show
   const [expandedEnrollmentId, setExpandedEnrollmentId] = useState<
@@ -103,42 +111,40 @@ export default function EnrolledCourses() {
 
   // Toggle enrollment details
   const toggleEnrollmentDetails = (enrollmentId: number) => {
-    if (expandedEnrollmentId === enrollmentId) {
-      setExpandedEnrollmentId(null);
-    } else {
-      setExpandedEnrollmentId(enrollmentId);
-    }
+    setExpandedEnrollmentId(
+      expandedEnrollmentId === enrollmentId ? null : enrollmentId
+    );
   };
 
   // Get status badge for enrollment
   const getStatusBadge = (enrollment: Enrollment) => {
-    if (enrollment.completed_at) {
-      return (
-        <Badge className="bg-green-500 hover:bg-green-600">
-          <CheckCircle className="h-3 w-3 mr-1" />
-          Completed
-        </Badge>
-      );
-    } else if (enrollment.progress > 0) {
-      return (
-        <Badge className="bg-blue-500 hover:bg-blue-600">
-          <Clock className="h-3 w-3 mr-1" />
-          In Progress
-        </Badge>
-      );
-    } else {
-      return (
-        <Badge variant="outline">
-          <AlertCircle className="h-3 w-3 mr-1" />
-          Not Started
-        </Badge>
-      );
+    switch (enrollment.status) {
+      case "COMPLETED":
+        return (
+          <Badge className="bg-green-500 hover:bg-green-600">
+            <CheckCircle className="h-3 w-3 mr-1" />
+            Completed
+          </Badge>
+        );
+      case "ACTIVE":
+        return (
+          <Badge className="bg-blue-500 hover:bg-blue-600">
+            <Clock className="h-3 w-3 mr-1" />
+            In Progress
+          </Badge>
+        );
+      default:
+        return (
+          <Badge variant="outline">
+            <AlertCircle className="h-3 w-3 mr-1" />
+            {enrollment.status}
+          </Badge>
+        );
     }
   };
 
   // Format a date to be more readable
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return "N/A";
+  const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("en-US", {
       year: "numeric",
@@ -147,27 +153,7 @@ export default function EnrolledCourses() {
     });
   };
 
-  // Calculate days since last accessed
-  const getDaysSinceLastAccess = (dateString?: string) => {
-    if (!dateString) return "Never";
-
-    const lastAccess = new Date(dateString);
-    const today = new Date();
-    const diffTime = Math.abs(today.getTime() - lastAccess.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0) {
-      return "Today";
-    } else if (diffDays === 1) {
-      return "Yesterday";
-    } else {
-      return `${diffDays} days ago`;
-    }
-  };
-
-  const isLoading = enrollmentsLoading || progressLoading;
-
-  if (isLoading) {
+  if (enrollmentsLoading) {
     return (
       <div className="mb-12">
         <h2 className="text-2xl font-bold mb-6 text-center">
@@ -188,21 +174,21 @@ export default function EnrolledCourses() {
 
       <div className="space-y-6">
         {enrollments.length > 0 ? (
-          enrollments.map((enrollment) => (
+          enrollments.map(({ enrollment, course }) => (
             <div
               key={enrollment.id}
               className="bg-card text-card-foreground rounded-lg shadow-md overflow-hidden border"
             >
-              <div className="grid grid-cols-1 md:grid-cols-3 ">
+              <div className="grid grid-cols-1 md:grid-cols-3">
                 {/* Course Image */}
                 <div className="md:col-span-1 h-full">
                   <div className="relative h-full min-h-[200px]">
                     <img
                       src={
-                        enrollment.course?.image_url ||
+                        course.image_url ||
                         "/assets/images/placeholder-course.jpg"
                       }
-                      alt={enrollment.course?.title || "Course Image"}
+                      alt={course.title}
                       className="w-full h-full object-cover absolute inset-0"
                       onError={(e) => {
                         e.currentTarget.src =
@@ -211,10 +197,10 @@ export default function EnrolledCourses() {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex flex-col justify-end p-4">
                       <Badge className="self-start mb-2">
-                        {enrollment.course?.level || "All Levels"}
+                        {course.difficulty_level}
                       </Badge>
                       <h3 className="text-xl font-bold text-white">
-                        {enrollment.course?.title || "Course Title"}
+                        {course.title}
                       </h3>
                     </div>
                   </div>
@@ -252,98 +238,19 @@ export default function EnrolledCourses() {
                       <Progress value={enrollment.progress} className="h-2" />
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
-                      <div className="text-center p-2 bg-muted/30 rounded-md">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <BookOpen className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Total Modules</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                        <p className="text-xs text-muted-foreground">Modules</p>
-                        <p className="font-bold">
-                          {enrollment.course_progress?.total_modules || 0}
-                        </p>
-                      </div>
-
-                      <div className="text-center p-2 bg-muted/30 rounded-md">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <CheckCircle className="h-5 w-5 mx-auto mb-1 text-green-500" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Completed Modules</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                        <p className="text-xs text-muted-foreground">
-                          Completed
-                        </p>
-                        <p className="font-bold">
-                          {enrollment.course_progress?.completed_modules || 0}
-                        </p>
-                      </div>
-
-                      <div className="text-center p-2 bg-muted/30 rounded-md">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Brain className="h-5 w-5 mx-auto mb-1 text-purple-500" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Quiz Completion</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                        <p className="text-xs text-muted-foreground">Quizzes</p>
-                        <p className="font-bold">
-                          {enrollment.course_progress?.completed_quizzes || 0}
-                          {enrollment.course_progress?.total_quizzes ? (
-                            <span className="text-xs text-muted-foreground">
-                              /{enrollment.course_progress.total_quizzes}
-                            </span>
-                          ) : null}
-                        </p>
-                      </div>
-
-                      <div className="text-center p-2 bg-muted/30 rounded-md">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Award className="h-5 w-5 mx-auto mb-1 text-yellow-500" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Certificate Status</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                        <p className="text-xs text-muted-foreground">
-                          Certificate
-                        </p>
-                        <p className="font-bold">
-                          {enrollment.completed_at ? "Available" : "Incomplete"}
-                        </p>
-                      </div>
-                    </div>
-
                     <div className="mt-auto flex flex-wrap gap-2">
                       <Button
                         className="flex-1 bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90 rounded-md"
                         asChild
                       >
-                        <Link href={`/courses/${enrollment.course_id}`}>
+                        <Link href={`/courses/${course.id}`}>
                           Continue Learning
                         </Link>
                       </Button>
 
-                      {enrollment.completed_at && (
+                      {enrollment.status === "COMPLETED" && (
                         <Button variant="outline" className="flex-1" asChild>
-                          <Link href={`/certificates/${enrollment.course_id}`}>
+                          <Link href={`/certificates/${course.id}`}>
                             <Award className="h-4 w-4 mr-2" />
                             View Certificate
                           </Link>
@@ -353,90 +260,6 @@ export default function EnrolledCourses() {
                   </div>
                 </div>
               </div>
-
-              {/* Expandable Module Details */}
-              {expandedEnrollmentId === enrollment.id && (
-                <div className="border-t p-6">
-                  <h4 className="font-medium mb-4 flex items-center">
-                    <BarChart className="h-5 w-5 mr-2" />
-                    Module Progress
-                  </h4>
-
-                  {enrollment.modules && enrollment.modules.length > 0 ? (
-                    <div className="space-y-4">
-                      {enrollment.modules.map((module) => {
-                        const moduleProgress =
-                          module.lesson_count > 0
-                            ? (module.completed_lessons / module.lesson_count) *
-                              100
-                            : 0;
-
-                        return (
-                          <div
-                            key={module.id}
-                            className="border p-4 rounded-md"
-                          >
-                            <div className="flex justify-between items-center mb-2">
-                              <h5 className="font-medium">
-                                Module {module.position}: {module.title}
-                              </h5>
-                              <Badge
-                                variant={
-                                  moduleProgress === 100 ? "default" : "outline"
-                                }
-                              >
-                                {moduleProgress === 100 ? (
-                                  <>
-                                    <CheckCircle className="h-3 w-3 mr-1 text-green-500" />
-                                    Complete
-                                  </>
-                                ) : moduleProgress > 0 ? (
-                                  <>
-                                    <Clock className="h-3 w-3 mr-1" />
-                                    In Progress
-                                  </>
-                                ) : (
-                                  <div className="border border-gray-100 rounded-full p-3">
-                                    <X className="h-3 w-3 mr-1" />
-                                    Not Started
-                                  </div>
-                                )}
-                              </Badge>
-                            </div>
-
-                            <div className="flex items-center gap-2 text-sm mb-2">
-                              <span>
-                                {module.completed_lessons} of{" "}
-                                {module.lesson_count} lessons completed
-                              </span>
-                              <Progress
-                                value={moduleProgress}
-                                className="h-2 flex-1"
-                              />
-                              <span>{Math.round(moduleProgress)}%</span>
-                            </div>
-
-                            <Button variant="outline" size="sm" asChild>
-                              <Link
-                                href={`/courses/${enrollment.course_id}/modules/${module.id}`}
-                              >
-                                {moduleProgress === 100
-                                  ? "Review Module"
-                                  : "Continue Module"}
-                              </Link>
-                            </Button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="text-center p-8 border rounded-md">
-                      <AlertCircle className="h-8 w-8 mx-auto mb-4 text-muted-foreground" />
-                      <p>No module information available for this course.</p>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           ))
         ) : (

@@ -8,9 +8,8 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 export async function getSubscriptionPlans(req: Request, res: Response) {
   try {
-    const plans = await prisma.subscriptionPlan.findMany({
-      where: { isActive: true },
-      orderBy: { priceMonthly: "asc" },
+    const plans = await prisma.subscription_plan.findMany({
+      orderBy: { price: "asc" },
     });
 
     return res.json(plans);

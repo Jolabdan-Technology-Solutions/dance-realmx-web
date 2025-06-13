@@ -566,36 +566,96 @@ export default function HomePage() {
               <img
                 src="/assets/images/Dance realm logo.png"
                 alt="DanceRealmX Logo"
-                className="h-28 mx-auto mb-8 filter brightness-150"
+                className="max-w-[400px] h-auto mx-auto mb-8 filter brightness-150"
               />
               <h1 className="text-5xl md:text-6xl font-bold mb-6 text-white">
                 Discover the Realm of Possibilities
               </h1>
-              <p className="text-xl md:text-2xl text-white mb-8 max-w-3xl mx-auto">
-                Join DanceRealmX to elevate your dance education with
-                certification, curriculum, and connections.
-              </p>
+              
               <div className="flex flex-wrap justify-center gap-4">
                 {/* "Join Us" button removed as requested */}
-                <Link href="/register">
+               <Link href="/connect?tab=get-booked">
                   <Button className="bg-purple-600 text-white hover:bg-purple-700 rounded-full px-8 py-4 text-lg font-bold">
-                    Get Started Now
+                    Get Booked
                   </Button>
                 </Link>
-                <Link href="/auth">
+                <Link href="/connect?tab=book">
                   <Button className="bg-transparent border-2 border-white text-white hover:bg-white/10 rounded-full px-8 py-4 text-lg font-bold">
-                    Sign In
+                    Book a Professional
                   </Button>
                 </Link>
               </div>
             </div>
-
-            {/* Scroll down indicator */}
-            <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-10 animate-bounce">
-              <ChevronDown className="h-10 w-10 text-white" />
-            </div>
           </section>
 
+          {/* Features Grid Section for guests */}
+          <section
+            className="py-20 text-white relative bg-cover bg-center"
+            style={{
+              backgroundImage:
+                'linear-gradient(rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.85)), url("/assets/images/certificationimage.png")',
+              backgroundPosition: "center",
+              backgroundSize: "cover",
+            }}
+          >
+            <div className="container mx-auto px-4 max-w-[95%]">
+              <h2 className="text-4xl font-bold mb-16 text-center">
+                The Complete{" "}
+                <span className="text-[#00d4ff]">Dance Education</span> Platform
+              </h2>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+                <div className="text-center">
+                  <div className="w-24 h-24 bg-[#00d4ff] rounded-full flex items-center justify-center mx-auto mb-6">
+                    <BookOpen className="h-12 w-12 text-black" />
+                  </div>
+                  <h3 className="text-2xl font-bold mb-4">Curriculum</h3>
+                  <p className="text-gray-300 mb-6">
+                    Access premium dance curriculum resources for all styles and
+                    age groups. Save time with professionally designed lesson
+                    plans and teaching materials.
+                  </p>
+                  <Link href="/curriculum">
+                    <Button className="bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90 rounded-full px-6 py-3 font-medium">
+                      Get Curriculum
+                    </Button>
+                  </Link>
+                </div>
+
+                <div className="text-center">
+                  <div className="w-24 h-24 bg-[#00d4ff] rounded-full flex items-center justify-center mx-auto mb-6">
+                    <Users className="h-12 w-12 text-black" />
+                  </div>
+                  <h3 className="text-2xl font-bold mb-4">Connect</h3>
+                  <p className="text-gray-300 mb-6">
+                    Join a vibrant community of dance educators.
+                    Find and hire professional instructors, choreographers and adjudicators or create a profile and get booked.
+                  </p>
+                  <Link href="/connect">
+                    <Button className="bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90 rounded-full px-6 py-3 font-medium">
+                      Get Connected
+                    </Button>
+                  </Link>
+                </div>
+                 <div className="text-center">
+                  <div className="w-24 h-24 bg-[#00d4ff] rounded-full flex items-center justify-center mx-auto mb-6">
+                    <CheckCircle className="h-12 w-12 text-black" />
+                  </div>
+                  <h3 className="text-2xl font-bold mb-4">Certification</h3>
+                  <p className="text-gray-300 mb-6">
+                    Earn industry-recognized dance certifications taught by
+                    world-class instructors. Enhance your credentials and open
+                    doors to new opportunities.
+                  </p>
+                  <Link href="/courses">
+                    <Button className="bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90 rounded-full px-6 py-3 font-medium">
+                      Get Certified
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </section>
           {/* Welcome to DanceRealmX Section */}
           <section
             className="py-16 text-white relative bg-cover bg-center"
@@ -615,128 +675,29 @@ export default function HomePage() {
 
                 <div className="grid md:grid-cols-2 gap-8 items-center mb-10">
                   <div>
+                    <h3 className="text-2xl font-bold mb-4 text-[#00d4ff]">
+                      Our Mission
+                    </h3>
                     <p className="text-lg text-gray-300 mb-6">
-                      DanceRealmX is a dynamic online platform created to
-                      empower dance educators with the resources, training, and
-                      community support needed to excel in their profession. Our
-                      platform aims to create a comprehensive ecosystem for
-                      dance educators to learn, share, connect, and grow.
+                     The mission of Dance Realm Exchange is to spark innovation in dance education, provide impactful learning opportunities, and inspire dance professionals to pursue excellence in their craft. Through our collaborative platform, both online and in-person, we bring together educators to exchange ideas, share expertise, and shape the future of dance.
                     </p>
                   </div>
                   <div className="flex justify-center">
                     <img
-                      src="/assets/images/bannerimgdre.png"
+                      src="/assets/images/welcome-image.png"
                       alt="DanceRealmX Banner"
                       className="rounded-lg shadow-xl max-w-full h-auto"
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
-                  <div className="bg-gray-900 p-6 rounded-lg border border-gray-800 shadow-md">
-                    <h3 className="text-xl font-bold mb-3 text-white flex items-center">
-                      <span className="w-8 h-8 bg-[#00d4ff] rounded-full flex items-center justify-center text-black font-bold mr-2">
-                        1
-                      </span>
-                      Connect
-                    </h3>
-                    <p className="text-gray-300">
-                      Join a vibrant community of dance professionals sharing
-                      knowledge, techniques, and resources to enhance teaching
-                      practices.
-                    </p>
-                  </div>
-
-                  <div className="bg-gray-900 p-6 rounded-lg border border-gray-800 shadow-md">
-                    <h3 className="text-xl font-bold mb-3 text-white flex items-center">
-                      <span className="w-8 h-8 bg-[#00d4ff] rounded-full flex items-center justify-center text-black font-bold mr-2">
-                        2
-                      </span>
-                      Certification
-                    </h3>
-                    <p className="text-gray-300">
-                      Earn industry-recognized credentials through our
-                      comprehensive certification programs designed by leading
-                      dance professionals.
-                    </p>
-                  </div>
-
-                  <div className="bg-gray-900 p-6 rounded-lg border border-gray-800 shadow-md">
-                    <h3 className="text-xl font-bold mb-3 text-white flex items-center">
-                      <span className="w-8 h-8 bg-[#00d4ff] rounded-full flex items-center justify-center text-black font-bold mr-2">
-                        3
-                      </span>
-                      Curriculum
-                    </h3>
-                    <p className="text-gray-300">
-                      Access premium, ready-to-use curriculum resources that
-                      save time and elevate your dance instruction to new
-                      heights.
-                    </p>
-                  </div>
-                </div>
-
-                {/* "Why Choose DanceRealmX" section moved to About page */}
-              </div>
-            </div>
-          </section>
-
-          {/* Mission & Vision Section */}
-          <section className="py-16 bg-gray-900 text-white">
-            <div className="container mx-auto px-4 max-w-[95%]">
-              <div className="mx-auto">
-                <h2 className="text-4xl font-bold mb-6 text-center">
-                  What is{" "}
-                  <span className="text-[#00d4ff]">Dance Realm Exchange</span>?
-                </h2>
-
-                <div className="mb-12 text-center">
-                  <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
-                    An emerging collaborative platform for dance professionals,
-                    studios, and educators to be the one-stop shop for
-                    certifications, curriculum, and choreography (and eventual
-                    marketplace).
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 mb-12">
-                  <div className="bg-gray-800 p-8 rounded-lg border border-gray-700 shadow-lg">
-                    <h3 className="text-2xl font-bold mb-4 text-[#00d4ff]">
-                      Our Mission
-                    </h3>
-                    <div className="space-y-6">
-                      <p className="text-gray-300">
-                        Dance Realm Exchange is a collaborative platform that
-                        brings together educators to exchange ideas, share
-                        expertise, and shape the future of dance education.
-                      </p>
-                      <p className="text-gray-300">
-                        Our mission through our collaborative platform is to
-                        empower dance educators to unlock their potential,
-                        inspire their students, and redefine excellence in dance
-                        instruction.
-                      </p>
-                      <p className="text-gray-300">
-                        We aim to spark innovation in dance education, provide
-                        impactful learning opportunities, and inspire teachers
-                        to pursue excellence in their teaching practices.
-                      </p>
-                    </div>
-                  </div>
-
+                <div className="grid grid-cols-1  gap-8 mb-10">
                   <div className="bg-gray-800 p-8 rounded-lg border border-gray-700 shadow-lg">
                     <h3 className="text-2xl font-bold mb-4 text-[#00d4ff]">
                       Our Vision
                     </h3>
                     <div className="space-y-4">
-                      <div className="p-4 bg-gray-700 rounded-md flex items-start">
-                        <div className="bg-[#00d4ff] rounded-full p-1 mr-3 mt-0.5">
-                          <CheckCircle className="h-5 w-5 text-gray-900" />
-                        </div>
-                        <p className="text-white">
-                          Transforming Teaching, Inspiring Movement
-                        </p>
-                      </div>
+                      
 
                       <div className="p-4 bg-gray-700 rounded-md flex items-start">
                         <div className="bg-[#00d4ff] rounded-full p-1 mr-3 mt-0.5">
@@ -765,756 +726,232 @@ export default function HomePage() {
                         </p>
                       </div>
 
-                      <div className="p-4 bg-gray-700 rounded-md flex items-start">
-                        <div className="bg-[#00d4ff] rounded-full p-1 mr-3 mt-0.5">
-                          <CheckCircle className="h-5 w-5 text-gray-900" />
-                        </div>
-                        <p className="text-white">
-                          A Platform for Visionary Dance Educators
-                        </p>
-                      </div>
                     </div>
                   </div>
-                </div>
-
-                <div className="bg-gray-800 p-8 rounded-lg border border-gray-700 shadow-lg">
-                  <div className="text-center mb-6">
-                    <h3 className="text-2xl font-bold text-[#00d4ff]">
-                      About Dance Realm Exchange
-                    </h3>
-                  </div>
-                  <p className="text-gray-300 mb-4">
-                    The Dance Realm Exchange platform and conference are
-                    complementary manifestations of the same vision - creating a
-                    collaborative, educational exchange for dance professionals.
-                  </p>
-                  <p className="text-gray-300">
-                    Our online platform serves as the digital home for the dance
-                    education community, while our conference brings this
-                    vibrant community together in the physical realm. Both share
-                    the same mission: to elevate dance education through
-                    collaboration, innovation, and excellence.
-                  </p>
                 </div>
               </div>
             </div>
           </section>
 
-          {/* Featured Images Slider for guests */}
-          <section className="py-16 bg-gray-900">
+    {/* What is DanceRealmX Section */}
+          <section className="py-16 bg-gradient-to-b from-gray-800 via-gray-700 to-black text-white relative overflow-hidden">
             <div className="container mx-auto px-4 max-w-[95%]">
-              <h2 className="text-4xl font-bold mb-8 text-white text-center">
-                Featured Curriculum
-              </h2>
+              <div className="mx-auto">
+                <h2 className="text-4xl font-bold mb-6 text-center">
+                  What is{" "}
+                  <span className="text-[#00d4ff]">Dance Realm Exchange</span>?
+                </h2>
+
+                <div className="mb-12 text-center">
+      
+                  <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto ">
+                    Dance Realm Exchange is a dynamic platform designed to empower dance educators by fostering collaboration, innovation, and growth. We aim to redefine what's possible in the world of dance.
+                  </p>
+                </div>
+
+              </div>
+            </div>
+          </section>
+
+          {/* Featured Images Slider for guests */}
+          {/*  <section className="py-16 bg-gray-900">
+            <div className="container mx-auto px-4 max-w-[95%]">*/}
+             {/* <h2 className="text-4xl font-bold mb-8 text-white text-center">
+                Curriculum Search and Download Resources for all Ages and Styles of Dance
+              </h2>*/}
               {featuredImagesLoading ? (
                 <div className="flex justify-center items-center h-96">
                   <div className="animate-spin w-10 h-10 border-4 border-[#00d4ff] border-t-transparent rounded-full"></div>
                 </div>
               ) : (
                 <FeaturedImagesSlider images={featuredResources} />
-              )}
+              )} {/* 
             </div>
-          </section>
+          </section>*/}
 
-          {/* Features Grid Section for guests */}
-          <section
-            className="py-20 text-white relative bg-cover bg-center"
-            style={{
-              backgroundImage:
-                'linear-gradient(rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.85)), url("/assets/images/certificationimage.png")',
-              backgroundPosition: "center",
-              backgroundSize: "cover",
-            }}
-          >
-            <div className="container mx-auto px-4 max-w-[95%]">
-              <h2 className="text-4xl font-bold mb-16 text-center">
-                The Complete{" "}
-                <span className="text-[#00d4ff]">Dance Education</span> Platform
-              </h2>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-                <div className="text-center">
-                  <div className="w-24 h-24 bg-[#00d4ff] rounded-full flex items-center justify-center mx-auto mb-6">
-                    <CheckCircle className="h-12 w-12 text-black" />
-                  </div>
-                  <h3 className="text-2xl font-bold mb-4">Certification</h3>
-                  <p className="text-gray-300 mb-6">
-                    Earn industry-recognized dance certifications taught by
-                    world-class instructors. Enhance your credentials and open
-                    doors to new opportunities.
-                  </p>
-                  <Link href="/courses">
-                    <Button className="bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90 rounded-full px-6 py-3 font-medium">
-                      Get Certified
-                    </Button>
-                  </Link>
-                </div>
+{/* Connection Section */}
+<section className="py-20 bg-gradient-to-r from-gray-900 via-black to-gray-900 text-white">
+  <div className="container mx-auto px-4 max-w-[90%]">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+      <div className="order-2 md:order-1">
+        <h2 className="text-3xl md:text-4xl font-bold mb-4 text-[#00d4ff]">
+          Connect & Book Professionals
+        </h2>
+        <ul className="mb-6 space-y-3 text-lg">
+          <li className="flex items-center">
+            <CheckCircle className="h-6 w-6 text-[#00d4ff] mr-2" />
+            Find and hire instructors, choreographers, and adjudicators
+          </li>
+          <li className="flex items-center">
+            <CheckCircle className="h-6 w-6 text-[#00d4ff] mr-2" />
+            Create a professional profile and get booked
+          </li>
+          <li className="flex items-center">
+            <CheckCircle className="h-6 w-6 text-[#00d4ff] mr-2" />
+            Grow your network in the dance community
+          </li>
+        </ul>
+        <div className="flex flex-wrap gap-4">
+          <Link href="/connect?tab=get-booked">
+            <Button className="bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90 rounded-full px-6 py-3 font-medium">
+              Get Booked
+            </Button>
+          </Link>
+          <Link href="/connect?tab=book">
+            <Button className="bg-transparent border-2 border-white text-white hover:bg-white/10 rounded-full px-6 py-3 font-medium">
+              Book a Professional
+            </Button>
+          </Link>
+        </div>
+      </div>
+      <div className="flex justify-center order-1 md:order-2">
+        <img
+          src="/assets/images/certificationimage.png"
+          alt="Connect and Book Professionals"
+          className="rounded-2xl shadow-2xl max-w-[90%] md:max-w-[70%] h-auto"
+        />
+      </div>
+    </div>
+  </div>
+</section>
 
-                <div className="text-center">
-                  <div className="w-24 h-24 bg-[#00d4ff] rounded-full flex items-center justify-center mx-auto mb-6">
-                    <BookOpen className="h-12 w-12 text-black" />
-                  </div>
-                  <h3 className="text-2xl font-bold mb-4">Curriculum</h3>
-                  <p className="text-gray-300 mb-6">
-                    Access premium dance curriculum resources for all styles and
-                    age groups. Save time with professionally designed lesson
-                    plans and teaching materials.
-                  </p>
-                  <Link href="/curriculum">
-                    <Button className="bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90 rounded-full px-6 py-3 font-medium">
-                      Get Curriculum
-                    </Button>
-                  </Link>
-                </div>
-
-                <div className="text-center">
-                  <div className="w-24 h-24 bg-[#00d4ff] rounded-full flex items-center justify-center mx-auto mb-6">
-                    <Users className="h-12 w-12 text-black" />
-                  </div>
-                  <h3 className="text-2xl font-bold mb-4">Connect</h3>
-                  <p className="text-gray-300 mb-6">
-                    Join a vibrant community of dance educators and students.
-                    Find qualified instructors or offer your expertise to those
-                    seeking guidance.
-                  </p>
-                  <Link href="/connect">
-                    <Button className="bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90 rounded-full px-6 py-3 font-medium">
-                      Get Connected
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* Testimonials Section */}
-          <section className="py-20 bg-black text-white">
-            <div className="container mx-auto px-4 max-w-[95%]">
-              <h2 className="text-4xl font-bold mb-6 text-center">
-                What Educators{" "}
-                <span className="text-[#00d4ff]">Say About Us</span>
-              </h2>
-              <p className="text-lg text-gray-300 mb-10 text-center max-w-3xl mx-auto">
-                Read what our community is saying about our courses and
-                resources. Have you used our curriculum resources or taken a
-                certification course? Share your experience below!
-              </p>
-
-              <div className="mb-16">
-                <div className="flex justify-center mb-8">
-                  <div className="inline-flex rounded-lg border border-gray-700 overflow-hidden">
-                    <button
-                      className={`px-4 py-2 ${activeTestimonialTab === "all" ? "bg-[#00d4ff] text-black font-medium" : "bg-transparent text-white"}`}
-                      onClick={() => setActiveTestimonialTab("all")}
-                    >
-                      All Testimonials
-                    </button>
-                    <button
-                      className={`px-4 py-2 ${activeTestimonialTab === "courses" ? "bg-[#00d4ff] text-black font-medium" : "bg-transparent text-white"}`}
-                      onClick={() => setActiveTestimonialTab("courses")}
-                    >
-                      Course Reviews
-                    </button>
-                    <button
-                      className={`px-4 py-2 ${activeTestimonialTab === "resources" ? "bg-[#00d4ff] text-black font-medium" : "bg-transparent text-white"}`}
-                      onClick={() => setActiveTestimonialTab("resources")}
-                    >
-                      Resource Reviews
-                    </button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
-                  {isTestimonialsLoading ? (
-                    <div className="col-span-3 flex justify-center py-10">
-                      <Loader2 className="h-10 w-10 animate-spin text-[#00d4ff]" />
-                    </div>
-                  ) : displayedTestimonials.length === 0 ? (
-                    <div className="col-span-3 text-center py-10 bg-gray-900 rounded-lg border border-gray-800">
-                      <p className="text-gray-300 mb-4">
-                        No testimonials available yet. Be the first to share
-                        your experience!
-                      </p>
-                      {isLoggedIn && (
-                        <Button
-                          onClick={() => openTestimonialModal("general")}
-                          className="bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90"
-                        >
-                          <MessageSquarePlus className="h-4 w-4 mr-2" />
-                          Add Testimonial
-                        </Button>
-                      )}
-                    </div>
-                  ) : (
-                    displayedTestimonials.map(
-                      (testimonial: Testimonial, index: number) => (
-                        <div
-                          key={testimonial.id || index}
-                          className="bg-gray-900 p-8 rounded-lg shadow-md border border-gray-800 relative"
-                        >
-                          <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 rounded-full overflow-hidden border-4 border-black w-16 h-16">
-                            <img
-                              src={
-                                testimonial.userImage ||
-                                "/assets/images/default-avatar.png"
-                              }
-                              alt={testimonial.userName || "User"}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                // Fallback for missing image
-                                (
-                                  e.currentTarget as HTMLImageElement
-                                ).style.backgroundColor = "#00d4ff";
-                              }}
-                            />
-                          </div>
-                          <div className="pt-6 text-center">
-                            {testimonial.resourceType && (
-                              <div className="mb-2">
-                                <span
-                                  className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
-                                    testimonial.resourceType === "course"
-                                      ? "bg-purple-700 text-white"
-                                      : "bg-emerald-700 text-white"
-                                  }`}
-                                >
-                                  {testimonial.resourceType === "course"
-                                    ? "Course"
-                                    : "Resource"}
-                                </span>
-                                {testimonial.resourceName && (
-                                  <span className="ml-2 text-xs text-gray-400">
-                                    {testimonial.resourceName}
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                            {testimonial.isVerifiedProfessional && (
-                              <div className="flex justify-center mb-2">
-                                <div className="flex items-center">
-                                  <CheckCircle className="h-4 w-4 text-green-500 mr-1" />
-                                  <span className="text-green-500 font-medium text-sm">
-                                    Verified Professional
-                                  </span>
-                                </div>
-                              </div>
-                            )}
-                            <p className="text-gray-300 italic mb-4">
-                              "{testimonial.text}"
-                            </p>
-                            <p className="font-bold text-white">
-                              {testimonial.userName || "Anonymous User"}
-                            </p>
-                            <p className="text-sm text-gray-400">
-                              {testimonial.userTitle || "DanceRealmX Member"}
-                            </p>
-                            <p className="text-xs text-gray-500 mt-1">
-                              {testimonial.createdAt
-                                ? new Date(
-                                    testimonial.createdAt
-                                  ).toLocaleDateString("en-US", {
-                                    year: "numeric",
-                                    month: "long",
-                                    day: "numeric",
-                                  })
-                                : "Recent"}
-                            </p>
-                          </div>
-                        </div>
-                      )
-                    )
-                  )}
-                </div>
-
-                {/* Add Testimonial Button - Shows modal for authenticated users or redirects to login */}
-                <div className="text-center">
-                  <Button
-                    onClick={handleAddTestimonial}
-                    className="bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90 rounded-full px-6 py-2 font-medium"
-                  >
-                    <MessageSquarePlus className="h-4 w-4 mr-2" />
-                    Share Your Experience
-                  </Button>
-                </div>
-              </div>
-
-              {/* Testimonial Modal */}
-              <Dialog
-                open={testimonialModalOpen}
-                onOpenChange={setTestimonialModalOpen}
-              >
-                <DialogContent className="bg-gray-900 text-white border-gray-800 max-w-md">
-                  <DialogHeader>
-                    <DialogTitle className="text-2xl">
-                      Share Your Experience
-                    </DialogTitle>
-                    <DialogDescription className="text-gray-400">
-                      Let the community know about your experience with our
-                      courses or resources.
-                    </DialogDescription>
-                  </DialogHeader>
-
-                  <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="review-type">
-                        What are you reviewing?
-                      </Label>
-                      <Select value={reviewType} onValueChange={setReviewType}>
-                        <SelectTrigger className="bg-gray-800 border-gray-700">
-                          <SelectValue placeholder="Select what you're reviewing" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-gray-800 border-gray-700">
-                          <SelectItem value="general">
-                            General Experience
-                          </SelectItem>
-                          <SelectItem value="course">
-                            Certification Course
-                          </SelectItem>
-                          <SelectItem value="resource">
-                            Curriculum Resource
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {(reviewType === "course" || reviewType === "resource") && (
-                      <div className="space-y-2">
-                        <Label htmlFor="resource-name">
-                          {reviewType === "course"
-                            ? "Course Name"
-                            : "Resource Name"}
-                        </Label>
-                        <Input
-                          id="resource-name"
-                          value={resourceName}
-                          onChange={(e) => setResourceName(e.target.value)}
-                          className="bg-gray-800 border-gray-700"
-                          placeholder={
-                            reviewType === "course"
-                              ? "Enter course name"
-                              : "Enter resource name"
-                          }
-                        />
-                      </div>
-                    )}
-
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="verified-professional"
-                          checked={verified}
-                          onCheckedChange={(checked) =>
-                            setVerified(checked === true)
-                          }
-                        />
-                        <Label
-                          htmlFor="verified-professional"
-                          className="cursor-pointer"
-                        >
-                          I am a verified dance professional
-                        </Label>
-                      </div>
-                      <p className="text-xs text-gray-400">
-                        Check this box if you are a certified instructor or
-                        professional in the dance field.
-                      </p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="testimonial-text">Your Review</Label>
-                      <Textarea
-                        id="testimonial-text"
-                        value={testimonialText}
-                        onChange={(e) => setTestimonialText(e.target.value)}
-                        className="bg-gray-800 border-gray-700 min-h-[100px]"
-                        placeholder="Share your experience with the DanceRealmX community..."
-                      />
-                    </div>
-                  </div>
-
-                  <DialogFooter>
-                    <Button
-                      variant="outline"
-                      onClick={() => setTestimonialModalOpen(false)}
-                      className="border-gray-700"
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={handleSubmitTestimonial}
-                      className="bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90"
-                      disabled={submitTestimonialMutation.isPending}
-                    >
-                      {submitTestimonialMutation.isPending ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Submitting...
-                        </>
-                      ) : (
-                        "Submit Review"
-                      )}
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </div>
-          </section>
+{/* Certification Section */}
+<section className="py-20 bg-gradient-to-l from-gray-900 via-black to-gray-900 text-white">
+  <div className="container mx-auto px-4 max-w-[90%]">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+      <div className="flex justify-center">
+        <img
+          src="/assets/images/Thrive-logo.webp"
+          alt="Certification Image"
+          className="rounded-2xl shadow-2xl max-w-[90%] md:max-w-[70%] h-auto border-4 border-[#00d4ff]/20"
+        />
+      </div>
+      <div>
+        <h2 className="text-3xl md:text-4xl font-bold mb-4 text-[#00d4ff]">
+          Get Certified
+        </h2>
+        <p className="text-lg text-gray-300 mb-6">
+          Take online courses and earn industry-recognized certifications taught by world-class dance educators. Boost your credentials and unlock new opportunities in your dance career.
+        </p>
+        <ul className="mb-6 space-y-3 text-lg">
+          <li className="flex items-center">
+            <CheckCircle className="h-6 w-6 text-[#00d4ff] mr-2" />
+            Flexible, self-paced online learning
+          </li>
+          <li className="flex items-center">
+            <CheckCircle className="h-6 w-6 text-[#00d4ff] mr-2" />
+            Learn from top industry professionals
+          </li>
+          <li className="flex items-center">
+            <CheckCircle className="h-6 w-6 text-[#00d4ff] mr-2" />
+            Certificates to showcase your expertise
+          </li>
+        </ul>
+        <Link href="/courses">
+          <Button className="bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90 rounded-full px-6 py-3 font-medium">
+            Explore Certifications
+          </Button>
+        </Link>
+      </div>
+    </div>
+  </div>
+</section>
 
           {/* Membership Plans Section */}
           <section className="py-20 bg-black">
-            <div className="container mx-auto px-4 max-w-[95%]">
-              <h2 className="text-4xl font-bold mb-4 text-center text-white">
-                Membership Plans
-              </h2>
-              <p className="text-xl text-gray-300 mb-10 text-center max-w-3xl mx-auto">
-                Choose the membership level that best fits your needs. Unlock
-                premium features and resources.
-              </p>
-
-              {/* Seller Plans */}
-              <div className="mb-16">
-                <h3 className="text-2xl font-bold mb-8 text-center text-white">
-                  For Curriculum Sellers
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                  {/* Basic Seller Plan */}
-                  <div className="border border-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow bg-gray-900">
-                    <div className="p-6 bg-gray-900 border-b border-gray-800">
-                      <h3 className="text-2xl font-bold text-white">
-                        Basic Seller
-                      </h3>
-                      <div className="mt-4 mb-6">
-                        <span className="text-4xl font-bold text-white">
-                          $25
-                        </span>
-                        <span className="text-gray-400"> one-time fee</span>
-                      </div>
-                      <Link href="/checkout/stripe?plan=seller_basic">
-                        <Button className="w-full bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90 rounded-full py-2 font-medium">
-                          Subscribe
-                        </Button>
-                      </Link>
-                    </div>
-                    <div className="p-6 text-gray-300">
-                      <ul className="space-y-3">
-                        <li className="flex items-center">
-                          <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                          <span>Account and store set up</span>
-                        </li>
-                        <li className="flex items-center">
-                          <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                          <span>55% profit on all sales</span>
-                        </li>
-                        <li className="flex items-center text-gray-500">
-                          <XCircle className="h-5 w-5 text-gray-600 mr-2" />
-                          <span>Premium marketing features</span>
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-
-                  {/* Premium Seller Plan */}
-                  <div className="border-2 border-[#00d4ff] rounded-xl overflow-hidden shadow-2xl relative bg-gray-900">
-                    <div className="absolute top-0 right-0 bg-[#00d4ff] text-black font-bold px-4 py-1 rounded-bl-lg">
-                      Recommended
-                    </div>
-                    <div className="p-6 bg-gray-900 border-b border-gray-800">
-                      <h3 className="text-2xl font-bold text-white">
-                        Premium Seller
-                      </h3>
-                      <div className="mt-4 mb-6">
-                        <span className="text-4xl font-bold text-white">
-                          $50
-                        </span>
-                        <span className="text-gray-400">/year</span>
-                      </div>
-                      <Link href="/checkout/stripe?plan=seller_premium">
-                        <Button className="w-full bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90 rounded-full py-2 font-medium">
-                          Subscribe
-                        </Button>
-                      </Link>
-                    </div>
-                    <div className="p-6 text-gray-300">
-                      <ul className="space-y-3">
-                        <li className="flex items-center">
-                          <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                          <span>Account and store set up</span>
-                        </li>
-                        <li className="flex items-center">
-                          <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                          <span>75% profit on all sales</span>
-                        </li>
-                        <li className="flex items-center">
-                          <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                          <span>
-                            Premium marketing on website & social media
-                          </span>
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Directory Plans */}
-              <div className="mb-16">
-                <h3 className="text-2xl font-bold mb-8 text-center text-white">
-                  Professional Directory Listings
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                  {/* Basic Directory Plan */}
-                  <div className="border border-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow bg-gray-900">
-                    <div className="p-6 bg-gray-900 border-b border-gray-800">
-                      <h3 className="text-2xl font-bold text-white">
-                        Basic Directory
-                      </h3>
-                      <div className="mt-4 mb-6">
-                        <span className="text-4xl font-bold text-white">
-                          $24.99
-                        </span>
-                        <span className="text-gray-400">/year</span>
-                      </div>
-                      <Link href="/checkout/stripe?plan=directory_basic">
-                        <Button className="w-full bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90 rounded-full py-2 font-medium">
-                          Subscribe
-                        </Button>
-                      </Link>
-                    </div>
-                    <div className="p-6 text-gray-300">
-                      <ul className="space-y-3">
-                        <li className="flex items-center">
-                          <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                          <span>Includes yearly background check</span>
-                        </li>
-                        <li className="flex items-center">
-                          <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                          <span>Profile listing</span>
-                        </li>
-                        <li className="flex items-center text-gray-500">
-                          <XCircle className="h-5 w-5 text-gray-600 mr-2" />
-                          <span>Premium marketing features</span>
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-
-                  {/* Premium Directory Plan */}
-                  <div className="border-2 border-[#00d4ff] rounded-xl overflow-hidden shadow-2xl relative bg-gray-900">
-                    <div className="absolute top-0 right-0 bg-[#00d4ff] text-black font-bold px-4 py-1 rounded-bl-lg">
-                      Featured
-                    </div>
-                    <div className="p-6 bg-gray-900 border-b border-gray-800">
-                      <h3 className="text-2xl font-bold text-white">
-                        Premium Directory
-                      </h3>
-                      <div className="mt-4 mb-6">
-                        <span className="text-4xl font-bold text-white">
-                          $7.99
-                        </span>
-                        <span className="text-gray-400">/month</span>
-                      </div>
-                      <Link href="/checkout/stripe?plan=directory_premium">
-                        <Button className="w-full bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90 rounded-full py-2 font-medium">
-                          Subscribe
-                        </Button>
-                      </Link>
-                    </div>
-                    <div className="p-6 text-gray-300">
-                      <ul className="space-y-3">
-                        <li className="flex items-center">
-                          <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                          <span>Yearly background check</span>
-                        </li>
-                        <li className="flex items-center">
-                          <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                          <span>Profile listing</span>
-                        </li>
-                        <li className="flex items-center">
-                          <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                          <span>Premium marketing features</span>
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Directory Access Plans */}
-              <div className="mb-16">
-                <h3 className="text-2xl font-bold mb-8 text-center text-white">
-                  Talent Directory Membership Access
-                </h3>
-                <p className="text-gray-300 text-center mb-8 max-w-3xl mx-auto">
-                  Dance Realm Exchange requires a membership in order to
-                  directly contact professional dance educators on our Talent
-                  Search Directory.
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-                  {/* Annual Plan */}
-                  <div className="border border-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow bg-gray-900">
-                    <div className="p-6 bg-gray-900 border-b border-gray-800">
-                      <h3 className="text-2xl font-bold text-white">Annual</h3>
-                      <div className="mt-4 mb-6">
-                        <span className="text-4xl font-bold text-white">
-                          $4.99
-                        </span>
-                        <span className="text-gray-400">/month</span>
-                      </div>
-                      <Link href="/checkout/stripe?plan=access_annual">
-                        <Button className="w-full bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90 rounded-full py-2 font-medium">
-                          Subscribe
-                        </Button>
-                      </Link>
-                    </div>
-                    <div className="p-6 text-gray-300">
-                      <ul className="space-y-3">
-                        <li className="flex items-center">
-                          <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                          <span>Access to professional directory</span>
-                        </li>
-                        <li className="flex items-center">
-                          <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                          <span>Direct messaging with professionals</span>
-                        </li>
-                        <li className="flex items-center">
-                          <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                          <span>Best value long-term</span>
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-
-                  {/* Quarterly Plan */}
-                  <div className="border-2 border-[#00d4ff] rounded-xl overflow-hidden shadow-2xl relative bg-gray-900">
-                    <div className="absolute top-0 right-0 bg-[#00d4ff] text-black font-bold px-4 py-1 rounded-bl-lg">
-                      Popular
-                    </div>
-                    <div className="p-6 bg-gray-900 border-b border-gray-800">
-                      <h3 className="text-2xl font-bold text-white">
-                        Quarterly
-                      </h3>
-                      <div className="mt-4 mb-6">
-                        <span className="text-4xl font-bold text-white">
-                          $9.99
-                        </span>
-                        <span className="text-gray-400">/month</span>
-                      </div>
-                      <Link href="/checkout/stripe?plan=access_quarterly">
-                        <Button className="w-full bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90 rounded-full py-2 font-medium">
-                          Subscribe
-                        </Button>
-                      </Link>
-                    </div>
-                    <div className="p-6 text-gray-300">
-                      <ul className="space-y-3">
-                        <li className="flex items-center">
-                          <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                          <span>Access to professional directory</span>
-                        </li>
-                        <li className="flex items-center">
-                          <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                          <span>Direct messaging with professionals</span>
-                        </li>
-                        <li className="flex items-center">
-                          <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                          <span>Flexible quarterly commitment</span>
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-
-                  {/* Monthly Plan */}
-                  <div className="border border-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow bg-gray-900">
-                    <div className="p-6 bg-gray-900 border-b border-gray-800">
-                      <h3 className="text-2xl font-bold text-white">Monthly</h3>
-                      <div className="mt-4 mb-6">
-                        <span className="text-4xl font-bold text-white">
-                          $19.99
-                        </span>
-                        <span className="text-gray-400">/month</span>
-                      </div>
-                      <Link href="/checkout/stripe?plan=access_monthly">
-                        <Button className="w-full bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90 rounded-full py-2 font-medium">
-                          Subscribe
-                        </Button>
-                      </Link>
-                    </div>
-                    <div className="p-6 text-gray-300">
-                      <ul className="space-y-3">
-                        <li className="flex items-center">
-                          <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                          <span>Access to professional directory</span>
-                        </li>
-                        <li className="flex items-center">
-                          <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                          <span>Direct messaging with professionals</span>
-                        </li>
-                        <li className="flex items-center">
-                          <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                          <span>No long-term commitment</span>
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Royalty All-In-One Plan */}
-              <div>
-                <h3 className="text-2xl font-bold mb-8 text-center text-white">
-                  All-In-One Solution
-                </h3>
-                <div className="max-w-md mx-auto">
-                  <div className="border-2 border-[#00d4ff] rounded-xl overflow-hidden shadow-2xl relative bg-gray-900">
-                    <div className="absolute top-0 right-0 bg-[#00d4ff] text-black font-bold px-4 py-1 rounded-bl-lg">
-                      Best Value
-                    </div>
-                    <div className="p-6 bg-gray-900 border-b border-gray-800">
-                      <h3 className="text-2xl font-bold text-white">
-                        Royalty Membership
-                      </h3>
-                      <div className="mt-4 mb-6">
-                        <span className="text-4xl font-bold text-white">
-                          $99.99
-                        </span>
-                        <span className="text-gray-400">/year</span>
-                      </div>
-                      <Link href="/checkout/stripe?plan=royalty">
-                        <Button className="w-full bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90 rounded-full py-2 font-medium">
-                          Subscribe
-                        </Button>
-                      </Link>
-                    </div>
-                    <div className="p-6 text-gray-300">
-                      <p className="font-bold mb-4 text-xl text-center text-[#00d4ff]">
-                        Includes Everything:
-                      </p>
-                      <ul className="space-y-3">
-                        <li className="flex items-center">
-                          <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                          <span>Premium Seller Membership</span>
-                        </li>
-                        <li className="flex items-center">
-                          <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                          <span>Premium Directory Membership</span>
-                        </li>
-                        <li className="flex items-center">
-                          <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                          <span>Talent Directory Annual Access</span>
-                        </li>
-                        <li className="flex items-center">
-                          <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                          <span>
-                            Save over 40% compared to individual plans
-                          </span>
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
+  <div className="container mx-auto px-4 max-w-[80%]">
+    <h2 className="text-4xl font-bold mb-4 text-center text-white">
+      Plans & Pricing
+    </h2>
+    <p className="text-xl text-gray-300 mb-10 text-center max-w-3xl mx-auto">
+      Browse Dance Professionals, Certifications, and Purchase Curriculum with a free membership
+    </p>
+    <h3 className="text-2xl font-bold mb-8 text-center text-white">
+      Which Plan is Right for Me?
+    </h3>
+    <div className="overflow-x-auto">
+      <table className="min-w-full border-separate border-spacing-y-2">
+        <thead>
+          <tr>
+            <th className="bg-gray-900 text-white text-lg font-bold py-4 px-2 rounded-tl-xl"></th>
+            <th className="bg-gray-900 text-white text-lg font-bold py-4 px-6">Free</th>
+            <th className="bg-gray-900 text-white text-lg font-bold py-4 px-6">Nobility<br /><span className="text-[#00d4ff] text-base font-semibold">$9.99/mo</span></th>
+            <th className="bg-gray-900 text-white text-lg font-bold py-4 px-6">Royalty<br /><span className="text-[#00d4ff] text-base font-semibold">$19.99/mo</span></th>
+            <th className="bg-gray-900 text-white text-lg font-bold py-4 px-6 rounded-tr-xl">Imperial<br /><span className="text-[#00d4ff] text-base font-semibold">$29.99/mo</span></th>
+          </tr>
+        </thead>
+        <tbody className="text-gray-200 text-base">
+          {/* Feature: Purchase Curriculum */}
+          <tr className="bg-gray-900">
+            <td className="py-4 px-2 font-semibold">Purchase Curriculum</td>
+            <td className="text-center"><CheckCircle className="inline h-6 w-6 text-[#00d4ff]" /></td>
+            <td className="text-center"><CheckCircle className="inline h-6 w-6 text-[#00d4ff]" /></td>
+            <td className="text-center"><CheckCircle className="inline h-6 w-6 text-[#00d4ff]" /></td>
+            <td className="text-center"><CheckCircle className="inline h-6 w-6 text-[#00d4ff]" /></td>
+          </tr>
+          {/* Feature: Search Dance Professionals */}
+          <tr className="bg-gray-800">
+            <td className="py-4 px-2 font-semibold">Search Dance Professionals</td>
+            <td className="text-center"><CheckCircle className="inline h-6 w-6 text-[#00d4ff]" /></td>
+            <td className="text-center"><CheckCircle className="inline h-6 w-6 text-[#00d4ff]" /></td>
+            <td className="text-center"><CheckCircle className="inline h-6 w-6 text-[#00d4ff]" /></td>
+            <td className="text-center"><CheckCircle className="inline h-6 w-6 text-[#00d4ff]" /></td>
+          </tr>
+          {/* Feature: Take a Certification Course */}
+          <tr className="bg-gray-900">
+            <td className="py-4 px-2 font-semibold">Take a Certification Course</td>
+            <td className="text-center"><CheckCircle className="inline h-6 w-6 text-[#00d4ff]" /></td>
+            <td className="text-center"><CheckCircle className="inline h-6 w-6 text-[#00d4ff]" /></td>
+            <td className="text-center"><CheckCircle className="inline h-6 w-6 text-[#00d4ff]" /></td>
+            <td className="text-center"><CheckCircle className="inline h-6 w-6 text-[#00d4ff]" /></td>
+          </tr>
+          {/* Feature: Be Booked as a Dance Professional */}
+          <tr className="bg-gray-800">
+            <td className="py-4 px-2 font-semibold">Be Booked as a Dance Professional</td>
+            <td className="text-center text-gray-500">—</td>
+            <td className="text-center"><CheckCircle className="inline h-6 w-6 text-[#00d4ff]" /></td>
+            <td className="text-center"><CheckCircle className="inline h-6 w-6 text-[#00d4ff]" /></td>
+            <td className="text-center"><CheckCircle className="inline h-6 w-6 text-[#00d4ff]" /></td>
+          </tr>
+          {/* Feature: Sell Curriculum */}
+          <tr className="bg-gray-900">
+            <td className="py-4 px-2 font-semibold">Sell Curriculum</td>
+            <td className="text-center text-gray-500">—</td>
+            <td className="text-center"><CheckCircle className="inline h-6 w-6 text-[#00d4ff]" /></td>
+            <td className="text-center"><CheckCircle className="inline h-6 w-6 text-[#00d4ff]" /></td>
+            <td className="text-center"><CheckCircle className="inline h-6 w-6 text-[#00d4ff]" /></td>
+          </tr>
+          {/* Feature: Contact and Book Dance Professionals */}
+          <tr className="bg-gray-800">
+            <td className="py-4 px-2 font-semibold">Contact and Book Dance Professionals</td>
+            <td className="text-center text-gray-500">—</td>
+            <td className="text-center text-gray-500">—</td>
+            <td className="text-center"><CheckCircle className="inline h-6 w-6 text-[#00d4ff]" /></td>
+            <td className="text-center"><CheckCircle className="inline h-6 w-6 text-[#00d4ff]" /></td>
+          </tr>
+          {/* Feature: Be Featured as a Premium Seller */}
+          <tr className="bg-gray-900">
+            <td className="py-4 px-2 font-semibold">Be Featured as a Premium Seller</td>
+            <td className="text-center text-gray-500">—</td>
+            <td className="text-center text-gray-500">—</td>
+            <td className="text-center text-gray-500">—</td>
+            <td className="text-center"><CheckCircle className="inline h-6 w-6 text-[#00d4ff]" /></td>
+          </tr>
+         
+        </tbody>
+      </table>
+      {/* a button that says COMPARE PLANS - this button will take them to the plans and pricing page */}
+      <div className="mt-8 text-center">
+        <Link href="/subscription">
+          <Button className="bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90 rounded-full px-8 py-3 font-bold">
+            Compare Plans
+          </Button>
+        </Link>
+      </div>
+    </div>
+  </div>
+</section>
 
           {/* Call to Action for guests */}
           <section className="py-20 bg-[#00d4ff]">

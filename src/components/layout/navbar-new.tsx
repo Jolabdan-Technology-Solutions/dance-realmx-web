@@ -21,9 +21,21 @@ function UserSessionMenu() {
 
   console.log("UserSessionMenu - Current user state:", user);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     console.log("Logout button clicked from dropdown");
-    logoutMutation.mutate();
+    try {
+      // Call the logout API endpoint
+      await fetch("https://api.livetestdomain.com/api/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+      // After successful API logout, trigger the mutation to clear local state
+      logoutMutation.mutate();
+    } catch (error) {
+      console.error("Logout failed:", error);
+      // Still attempt to clear local state even if API call fails
+      logoutMutation.mutate();
+    }
   };
 
   // For debugging - Always show the user menu with logout option
@@ -79,8 +91,8 @@ function UserSessionMenu() {
                 </Link>
               </DropdownMenuItem>
 
-              {(user.role === "SELLER" ||
-                user.role === "CURRICULUM_OFFICER") && (
+              {(user.role.includes("SELLER") ||
+                user.role.includes("CURRICULUM_OFFICER")) && (
                 <DropdownMenuItem asChild>
                   <Link
                     href="/seller/payments"
@@ -92,12 +104,7 @@ function UserSessionMenu() {
               )}
 
               {/* Curriculum officer admin link removed - already available in mobile menu */}
-              {user.role_mappings?.some(mapping => 
-                mapping.role === 'ADMIN' || 
-                mapping.role === 'CURRICULUM_ADMIN' || 
-                mapping.role === 'INSTRUCTOR_ADMIN' || 
-                mapping.role === 'COURSE_CREATOR_ADMIN'
-              ) && (
+              {user.role.includes("ADMIN") && (
                 <>
                   <DropdownMenuItem asChild>
                     <Link
@@ -191,8 +198,8 @@ function MobileUserMenu() {
         </Button>
       </Link>
 
-      {(user?.role === "SELLER" ||
-        user?.role === "CURRICULUM_OFFICER") && (
+      {(user?.role.includes("SELLER") ||
+        user?.role.includes("CURRICULUM_OFFICER")) && (
         <Link href="/seller/payments">
           <Button
             variant="outline"
@@ -203,7 +210,7 @@ function MobileUserMenu() {
         </Link>
       )}
 
-      {user?.role === "CURRICULUM_OFFICER" && (
+      {user?.role.includes("CURRICULUM_OFFICER") && (
         <Link href="/admin/curriculum">
           <Button
             variant="outline"
@@ -213,7 +220,7 @@ function MobileUserMenu() {
           </Button>
         </Link>
       )}
-      {user?.role === "ADMIN" && (
+      {user?.role.includes("ADMIN") && (
         <Link href="/admin">
           <Button
             variant="outline"
@@ -251,7 +258,7 @@ function GuestMenu() {
       </Link>
       <Link href="/register">
         <Button className="rounded-full bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90 font-bold">
-          Get Started
+          Sign Up
         </Button>
       </Link>
     </div>
@@ -357,7 +364,7 @@ export default function Navbar() {
                     : "hover:text-[#00d4ff] transition"
                 }
               >
-                Connect
+                Connect & Book
               </Link>
             </li>
             <li>
@@ -369,7 +376,7 @@ export default function Navbar() {
                     : "hover:text-[#00d4ff] transition"
                 }
               >
-                Membership
+                Plans & Pricing
               </Link>
             </li>
           </ul>
@@ -425,7 +432,7 @@ export default function Navbar() {
                   location === "/connect" ? "block text-[#00d4ff]" : "block"
                 }
               >
-                Connect
+                Connect & Book
               </Link>
             </li>
             <li>
@@ -437,7 +444,7 @@ export default function Navbar() {
                     : "block"
                 }
               >
-                Membership
+                Plans & Pricing
               </Link>
             </li>
 

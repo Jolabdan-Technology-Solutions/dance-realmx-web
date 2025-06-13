@@ -28,14 +28,7 @@ import {
 } from "../../components/ui/dialog";
 import { AdminEditableContent } from "../../components/admin/admin-editable-content";
 import { VideoPreviewModal } from "../../components/curriculum/video-preview-modal";
-
-export interface CourseModules {
-  id: number;
-  courseId: number;
-  title: string;
-  orderIndex: number;
-  lessons?: Lesson[];
-}
+import { navigate } from "wouter/use-browser-location";
 
 interface Lesson {
   id: number;
@@ -46,14 +39,22 @@ interface Lesson {
   videoUrl?: string;
 }
 
-export interface CourseWithModules {
+interface CourseModules {
+  id: number;
+  courseId: number;
+  title: string;
+  orderIndex: number;
+  lessons?: Lesson[];
+}
+
+interface CourseWithModules {
   id: number;
   title: string;
   description?: string;
   price: string;
   instructorId?: number;
   categoryId?: number;
-  difficulty?: string;
+  difficulty_level?: string;
   duration?: string;
   image_url?: string;
   createdAt?: string;
@@ -88,6 +89,28 @@ export function CourseDetailsModal({
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [isShortPreviewModalOpen, setIsShortPreviewModalOpen] = useState(false);
 
+  const [isEnrolled, setIsEnrolled] = useState(false);
+
+  useEffect(() => {
+    const checkEnrollment = async () => {
+      if (!user?.id) return;
+      try {
+        const response = await apiRequest(`/api/courses/enrollment/me`, {
+          method: "GET",
+        });
+        const enrolled = response?.courses?.some(
+          (course: any) =>
+            course.course.id === Number(courseId) &&
+            course.enrollment.status === "ACTIVE"
+        );
+        setIsEnrolled(enrolled);
+      } catch (error) {
+        console.error("Error checking enrollment:", error);
+      }
+    };
+    checkEnrollment();
+  }, [user?.id, courseId]);
+
   // Fetch course details
   const {
     data: course,
@@ -95,7 +118,13 @@ export function CourseDetailsModal({
     error: courseError,
   } = useQuery<CourseWithModules>({
     queryKey: [`/api/courses/${courseId}`],
-    enabled: isOpen && !isNaN(courseId),
+    queryFn: async () => {
+      const response = await apiRequest(`/api/courses/${courseId}`, {
+        method: "GET",
+      });
+      return response;
+    },
+    enabled: isOpen,
     retry: 2,
     staleTime: 60000,
   });
@@ -108,6 +137,15 @@ export function CourseDetailsModal({
 
   const { data: category } = useQuery<Category>({
     queryKey: [`/api/categories/${course?.categoryId}`],
+    queryFn: async () => {
+      const response = await apiRequest(
+        `/api/categories/${course?.categoryId}`,
+        {
+          method: "GET",
+        }
+      );
+      return response.data;
+    },
     enabled: isOpen && !!course?.categoryId,
   });
 
@@ -116,16 +154,17 @@ export function CourseDetailsModal({
     mutationFn: async () => {
       if (!course) throw new Error("Course information not available");
 
-      // Get the appropriate price based on subscription tier
-      const price = course.price;
-
-      return await apiRequest("POST", "/api/cart", {
-        itemType: "course",
-        itemId: courseId,
-        title: course.title,
-        price,
-        quantity: 1,
+      const response = await apiRequest("/api/cart", {
+        method: "POST",
+        data: {
+          itemType: "course",
+          itemId: courseId,
+          title: course.title,
+          price: course.price,
+          quantity: 1,
+        },
       });
+      return response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
@@ -148,28 +187,25 @@ export function CourseDetailsModal({
   // Enroll via Stripe payment mutation
   const enrollMutation = useMutation({
     mutationFn: async () => {
-      // Use the new dedicated course checkout endpoint
-      const successUrl = `${window.location.origin}/courses/success?courseId=${courseId}`;
-      const cancelUrl = `${window.location.origin}/courses`;
+      const response = await apiRequest(
+        `/api/courses/enroll-course/${courseId}`,
+        {
+          method: "POST",
+          data: {
+            userId: user?.id,
+          },
+        }
+      );
 
-      const res = await apiRequest("POST", "/api/create-course-checkout", {
-        courseId,
-        successUrl,
-        cancelUrl,
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(
-          errorData.message || "Failed to create checkout session"
-        );
+      if (!response) {
+        throw new Error("Failed to create checkout session");
       }
 
-      const { url } = await res.json();
+      console.log(response);
 
-      // Redirect to Stripe Checkout
+      const { url } = response;
       window.location.href = url;
-      return {};
+      return response.data;
     },
     onSuccess: () => {
       toast({
@@ -208,7 +244,7 @@ export function CourseDetailsModal({
   };
 
   const handleOpenPreviewVideo = () => {
-    if (course?.fullVideoUrl) {
+    if (course?.preview_video_url) {
       setIsPreviewModalOpen(true);
     } else {
       toast({
@@ -276,12 +312,12 @@ export function CourseDetailsModal({
                 }}
               />
               <div className="absolute inset-0 flex items-end p-6 bg-gradient-to-t from-black/80 via-black/40 to-transparent">
-                {course?.difficulty && (
+                {course?.difficulty_level && (
                   <Badge
                     variant="outline"
                     className="bg-primary text-black absolute top-4 right-4"
                   >
-                    {course.difficulty}
+                    {course.difficulty_level}
                   </Badge>
                 )}
               </div>
@@ -342,7 +378,7 @@ export function CourseDetailsModal({
                     </span>
                   </div>
 
-                  {course?.fullVideoUrl && (
+                  {course?.preview_video_url && (
                     <Button
                       onClick={handleOpenPreviewVideo}
                       variant="outline"
@@ -354,7 +390,7 @@ export function CourseDetailsModal({
 
                   {user ? (
                     <div className="space-y-3">
-                      <Button
+                      {/* <Button
                         onClick={handleAddToCart}
                         className="w-full bg-primary text-black hover:bg-primary/90"
                         disabled={addingToCart}
@@ -367,26 +403,34 @@ export function CourseDetailsModal({
                         ) : (
                           "Add to Cart"
                         )}
-                      </Button>
-
-                      <Button
-                        onClick={handleEnroll}
-                        className="w-full"
-                        disabled={enrolling}
-                      >
-                        {enrolling ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Enrolling...
-                          </>
-                        ) : (
-                          "Enroll Now"
-                        )}
-                      </Button>
+                      </Button> */}
+                      {isEnrolled ? (
+                        <Button
+                          onClick={() => navigate(`/courses/${courseId}`)}
+                          className="w-full"
+                        >
+                          Go to course
+                        </Button>
+                      ) : (
+                        <Button
+                          onClick={handleEnroll}
+                          className="w-full"
+                          disabled={enrolling}
+                        >
+                          {enrolling ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Enrolling...
+                            </>
+                          ) : (
+                            "Enroll Now"
+                          )}
+                        </Button>
+                      )}{" "}
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      <Button
+                      {/* <Button
                         onClick={handleAddToCart}
                         className="w-full bg-primary text-black hover:bg-primary/90"
                         disabled={addingToCart}
@@ -399,7 +443,7 @@ export function CourseDetailsModal({
                         ) : (
                           "Add to Cart"
                         )}
-                      </Button>
+                      </Button> */}
 
                       <Button asChild variant="outline" className="w-full">
                         <Link href="/auth">Sign In to Enroll</Link>
@@ -479,7 +523,7 @@ export function CourseDetailsModal({
           </Button>
           {!isLoadingCourse && course && (
             <>
-              <Button
+              {/* <Button
                 onClick={handleAddToCart}
                 className="bg-primary text-black hover:bg-primary/90"
                 disabled={addingToCart}
@@ -492,17 +536,30 @@ export function CourseDetailsModal({
                 ) : (
                   "Add to Cart"
                 )}
-              </Button>
-              <Button onClick={handleEnroll} disabled={enrolling || !user}>
-                {enrolling ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Enrolling...
-                  </>
-                ) : (
-                  "Enroll Now"
-                )}
-              </Button>
+              </Button> */}
+              {isEnrolled ? (
+                <Button
+                  onClick={() => navigate(`/courses/${courseId}`)}
+                  className=""
+                >
+                  Go to course
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleEnroll}
+                  className=""
+                  disabled={enrolling || !user}
+                >
+                  {enrolling ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Enrolling...
+                    </>
+                  ) : (
+                    "Enroll Now"
+                  )}
+                </Button>
+              )}{" "}
             </>
           )}
         </DialogFooter>

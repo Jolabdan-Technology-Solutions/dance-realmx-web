@@ -65,36 +65,58 @@ const NotFound = createLazyComponent(() => import("./pages/not-found"));
 
 // Course Certification Module
 const CoursesPage = lazy(() => import("@/pages/courses/courses-page"));
-const CourseDetailsPage = lazy(() => import("@/pages/courses/course-details-page"));
-const MyCertificationsPage = lazy(() => import("@/pages/my-certifications-page"));
+const CourseDetailsPage = lazy(
+  () => import("@/pages/courses/course-details-page")
+);
+const MyCertificationsPage = lazy(
+  () => import("@/pages/my-certifications-page")
+);
 const MyCoursesPage = lazy(() => import("@/pages/courses/my-courses-page"));
-const CourseModulePage = lazy(() => import("@/pages/courses/course-module-page"));
+const CourseModulePage = lazy(
+  () => import("@/pages/courses/course-module-page")
+);
 const LessonPage = lazy(() => import("@/pages/lesson-page"));
 const QuizPage = lazy(() => import("@/pages/quiz-page"));
 const CertificatePage = lazy(() => import("@/pages/certificate-page"));
-const CertificateTemplatesPage = lazy(() => import("@/pages/certificate-templates-page"));
-const CourseAdminDashboard = lazy(() => import("@/pages/courses/course-admin-dashboard"));
+const CertificateTemplatesPage = lazy(
+  () => import("@/pages/certificate-templates-page")
+);
+const CourseAdminDashboard = lazy(
+  () => import("@/pages/courses/course-admin-dashboard")
+);
 
 // Connect - Booking Module
 const ConnectPage = lazy(() => import("@/pages/connect-page"));
 const ConnectPageNew = lazy(() => import("@/pages/connect-page-new"));
 const ConnectPageUpdated = lazy(() => import("@/pages/connect-page-updated"));
-const InstructorProfilePage = lazy(() => import("@/pages/instructor-profile-page"));
+const InstructorProfilePage = lazy(
+  () => import("@/pages/instructor-profile-page")
+);
 const BookingPage = lazy(() => import("@/pages/booking-page"));
 const MyBookingsPage = lazy(() => import("@/pages/my-bookings-page"));
 
 // Curriculum Resource Module
-const CurriculumPage = lazy(() => import("@/pages/curriculum/curriculum-page-simple"));
-const CurriculumPageCombined = lazy(() => import("@/pages/curriculum/curriculum-page-combined"));
-const ResourceDetailsPage = lazy(() => import("@/pages/resource-details-page"));
+const CurriculumPage = lazy(
+  () => import("@/pages/curriculum/curriculum-page-simple")
+);
+// const CurriculumPageCombined = lazy(
+//   // () => import("@/pages/curriculum/curriculum-page-combined")
+// );
+const ResourceDetailsPage = lazy(
+  () => import("@/pages/curriculum/curriculum-details-page")
+);
 const EditResourcePage = lazy(() => import("@/pages/edit-resource-page"));
 const MyResourcesPage = lazy(() => import("@/pages/my-resources-page"));
 const UploadResourcePage = lazy(() => import("@/pages/upload-resource-page"));
-const SimpleUploadResourcePage = lazy(() => import("@/pages/simple-upload-resource-page"));
+const SimpleUploadResourcePage = lazy(
+  () => import("@/pages/simple-upload-resource-page")
+);
 const SellerStorePage = lazy(() => import("@/pages/seller-store-page"));
 const SellerDashboardPage = lazy(() => import("@/pages/seller-dashboard-page"));
 const SellerPaymentsPage = lazy(() => import("@/pages/seller-payments-page"));
-const CurriculumOfficerDashboard = lazy(() => import("@/pages/curriculum/curriculum-officer-dashboard"));
+const CurriculumOfficerDashboard = lazy(
+  () => import("@/pages/curriculum/curriculum-officer-dashboard")
+);
 
 // Subscription Module
 const SubscriptionPage = createLazyComponent(
@@ -157,6 +179,9 @@ const InstructorCertificatesPage = createLazyComponent(
 );
 const IssueCertificatePage = createLazyComponent(
   () => import("./pages/instructor/issue-certificate-page")
+);
+const CourseEditPages = createLazyComponent(
+  () => import("./components/form/Edit-course")
 );
 
 // Admin Pages
@@ -266,7 +291,7 @@ const Pages = {
 
   // Curriculum Resource Module
   Curriculum: withLayout(CurriculumPage),
-  CurriculumCombined: withLayout(CurriculumPageCombined),
+  // CurriculumCombined: withLayout(CurriculumPageCombined),
   ResourceDetails: withLayout(ResourceDetailsPage),
   EditResource: withLayout(EditResourcePage),
   MyResources: withLayout(MyResourcesPage),
@@ -302,6 +327,7 @@ const Pages = {
   InstructorQuizzes: withLayout(InstructorQuizzesPage),
   InstructorCertificates: withLayout(InstructorCertificatesPage),
   IssueCertificate: withLayout(IssueCertificatePage),
+  CourseEdit: withLayout(CourseEditPages),
 
   // Admin Pages
   AdminDashboard: withAdminLayout(AdminDashboardPage),
@@ -405,6 +431,7 @@ function Router() {
 
         {/* Curriculum Resource Module */}
         <GuestRoute path="/curriculum" component={Pages.Curriculum} />
+
         <GuestRoute
           path="/curriculum/:resourceId"
           component={Pages.ResourceDetails}
@@ -536,6 +563,11 @@ function Router() {
           path="/instructor/courses/:id"
           component={Pages.CourseDetail}
         />
+
+        <ProtectedRoute
+          path="/instructor/courses/:id/edit"
+          component={Pages.CourseEdit}
+        />
         <ProtectedRoute
           path="/instructor/students"
           component={Pages.InstructorStudents}
@@ -559,7 +591,7 @@ function Router() {
         <AdminRoute path="/admin/users" component={Pages.AdminUsers} />
         <AdminRoute path="/admin/users/:id" component={Pages.AdminUserEdit} />
         <AdminRoute path="/admin/roles" component={Pages.AdminRoles} />
-        <AdminRoute path="/admin/courses" component={Pages.AdminCourses} />
+        <ProtectedRoute path="/admin/courses" component={Pages.AdminCourses} />
         <AdminRoute
           path="/admin/course-categories"
           component={Pages.AdminCourseCategories}
@@ -605,7 +637,7 @@ function Router() {
         />
 
         {/* Specialty Admin Dashboards */}
-        <AdminRoute
+        <ProtectedRoute
           path="/admin/course-creator"
           component={Pages.CourseAdmin}
         />

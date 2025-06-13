@@ -87,7 +87,7 @@ export default function Navbar() {
               </li>
               <li>
                 <Link href="/connect" className="text-white hover:text-gray-300">
-                  Connect
+                  Connect & Book
                 </Link>
               </li>
               <li>

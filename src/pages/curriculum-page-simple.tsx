@@ -1,44 +1,45 @@
 import { useState, useEffect } from "react";
-import { Link, useLocation } from "wouter";
-import { navigate } from "wouter/use-browser-location";
-import { Loader2, Plus, Search, ThumbsUp, Filter, User } from "lucide-react";
-import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
-import { CachedImage } from "../../components/ui/cached-image";
-import { CachedResourceImage } from "../../components/ui/cached-resource-image";
+import { Link } from "wouter";
 import {
-  DEFAULT_RESOURCE_IMAGE,
-  DEFAULT_USER_IMAGE,
-} from "../../lib/constants";
+  Loader2,
+  Plus,
+  Search,
+  ThumbsUp,
+  Filter,
+  User,
+  BadgeCheck,
+  Award,
+} from "lucide-react";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { CachedImage } from "../components/ui/cached-image";
+import { CachedResourceImage } from "../components/ui/cached-resource-image";
+import { DEFAULT_RESOURCE_IMAGE, DEFAULT_USER_IMAGE } from "../lib/constants";
 import {
   Card,
   CardContent,
   CardFooter,
   CardHeader,
   CardTitle,
-} from "../../components/ui/card";
-import {
-  Avatar,
-  AvatarImage,
-  AvatarFallback,
-} from "../../components/ui/avatar";
+} from "../components/ui/card";
+import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
 import {
   ResourcePlaceholderGrid,
   ResourceErrorCard,
-} from "../../components/ui/resource-placeholder";
-import { useAuth } from "../../hooks/use-auth";
-import { useToast } from "../../hooks/use-toast";
-import { useCart } from "../../hooks/use-cart";
-import { useGuestCart } from "../../hooks/use-guest-cart";
-import { api } from "../../lib/api";
-import { Checkbox } from "../../components/ui/checkbox";
+} from "../components/ui/resource-placeholder";
+import { useAuth } from "../hooks/use-auth";
+import { useToast } from "../hooks/use-toast";
+import { useCart } from "../hooks/use-cart";
+import { useGuestCart } from "../hooks/use-guest-cart";
+import { api } from "../lib/api";
+import { Checkbox } from "../components/ui/checkbox";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "../../components/ui/tooltip";
-import { ResourceDetailsModal } from "../../components/curriculum/resource-details-modal";
+} from "../components/ui/tooltip";
+import { ResourceDetailsModal } from "../components/curriculum/resource-details-modal";
 
 // Define filter types
 type FilterState = {
@@ -63,11 +64,11 @@ export default function CurriculumPageSimple() {
 
   // Initialize filter state
   const [filters, setFilters] = useState<FilterState>({
-    priceRange: [],
-    danceStyles: [],
-    ageRanges: [],
-    difficultyLevels: [],
-    sellers: [],
+    price: [],
+    danceStyle: [],
+    ageRange: [],
+    difficultyLevel: [],
+    seller: [],
     resourceFormat: [],
     showFilters: false,
   });
@@ -91,21 +92,15 @@ export default function CurriculumPageSimple() {
 
   // Fetch resources from API
   useEffect(() => {
-    const fetchResources = async () => {
+    const fetchResources = async (): Promise<void> => {
       try {
         setLoading(true);
         setError(false);
 
         console.log("DEBUG CURRICULUM CLIENT: Starting resource fetch");
 
-        // Fetch resources from the API with auth headers
-        const response = await api.get("/api/resources", {
-          headers: {
-            Authorization: localStorage.getItem("access_token")
-              ? `Bearer ${localStorage.getItem("access_token")}`
-              : undefined,
-          },
-        });
+        // Fetch resources from the API
+        const response = await api.get("/api/resources");
 
         console.log(
           "DEBUG CURRICULUM CLIENT: Resources fetched successfully:",
@@ -139,7 +134,7 @@ export default function CurriculumPageSimple() {
     };
 
     fetchResources();
-  }, [searchTerm, filters, toast, user]);
+  }, [searchTerm, filters, toast]);
 
   const toggleFilter = (
     type: keyof Omit<FilterState, "showFilters">,
@@ -323,7 +318,7 @@ export default function CurriculumPageSimple() {
                 <div key={level} className="flex items-center space-x-2">
                   <Checkbox
                     id={`level-${level}`}
-                    checked={filters.difficultyLevels.includes(level)}
+                    checked={filters.difficultyLevel.includes(level)}
                     onCheckedChange={() =>
                       toggleFilter("difficultyLevels", level)
                     }
@@ -350,19 +345,11 @@ export default function CurriculumPageSimple() {
             <Card key={resource.id} className="overflow-hidden">
               <CardHeader className="p-0">
                 <div className="relative aspect-video">
-                  {/* <CachedResourceImage
-                    resource={resource}
-                    alt={resource.title}
-                    className="object-cover w-full h-full"
-                  /> */}
-
-                  <div className="relative aspect-video">
-                    <img
-                      src={resource.thumbnailUrl}
-                      className="w-full h-auto"
-                      alt={`thumbnail ${resource?.title}`}
-                    />
-                  </div>
+                  <img
+                    src={resource.thumbnailUrl}
+                    className="w-full h-auto"
+                    alt={`thumbnail ${resource?.title}`}
+                  />
                 </div>
               </CardHeader>
               <CardContent className="p-4">
@@ -372,15 +359,6 @@ export default function CurriculumPageSimple() {
                 <p className="text-sm text-gray-600 mb-4">
                   {resource.description}
                 </p>
-                <div className="flex items-center justify-between">
-                  <Button
-                    onClick={() => navigate(`/curriculum/${resource?.id}`)}
-                    className="ml-2"
-                  >
-                    View Details
-                  </Button>
-                </div>
-
                 <div className="flex items-center justify-between">
                   <span className="text-lg font-bold">${resource.price}</span>
                   <Button onClick={() => addToCart(resource)} className="ml-2">

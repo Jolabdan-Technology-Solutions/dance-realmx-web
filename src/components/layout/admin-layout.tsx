@@ -26,14 +26,14 @@ import {
   Store,
   DollarSign,
   BookMarked,
-  HelpCircle
+  HelpCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { UserRole } from "@/types/user";
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -44,11 +44,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const [currentLocation] = useLocation();
   const { toast } = useToast();
   const { logoutMutation, user } = useAuth();
-  
+
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
-  
+
   const handleLogout = async () => {
     try {
       await logoutMutation.mutateAsync();
@@ -64,46 +64,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       });
     }
   };
-  
-  const isAdmin = user?.role_mappings?.some(mapping => 
-    mapping.role === 'ADMIN' || 
-    mapping.role === 'CURRICULUM_ADMIN' || 
-    mapping.role === 'INSTRUCTOR_ADMIN' || 
-    mapping.role === 'COURSE_CREATOR_ADMIN'
-  ) || false;
 
-  const isCurriculumOfficer = user?.role_mappings?.some(mapping => 
-    mapping.role === 'CURRICULUM_ADMIN'
-  ) || false;
-
-  const isSeller = user?.role_mappings?.some(mapping => 
-    mapping.role === 'SELLER'
-  ) || false;
-
-  const isInstructor = user?.role_mappings?.some(mapping => 
-    mapping.role === 'INSTRUCTOR'
-  ) || false;
-
-  const isCourseCreator = user?.role_mappings?.some(mapping => 
-    mapping.role === 'COURSE_CREATOR'
-  ) || false;
-
-  const isCertificationManager = user?.role_mappings?.some(mapping => 
-    mapping.role === 'CERTIFICATION_MANAGER'
-  ) || false;
-
-  const isDirectoryMember = user?.role_mappings?.some(mapping => 
-    mapping.role === 'DIRECTORY_MEMBER'
-  ) || false;
-
-  const isBookingProfessional = user?.role_mappings?.some(mapping => 
-    mapping.role === 'BOOKING_PROFESSIONAL'
-  ) || false;
-
-  const isBookingUser = user?.role_mappings?.some(mapping => 
-    mapping.role === 'BOOKING_USER'
-  ) || false;
-  
   // Define navigation items for different roles
   const adminNavItems = [
     {
@@ -117,19 +78,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       icon: <Users className="h-5 w-5" />,
     },
     {
-      title: "Roles & Permissions",
-      href: "/admin/roles",
-      icon: <ShieldCheck className="h-5 w-5" />,
-    },
-    {
       title: "Course Management",
       href: "/admin/courses",
       icon: <BookOpen className="h-5 w-5" />,
-    },
-    {
-      title: "Course Creator Dashboard",
-      href: "/admin/course-creator",
-      icon: <Layers className="h-5 w-5" />,
     },
     {
       title: "Course Categories",
@@ -147,24 +98,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       icon: <FileText className="h-5 w-5" />,
     },
     {
-      title: "Curriculum Store",
-      href: "/admin/curriculum",
-      icon: <Store className="h-5 w-5" />,
-    },
-    {
-      title: "Curriculum Officer Dashboard",
-      href: "/admin/curriculum-officer",
-      icon: <ClipboardCheck className="h-5 w-5" />,
-    },
-    {
       title: "Resource Categories",
       href: "/admin/resource-categories",
       icon: <Package className="h-5 w-5" />,
-    },
-    {
-      title: "Instructors",
-      href: "/admin/instructors",
-      icon: <Users className="h-5 w-5" />,
     },
     {
       title: "Bookings",
@@ -172,37 +108,17 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       icon: <Calendar className="h-5 w-5" />,
     },
     {
-      title: "Dance Styles",
-      href: "/admin/dance-styles",
-      icon: <Palette className="h-5 w-5" />,
-    },
-    {
       title: "Subscription Plans",
       href: "/admin/subscription-plans",
       icon: <CreditCard className="h-5 w-5" />,
-    },
-    {
-      title: "Coupons",
-      href: "/admin/coupons",
-      icon: <Ticket className="h-5 w-5" />,
-    },
-    {
-      title: "Messages",
-      href: "/admin/messages",
-      icon: <MessageSquare className="h-5 w-5" />,
     },
     {
       title: "Documentation",
       href: "/admin/documentation",
       icon: <BookMarked className="h-5 w-5" />,
     },
-    {
-      title: "Settings",
-      href: "/admin/settings",
-      icon: <Settings className="h-5 w-5" />,
-    },
   ];
-  
+
   const curriculumOfficerNavItems = [
     {
       title: "Dashboard",
@@ -235,7 +151,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       icon: <Settings className="h-5 w-5" />,
     },
   ];
-  
+
   const sellerNavItems = [
     {
       title: "Dashboard",
@@ -273,7 +189,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       icon: <Store className="h-5 w-5" />,
     },
   ];
-  
+
   const instructorNavItems = [
     {
       title: "Dashboard",
@@ -321,22 +237,21 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       icon: <Settings className="h-5 w-5" />,
     },
   ];
-  
+
   // Choose navigation items based on user role
   const navItems = useMemo(() => {
     if (!user) return [];
-    
-    switch (user.role) {
-      case "admin":
-        return adminNavItems;
-      case "curriculum_officer":
-        return curriculumOfficerNavItems;
-      case "seller":
-        return sellerNavItems;
-      case "instructor":
-        return instructorNavItems;
-      default:
-        return [];
+
+    if (user.role.includes(UserRole.ADMIN)) {
+      return adminNavItems;
+    } else if (user.role.includes(UserRole.CURRICULUM_ADMIN)) {
+      return curriculumOfficerNavItems;
+    } else if (user.role.includes(UserRole.SELLER)) {
+      return sellerNavItems;
+    } else if (user.role.includes(UserRole.INSTRUCTOR_ADMIN)) {
+      return instructorNavItems;
+    } else {
+      return [];
     }
   }, [user]);
 
@@ -350,8 +265,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     >
       <div className="flex h-16 items-center justify-between border-b border-gray-700 px-4">
         {isSidebarOpen ? (
-          <Link 
-            href="/admin/dashboard" 
+          <Link
+            href="/admin/dashboard"
             className="flex items-center gap-2 font-semibold"
           >
             <ShieldCheck className="h-6 w-6 text-primary" />
@@ -360,12 +275,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         ) : (
           <div className="w-6"></div>
         )}
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={toggleSidebar}
-        >
-          {isSidebarOpen ? <ChevronRight className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+        <Button variant="ghost" size="icon" onClick={toggleSidebar}>
+          {isSidebarOpen ? (
+            <ChevronRight className="h-4 w-4" />
+          ) : (
+            <Menu className="h-4 w-4" />
+          )}
         </Button>
       </div>
       <ScrollArea className="flex-1 overflow-auto py-2">
@@ -416,26 +331,20 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     </aside>
   );
 
-  // Mobile Implementation 
-  const MobileSidebar = () => (
+  // Mobile Implementation
+  const MobileSidebar = () =>
     isSidebarOpen && (
       <>
-        <aside
-          className="fixed inset-y-0 left-0 z-[60] flex flex-col bg-gray-800 w-64 lg:hidden"
-        >
+        <aside className="fixed inset-y-0 left-0 z-[60] flex flex-col bg-gray-800 w-64 lg:hidden">
           <div className="flex h-16 items-center justify-between border-b border-gray-700 px-4">
-            <Link 
-              href="/admin/dashboard" 
+            <Link
+              href="/admin/dashboard"
               className="flex items-center gap-2 font-semibold"
             >
               <ShieldCheck className="h-6 w-6 text-primary" />
               <span>DanceRealmX Admin</span>
             </Link>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={toggleSidebar}
-            >
+            <Button variant="ghost" size="icon" onClick={toggleSidebar}>
               <X className="h-4 w-4" />
             </Button>
           </div>
@@ -444,13 +353,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               {navItems.map((item) => (
                 <Link key={`mobile-${item.href}`} href={item.href}>
                   <Button
-                    variant={currentLocation === item.href ? "secondary" : "ghost"}
+                    variant={
+                      currentLocation === item.href ? "secondary" : "ghost"
+                    }
                     className="w-full justify-start"
                   >
                     {item.icon}
-                    <span className="ml-2">
-                      {item.title}
-                    </span>
+                    <span className="ml-2">{item.title}</span>
                   </Button>
                 </Link>
               ))}
@@ -459,14 +368,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           <div className="border-t border-gray-700 p-2">
             <div className="grid gap-1">
               <Link href="/">
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start"
-                >
+                <Button variant="ghost" className="w-full justify-start">
                   <Home className="h-5 w-5" />
-                  <span className="ml-2">
-                    Return to Website
-                  </span>
+                  <span className="ml-2">Return to Website</span>
                 </Button>
               </Link>
               <Button
@@ -475,29 +379,22 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 onClick={handleLogout}
               >
                 <LogOut className="h-5 w-5" />
-                <span className="ml-2">
-                  Sign Out
-                </span>
+                <span className="ml-2">Sign Out</span>
               </Button>
             </div>
           </div>
         </aside>
-        <div 
-          className="fixed inset-0 z-40 bg-black/80 lg:hidden" 
+        <div
+          className="fixed inset-0 z-40 bg-black/80 lg:hidden"
           onClick={toggleSidebar}
         />
       </>
-    )
-  );
+    );
 
-  // Mobile Header 
+  // Mobile Header
   const MobileHeader = () => (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-gray-700 bg-gray-800 px-4 lg:hidden">
-      <Button 
-        variant="ghost" 
-        size="icon" 
-        onClick={toggleSidebar}
-      >
+      <Button variant="ghost" size="icon" onClick={toggleSidebar}>
         <Menu className="h-6 w-6" />
       </Button>
       <div className="flex items-center gap-2">
@@ -511,7 +408,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     <div className="flex min-h-screen bg-gray-900 text-gray-100">
       <DesktopSidebar />
       <MobileSidebar />
-      
+
       <div className="flex flex-1 flex-col">
         <MobileHeader />
         <main className="flex-1 overflow-auto p-4 lg:p-6 text-white bg-gray-900">

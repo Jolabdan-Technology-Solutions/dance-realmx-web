@@ -1,23 +1,24 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from './useAuth';
+import { useAuth } from '@/hooks/use-auth';
 import { api } from '@/lib/api';
 
 interface SubscriptionPlan {
-  id: number;
+  id: string;
   name: string;
-  description: string;
-  priceMonthly: number;
-  priceYearly?: number;
-  features: string[];
-  isPopular: boolean;
-  tier: string;
+  price: number;
+  features: any;
+  created_at: string;
+  updated_at: string;
 }
 
 interface Subscription {
-  id: number;
-  status: 'ACTIVE' | 'TRIALING' | 'CANCELED' | 'FAILED';
-  current_period_end: string;
-  plan_id: number;
+  id: string;
+  user_id: string;
+  plan_id: string;
+  status: 'ACTIVE' | 'CANCELLED' | 'EXPIRED';
+  stripe_subscription_id: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export const useSubscription = () => {

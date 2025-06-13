@@ -75,7 +75,7 @@ export function StepAccountCreation({
         feature.includes("store") ||
         feature.includes("resource")
       ) {
-        roles.add(UserRole.CURRICULUM_SELLER);
+        roles.add(UserRole.CURRICULUM_ADMIN);
       }
 
       if (feature.includes("curriculum")) {
@@ -315,11 +315,11 @@ export function StepAccountCreation({
                               >
                                 <FormControl>
                                   <Checkbox
-                                    checked={field.value?.includes(value)}
+                                    checked={field?.value?.includes(value)}
                                     onCheckedChange={(checked) => {
                                       const updatedRoles = checked
-                                        ? [...field.value, value]
-                                        : field.value.filter(
+                                        ? [...field?.value, value]
+                                        : field?.value?.filter(
                                             (role) => role !== value
                                           );
                                       field.onChange(updatedRoles);
@@ -327,11 +327,18 @@ export function StepAccountCreation({
                                   />
                                 </FormControl>
                                 <FormLabel className="cursor-pointer font-normal">
-                                  {key.charAt(0) +
+                                  {
+                                    /* {key?.charAt(0) +
                                     key
-                                      .slice(1)
+                                      ?.slice(1)
                                       .toLowerCase()
-                                      .replace("_", " ")}
+                                      .replace("_", " ")} */
+                                    value.charAt(0).toUpperCase() +
+                                      value
+                                        .slice(1)
+                                        .toLowerCase()
+                                        .replace("_", " ")
+                                  }
                                 </FormLabel>
                               </FormItem>
                             );

@@ -56,7 +56,7 @@ export const ResourceDetailsModal: React.FC<ResourceDetailsModalProps> = ({
   const { data, isLoading } = useQuery({
     queryKey: ["/api/curriculum", resourceId],
     queryFn: async ({ queryKey }) => {
-      const response = await fetch(`/api/curriculum/${queryKey[1]}`);
+      const response = await fetch(`/api/curriculum/${resource?.id}`);
       if (!response.ok) throw new Error("Failed to fetch resource");
       return response.json();
     },

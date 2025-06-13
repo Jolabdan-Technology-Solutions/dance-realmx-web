@@ -28,26 +28,34 @@ export interface ResourceData {
  */
 export function generateResourceImageUrl(resource: ResourceData): string {
   // If we already have a valid imageUrl, use it
-  if (typeof resource.imageUrl === 'string' && resource.imageUrl && resource.imageUrl.trim() !== '') {
-    return resource.imageUrl;
-  }
-  
-  // If we have a thumbnailUrl, use that as fallback
-  if (typeof resource.thumbnailUrl === 'string' && resource.thumbnailUrl && resource.thumbnailUrl.trim() !== '') {
+  if (
+    typeof resource.thumbnailUrl === "string" &&
+    resource.thumbnailUrl &&
+    resource.thumbnailUrl.trim() !== ""
+  ) {
     return resource.thumbnailUrl;
   }
-  
+
+  // If we have a thumbnailUrl, use that as fallback
+  if (
+    typeof resource.thumbnailUrl === "string" &&
+    resource.thumbnailUrl &&
+    resource.thumbnailUrl.trim() !== ""
+  ) {
+    return resource.thumbnailUrl;
+  }
+
   // Try common pattern locations based on the resource ID
   if (resource.id) {
     // Try a series of predictable paths where resource images might be stored:
     // 1. Use resource_[id].jpg pattern in resources directory
     const resourcePath = `/uploads/resources/resource_${resource.id}.jpg`;
-    
+
     // 2. Use thumbnails directory for smaller preview images
     const thumbnailPath = `/images/thumbnails/resource_${resource.id}.jpg`;
-    
+
     // Determine if we're in a browser environment
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       // In browser, we'll return the resource path and let the error handler try alternatives
       return resourcePath;
     } else {
@@ -55,29 +63,35 @@ export function generateResourceImageUrl(resource: ResourceData): string {
       return resourcePath;
     }
   }
-  
+
   // If we have enough data to generate a placeholder, create one
   if (resource.id && resource.title) {
     // Generate a deterministic color based on resource ID
     const colors = [
-      'FF6B6B', '4ECDC4', 'FF9F1C', '2EC4B6', 
-      'E71D36', '011627', 'FDFFFC', '235789'
+      "FF6B6B",
+      "4ECDC4",
+      "FF9F1C",
+      "2EC4B6",
+      "E71D36",
+      "011627",
+      "FDFFFC",
+      "235789",
     ];
     const colorIndex = resource.id % colors.length;
     const backgroundColor = colors[colorIndex];
-    
+
     // Create resource initials for placeholder
     const initials = resource.title
-      .split(' ')
+      .split(" ")
       .slice(0, 2)
-      .map(word => word.charAt(0))
-      .join('')
+      .map((word) => word.charAt(0))
+      .join("")
       .toUpperCase();
-    
+
     // Generate a UI Avatars URL with resource attributes
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=${backgroundColor}&color=fff&size=128&bold=true`;
   }
-  
+
   // Last resort - return default image
   return DEFAULT_RESOURCE_IMAGE;
 }
@@ -92,20 +106,22 @@ export function handleResourceImageError(
 ): void {
   const imgElement = event.currentTarget;
   const originalSrc = imgElement.src;
-  
+
   console.error(`Resource image failed to load: ${originalSrc}`, {
     resourceId: resource.id,
-    title: resource.title
+    title: resource.title,
   });
-  
+
   // If the original source was already our last-resort options, give up
-  if (originalSrc.includes('ui-avatars.com') || 
-      originalSrc === DEFAULT_RESOURCE_IMAGE) {
+  if (
+    originalSrc.includes("ui-avatars.com") ||
+    originalSrc === DEFAULT_RESOURCE_IMAGE
+  ) {
     // We're already at the fallback chain end, hide the image
-    imgElement.style.display = 'none';
+    imgElement.style.display = "none";
     return;
   }
-  
+
   // Try to find alternatives for this resource image
   // First, try predictable path patterns in various locations
   if (resource.id) {
@@ -124,38 +140,43 @@ export function handleResourceImageError(
       // 6. File upload naming patterns
       `/uploads/file-${resource.id}.jpg`,
     ];
-    
+
     // Try each location in order
     for (const location of locations) {
       // Skip if we're already trying this location
       if (originalSrc.includes(location)) continue;
-      
+
       // Log the recovery attempt
-      console.log(`Attempting resource recovery for ID ${resource.id} with: ${location}`);
-      
+      console.log(
+        `Attempting resource recovery for ID ${resource.id} with: ${location}`
+      );
+
       // Try this location
       imgElement.src = location;
       return; // Let the browser try this path
     }
   }
-  
+
   // If direct paths didn't work, try generating a placeholder
   const fallbackSrc = generateResourceImageUrl(resource);
-  
+
   // Only proceed if we have a different fallback
   if (fallbackSrc && fallbackSrc !== originalSrc) {
     // Log the fallback operation
-    console.log(`Applying resource image fallback for resource ${resource.id}:`, {
-      original: originalSrc,
-      fallback: fallbackSrc
-    });
-    
+    console.log(
+      `Applying resource image fallback for resource ${resource.id}:`,
+      {
+        original: originalSrc,
+        fallback: fallbackSrc,
+      }
+    );
+
     // Apply the fallback
     imgElement.src = fallbackSrc;
-    imgElement.style.display = ''; // Show the image again
+    imgElement.style.display = ""; // Show the image again
   } else {
     // No suitable fallback, hide the image
-    imgElement.style.display = 'none';
+    imgElement.style.display = "none";
   }
 }
 
@@ -169,31 +190,31 @@ export async function checkImageUrl(url: string): Promise<boolean> {
       resolve(false);
       return;
     }
-    
+
     const img = new Image();
-    
+
     img.onload = () => {
       resolve(true);
     };
-    
+
     img.onerror = () => {
       resolve(false);
     };
-    
+
     // Set a timeout in case the image takes too long to load
     const timeout = setTimeout(() => {
       resolve(false);
     }, 5000);
-    
+
     // Set the source to start loading
     img.src = url;
-    
+
     // Clean up the timeout when image loads or errors
     img.onload = () => {
       clearTimeout(timeout);
       resolve(true);
     };
-    
+
     img.onerror = () => {
       clearTimeout(timeout);
       resolve(false);
@@ -208,15 +229,15 @@ export async function checkImageUrl(url: string): Promise<boolean> {
 export function preloadImage(url: string): Promise<void> {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    
+
     img.onload = () => {
       resolve();
     };
-    
+
     img.onerror = () => {
       reject(new Error(`Failed to preload image: ${url}`));
     };
-    
+
     img.src = url;
   });
 }
@@ -227,14 +248,14 @@ export function preloadImage(url: string): Promise<void> {
  */
 export function isValidImageUrl(url: string | null | undefined): boolean {
   if (!url) return false;
-  
+
   // Check if it's a valid URL format
   try {
     const urlObj = new URL(url);
     return true;
   } catch (e) {
     // If it's a relative path, it might still be valid
-    if (url.startsWith('/')) return true;
+    if (url.startsWith("/")) return true;
     return false;
   }
 }
@@ -248,17 +269,17 @@ export function generateResourcePlaceholderData(
   size: "sm" | "md" | "lg" = "md"
 ): { title: string; danceStyle?: string | null; size: "sm" | "md" | "lg" } {
   if (!resource || !resource.title) {
-    return { 
-      title: "Unknown Resource", 
+    return {
+      title: "Unknown Resource",
       danceStyle: null,
-      size 
+      size,
     };
   }
-  
+
   return {
     title: resource.title,
     danceStyle: resource.danceStyle || null,
-    size
+    size,
   };
 }
 
@@ -266,17 +287,20 @@ export function generateResourcePlaceholderData(
  * Generates a preview URL for a resource
  * Used for thumbnails, cards, and featured items
  */
-export function generateResourcePreviewUrl(resource: ResourceData, size: number = 300): string {
+export function generateResourcePreviewUrl(
+  resource: ResourceData,
+  size: number = 300
+): string {
   // If we have a valid imageUrl, use it
   if (resource.imageUrl) {
     return resource.imageUrl;
   }
-  
+
   // If we have a thumbnailUrl, use that as fallback
   if (resource.thumbnailUrl) {
     return resource.thumbnailUrl;
   }
-  
+
   // Generate a placeholder URL based on resource data
   return generateResourceImageUrl(resource);
 }

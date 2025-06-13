@@ -27,7 +27,7 @@ import { Separator } from "../components/ui/separator";
 import { Checkbox } from "../components/ui/checkbox";
 import { UserRole } from "@/constants/roles";
 
-// Form schemas
+// Define form schemas
 const loginSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
   password: z.string().min(6, "Password must be at least 6 characters"),
@@ -45,80 +45,49 @@ const registerSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
-// Custom hook for URL parameters
-const useUrlParams = () => {
-  const [returnUrl, setReturnUrl] = useState("/dashboard");
+// Auth page with auth context
+function AuthPageWithAuth() {
+  // Safely access auth context with fallback
+  const authContext = useContext(AuthContext);
+  const user = authContext?.user || null;
+  const loginMutation = authContext?.loginMutation;
+  const registerMutation = authContext?.registerMutation;
+
+  // Get location and return URL parameters
+  const [, setLocation] = useLocation();
+  const [returnUrl, setReturnUrl] = useState<string>("/dashboard");
   const [connectMode, setConnectMode] = useState<string | null>(null);
 
+  // Extract return URL from query parameters
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
     const returnToParam = searchParams.get("returnTo");
     const modeParam = searchParams.get("mode");
 
-    if (returnToParam) setReturnUrl(returnToParam);
-    if (modeParam) setConnectMode(modeParam);
+    if (returnToParam) {
+      setReturnUrl(returnToParam);
+    }
+
+    if (modeParam) {
+      setConnectMode(modeParam);
+    }
+
+    console.log("Auth returnTo:", returnToParam, "mode:", modeParam);
   }, []);
 
-  return { returnUrl, connectMode };
-};
+  const [activeTab, setActiveTab] = useState<string>("login");
+  const [authError, setAuthError] = useState<any | null>(null);
 
-// Custom hook for auth redirect logic
-const useAuthRedirect = (
-  user: any,
-  returnUrl: string,
-  connectMode: string | null
-) => {
-  const [, navigate] = useLocation();
-
-  useEffect(() => {
-    if (!user) return;
-
-    // Check subscription status
-    if (user.subscription_tier !== "FREE" && !user.is_active) {
-      const subscriptionUrl = `/subscription?tier=${user.subscription_tier}`;
-      navigate(subscriptionUrl);
-      return;
-    }
-
-    // Handle connect mode
-    if (returnUrl.includes("/connect") && connectMode) {
-      navigate(`${returnUrl}?mode=${connectMode}`);
-      return;
-    }
-
-    // Check if in registration flow
-    const isRegistrationFlow =
-      returnUrl.includes("/registration-flow") ||
-      returnUrl.includes("/register");
-
-    if (!isRegistrationFlow && returnUrl !== "/dashboard") {
-      navigate(returnUrl);
-      return;
-    }
-
-    // Default redirect
-    navigate("/dashboard");
-  }, [user, returnUrl, connectMode, navigate]);
-};
-
-// Main auth form component
-function AuthForm() {
-  const authContext = useContext(AuthContext);
-  const { user, loginMutation, registerMutation } = authContext || {};
-  const { returnUrl, connectMode } = useUrlParams();
-
-  const [activeTab, setActiveTab] = useState("login");
-  const [authError, setAuthError] = useState<string | null>(null);
-
-  // Handle redirects
-  useAuthRedirect(user, returnUrl, connectMode);
-
-  // Forms
+  // Login form
   const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { username: "", password: "" },
+    defaultValues: {
+      username: "",
+      password: "",
+    },
   });
 
+  // Registration form
   const registerForm = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
@@ -131,16 +100,20 @@ function AuthForm() {
     },
   });
 
-  // Handle mutation errors
+  // Track mutation states to update the UI accordingly
   useEffect(() => {
     setAuthError(null);
 
-    const error =
-      activeTab === "login"
-        ? loginMutation?.error?.message
-        : registerMutation?.error?.message;
+    // Watchers for mutation errors
+    const loginError = loginMutation?.error?.message;
+    const registerError = registerMutation?.error?.message;
 
-    if (error) setAuthError(error);
+    // Display appropriate error based on the active tab
+    if (activeTab === "login" && loginError) {
+      setAuthError(loginError);
+    } else if (activeTab === "register" && registerError) {
+      setAuthError(registerError);
+    }
   }, [loginMutation?.error, registerMutation?.error, activeTab]);
 
   // Clear errors when switching tabs
@@ -148,63 +121,85 @@ function AuthForm() {
     setAuthError(null);
   }, [activeTab]);
 
-  // Form handlers
+  // Form submission handlers
   const onLoginSubmit = (data: LoginFormValues) => {
+    // Clear any previous errors
     setAuthError(null);
 
-    if (!loginMutation) {
-      setAuthError("Authentication service is currently unavailable.");
-      return;
-    }
-
+    // Trim username and password to prevent spaces from causing authentication issues
     const trimmedData = {
       username: data.username.trim(),
       password: data.password.trim(),
     };
 
-    loginMutation.mutate(trimmedData);
+    console.log("Login form submission:", trimmedData);
+
+    // Use the mutation for login
+    if (loginMutation) {
+      loginMutation.mutate(trimmedData);
+    } else {
+      console.error("Login mutation is not available");
+      setAuthError(
+        "Authentication service is currently unavailable. Please try again later."
+      );
+    }
   };
 
   const onRegisterSubmit = (data: RegisterFormValues) => {
+    // Clear any previous errors
     setAuthError(null);
 
-    if (!registerMutation) {
-      setAuthError("Registration service is currently unavailable.");
-      return;
+    if (registerMutation) {
+      // Trim all fields to prevent whitespace issues
+      const trimmedData = {
+        username: data.username.trim(),
+        password: data.password.trim(),
+        email: data.email.trim(),
+        role: data.selectedRoles,
+        first_name: data.first_name.trim(),
+        last_name: data.last_name.trim(),
+        profile_image_url: "",
+        auth_provider: "local",
+      };
+
+      console.log("Register form submission:", {
+        ...trimmedData,
+        password: "***",
+      });
+      registerMutation.mutate(trimmedData);
+    } else {
+      console.error("Registration mutation is not available");
+      setAuthError(
+        "Registration service is currently unavailable. Please try again later."
+      );
     }
-
-    const trimmedData = {
-      username: data.username.trim(),
-      password: data.password.trim(),
-      email: data.email.trim(),
-      first_name: data.first_name.trim(),
-      last_name: data.last_name.trim(),
-      role: "STUDENT",
-      profile_image_url: "",
-      auth_provider: "local",
-    };
-
-    registerMutation.mutate(trimmedData);
   };
 
-  // Google auth URL
-  const googleAuthUrl = `/api/auth/google?returnTo=${encodeURIComponent(returnUrl)}${
-    connectMode ? `&mode=${connectMode}` : ""
-  }`;
-
-  // If user is authenticated, handle redirect
+  // Redirect if already authenticated
   if (user) {
+    // If connecting, redirect back to connect page with mode parameter
+    if (returnUrl.includes("/connect") && connectMode) {
+      console.log(
+        "User authenticated, redirecting to connect flow:",
+        `${returnUrl}?mode=${connectMode}`
+      );
+      return <Redirect to={`${returnUrl}?mode=${connectMode}`} />;
+    }
+
+    // Prevent redirect if in registration workflow
     const isRegistrationFlow =
       returnUrl.includes("/registration-flow") ||
       returnUrl.includes("/register");
 
-    if (isRegistrationFlow) return null;
-
-    if (returnUrl.includes("/connect") && connectMode) {
-      return <Redirect to={`${returnUrl}?mode=${connectMode}`} />;
+    // Only redirect if not in registration flow
+    if (returnUrl && !isRegistrationFlow) {
+      console.log("User authenticated, redirecting to:", returnUrl);
+      return <Redirect to={returnUrl} />;
     }
 
-    return <Redirect to={returnUrl} />;
+    // If in registration flow, don't redirect - let the parent component handle the flow
+    console.log("In registration flow, not redirecting");
+    return null;
   }
 
   return (
@@ -224,14 +219,6 @@ function AuthForm() {
                   <TabsTrigger value="register">Register</TabsTrigger>
                 </TabsList>
 
-                {/* Error Display */}
-                {authError && (
-                  <div className="bg-red-900/30 border border-red-500 text-red-200 px-4 py-3 rounded-md mb-4">
-                    {authError}
-                  </div>
-                )}
-
-                {/* Login Tab */}
                 <TabsContent value="login">
                   <div className="space-y-6">
                     <div>
@@ -240,6 +227,17 @@ function AuthForm() {
                         Sign in to access your courses and resources.
                       </p>
                     </div>
+
+                    {authError && activeTab === "login" && (
+                      <div
+                        className="bg-red-900/30 border border-red-500 text-red-200 px-4 py-3 rounded-md relative mb-4"
+                        role="alert"
+                      >
+                        <span className="block sm:inline">
+                          {authError?.message}
+                        </span>
+                      </div>
+                    )}
 
                     <Form {...loginForm}>
                       <form
@@ -286,34 +284,36 @@ function AuthForm() {
                           className="w-full bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90 rounded-full"
                           disabled={loginMutation?.isPending}
                         >
-                          {loginMutation?.isPending && (
+                          {loginMutation?.isPending ? (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          )}
+                          ) : null}
                           Login
                         </Button>
                       </form>
                     </Form>
 
-                    <div className="flex items-center my-6">
+                   
+                   {/* <div className="my-6 flex items-center">
                       <Separator className="flex-grow" />
                       <span className="mx-4 text-sm text-gray-400">OR</span>
                       <Separator className="flex-grow" />
                     </div>
-
-                    <a href={googleAuthUrl} className="w-full">
+ <a
+                      href={`/api/auth/google?returnTo=${encodeURIComponent(returnUrl)}${connectMode ? `&mode=${connectMode}` : ""}`}
+                      className="w-full"
+                    >
                       <Button
                         type="button"
                         variant="outline"
-                        className="w-full border-gray-700 hover:bg-gray-800 rounded-full"
+                        className="w-full border-gray-700 hover:bg-gray-800 rounded-full flex items-center justify-center"
                       >
                         <FcGoogle className="mr-2 h-5 w-5" />
                         Sign in with Google
                       </Button>
-                    </a>
+                    </a>*/}
                   </div>
                 </TabsContent>
 
-                {/* Register Tab */}
                 <TabsContent value="register">
                   <div className="space-y-6">
                     <div>
@@ -325,6 +325,17 @@ function AuthForm() {
                         upgrade anytime.
                       </p>
                     </div>
+
+                    {authError && activeTab === "register" && (
+                      <div
+                        className="bg-red-900/30 border border-red-500 text-red-200 px-4 py-3 rounded-md relative mb-4"
+                        role="alert"
+                      >
+                        <span className="block sm:inline">
+                          {authError?.message}
+                        </span>
+                      </div>
+                    )}
 
                     <Form {...registerForm}>
                       <form
@@ -433,41 +444,48 @@ function AuthForm() {
                                       key={key}
                                       control={registerForm.control}
                                       name="selectedRoles"
-                                      render={({ field }) => (
-                                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border border-gray-700 p-3">
-                                          <FormControl>
-                                            <Checkbox
-                                              checked={field.value?.includes(
-                                                value as string
-                                              )}
-                                              onCheckedChange={(checked) => {
-                                                const currentValue =
-                                                  field.value || [];
-                                                const newValue = checked
-                                                  ? [...currentValue, value]
-                                                  : currentValue.filter(
-                                                      (val) => val !== value
-                                                    );
-                                                field.onChange(newValue);
-                                              }}
-                                            />
-                                          </FormControl>
-                                          <div className="space-y-1 leading-none">
-                                            <FormLabel className="text-sm font-medium">
-                                              {(value as string)
-                                                .split("_")
-                                                .map(
-                                                  (word) =>
-                                                    word
-                                                      .charAt(0)
-                                                      .toUpperCase() +
-                                                    word.slice(1)
-                                                )
-                                                .join(" ")}
-                                            </FormLabel>
-                                          </div>
-                                        </FormItem>
-                                      )}
+                                      render={({ field }) => {
+                                        return (
+                                          <FormItem
+                                            key={key}
+                                            className="flex flex-row items-start space-x-3 space-y-0 rounded-md border border-gray-700 p-3"
+                                          >
+                                            <FormControl>
+                                              <Checkbox
+                                                checked={field.value?.includes(
+                                                  value as string
+                                                )}
+                                                onCheckedChange={(checked) => {
+                                                  return checked
+                                                    ? field.onChange([
+                                                        ...field.value,
+                                                        value,
+                                                      ])
+                                                    : field.onChange(
+                                                        field.value?.filter(
+                                                          (val) => val !== value
+                                                        )
+                                                      );
+                                                }}
+                                              />
+                                            </FormControl>
+                                            <div className="space-y-1 leading-none">
+                                              <FormLabel className="text-sm font-medium">
+                                                {(value as string)
+                                                  .split("_")
+                                                  .map(
+                                                    (word: string) =>
+                                                      word
+                                                        .charAt(0)
+                                                        .toUpperCase() +
+                                                      word.slice(1)
+                                                  )
+                                                  .join(" ")}
+                                              </FormLabel>
+                                            </div>
+                                          </FormItem>
+                                        );
+                                      }}
                                     />
                                   )
                                 )}
@@ -482,25 +500,28 @@ function AuthForm() {
                           className="w-full bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90 rounded-full"
                           disabled={registerMutation?.isPending}
                         >
-                          {registerMutation?.isPending && (
+                          {registerMutation?.isPending ? (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          )}
+                          ) : null}
                           Create Account
                         </Button>
                       </form>
                     </Form>
 
-                    <div className="flex items-center my-6">
+                    <div className="my-6 flex items-center">
                       <Separator className="flex-grow" />
                       <span className="mx-4 text-sm text-gray-400">OR</span>
                       <Separator className="flex-grow" />
                     </div>
 
-                    <a href={googleAuthUrl} className="w-full">
+                    <a
+                      href={`/api/auth/google?returnTo=${encodeURIComponent(returnUrl)}${connectMode ? `&mode=${connectMode}` : ""}`}
+                      className="w-full"
+                    >
                       <Button
                         type="button"
                         variant="outline"
-                        className="w-full border-gray-700 hover:bg-gray-800 rounded-full"
+                        className="w-full border-gray-700 hover:bg-gray-800 rounded-full flex items-center justify-center"
                       >
                         <FcGoogle className="mr-2 h-5 w-5" />
                         Sign up with Google (Free Plan)
@@ -524,26 +545,51 @@ function AuthForm() {
                   and certification programs.
                 </p>
                 <ul className="space-y-2 mb-6">
-                  {[
-                    "Professional Dance Certification",
-                    "Exclusive Teaching Resources",
-                    "Connect with Industry Professionals",
-                  ].map((feature, index) => (
-                    <li key={index} className="flex items-center space-x-2">
-                      <svg
-                        className="h-5 w-5 text-[#00d4ff]"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                      <span>{feature}</span>
-                    </li>
-                  ))}
+                  <li className="flex items-center space-x-2">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5 text-[#00d4ff]"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    <span>Professional Dance Certification</span>
+                  </li>
+                  <li className="flex items-center space-x-2">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5 text-[#00d4ff]"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    <span>Exclusive Teaching Resources</span>
+                  </li>
+                  <li className="flex items-center space-x-2">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5 text-[#00d4ff]"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    <span>Connect with Industry Professionals</span>
+                  </li>
                 </ul>
               </div>
             </div>
@@ -554,25 +600,77 @@ function AuthForm() {
   );
 }
 
-// Loading component
-function LoadingScreen() {
-  return (
-    <div className="min-h-screen flex flex-col bg-dark text-white">
-      <main className="flex-grow py-16 flex items-center justify-center">
-        <div className="container mx-auto px-4 text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <h2 className="text-2xl font-bold">Verifying authentication...</h2>
-        </div>
-      </main>
-    </div>
-  );
-}
-
-// Main component
+// Main export component with auth wrapper
 export default function AuthPage() {
+  // Use the hook directly to ensure we get the latest auth state
   const { user, isLoading } = useAuth();
 
-  if (isLoading) return <LoadingScreen />;
+  // Get return URL from query parameters
+  const [returnUrl, setReturnUrl] = useState<string>("/dashboard");
+  const [connectMode, setConnectMode] = useState<string | null>(null);
 
-  return <AuthForm />;
+  // Extract return URL from query parameters
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const returnToParam = searchParams.get("returnTo");
+    const modeParam = searchParams.get("mode");
+
+    if (returnToParam) {
+      setReturnUrl(returnToParam);
+    }
+
+    if (modeParam) {
+      setConnectMode(modeParam);
+    }
+
+    console.log("AuthPage main - returnTo:", returnToParam, "mode:", modeParam);
+  }, []);
+
+  console.log("AuthPage render - Current auth state:", { user, isLoading });
+
+  // If user is logged in, redirect to correct page
+  if (user) {
+    console.log("User is authenticated, redirecting to:", returnUrl);
+
+    // If connecting, redirect back to connect page with mode parameter
+    if (returnUrl.includes("/connect") && connectMode) {
+      console.log(
+        "AuthPage main - redirecting to connect flow:",
+        `${returnUrl}?mode=${connectMode}`
+      );
+      return <Redirect to={`${returnUrl}?mode=${connectMode}`} />;
+    }
+
+    // Prevent redirect if in registration workflow
+    const isRegistrationFlow =
+      returnUrl.includes("/registration-flow") ||
+      returnUrl.includes("/register");
+
+    // Only redirect if not in registration flow
+    if (returnUrl && !isRegistrationFlow) {
+      console.log("User authenticated, redirecting to:", returnUrl);
+      return <Redirect to={returnUrl} />;
+    }
+
+    // If in registration flow, don't redirect - let the parent component handle the flow
+    console.log("In registration flow, not redirecting");
+    return null;
+  }
+
+  // If auth is still loading, show loading indicator
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-dark text-white">
+        <main className="flex-grow py-16 flex items-center justify-center">
+          <div className="container mx-auto px-4 text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+            <h2 className="text-2xl font-bold">Verifying authentication...</h2>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // Otherwise, show the auth page
+  return <AuthPageWithAuth />;
 }

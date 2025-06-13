@@ -4,6 +4,7 @@ import { FeatureGuard } from '@/components/guards/FeatureGuard';
 import { UserRole } from '@/types/user';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import axios from 'axios';
 
 interface CourseLearningProps {
   courseId: number;
@@ -19,7 +20,7 @@ export const CourseLearning: React.FC<CourseLearningProps> = ({ courseId, onComp
   const { data: course, isLoading: isLoadingCourse } = useQuery({
     queryKey: ['course', courseId],
     queryFn: async () => {
-      const response = await api.get(`/courses/${courseId}`);
+      const response = await axios.get(`/https://api.livetestdomain.com/api/courses/${courseId}`);
       return response.data;
     },
   });

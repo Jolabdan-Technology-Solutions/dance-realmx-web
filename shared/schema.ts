@@ -141,6 +141,19 @@ export interface Course {
   price: number;
   instructorId: number;
   visible: boolean;
+  categoryId?: number;
+  level?: string;
+  duration?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  featured?: boolean;
+}
+
+export interface Category {
+  id: number;
+  name: string;
+  description?: string;
+  imageUrl?: string;
 }
 
 export interface Resource {

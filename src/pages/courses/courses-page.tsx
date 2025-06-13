@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link, useLocation, useSearch } from "wouter";
 import { Course, Category } from "../../../shared/schema";
 import {
@@ -13,6 +13,7 @@ import {
   ThumbsUp,
   Loader2,
   DollarSign,
+  Badge as BadgeIcon,
 } from "lucide-react";
 
 // Import the banner image directly from the public folder
@@ -42,14 +43,43 @@ import {
   TabsTrigger,
 } from "../../components/ui/tabs";
 import { CourseDetailsModal } from "../../components/courses/course-details-modal";
+import { toast } from "@/components/ui/use-toast";
+import { navigate } from "wouter/use-browser-location";
+import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/use-auth";
+
+interface ApiResponse<T> {
+  data: T;
+}
+
+// API functions
+const fetchCourses = async (): Promise<ApiResponse<Course[]>> => {
+  const response = await fetch("https://api.livetestdomain.com/api/courses");
+  if (!response.ok) {
+    throw new Error("Failed to fetch courses");
+  }
+  return response.json();
+};
+
+const fetchCategories = async (): Promise<ApiResponse<Category[]>> => {
+  const response = await fetch("https://api.livetestdomain.com/api/categories");
+  if (!response.ok) {
+    throw new Error("Failed to fetch categories");
+  }
+  return response.json();
+};
 
 export default function CoursesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("");
   const [levelFilter, setLevelFilter] = useState<string>("");
+  const [enrolling, setEnrolling] = useState(false);
   const [sortBy, setSortBy] = useState<
     "popular" | "newest" | "price-low" | "price-high"
   >("popular");
+
+  const { user } = useAuth();
+
   const [selectedCourseId, setSelectedCourseId] = useState<number | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
@@ -57,6 +87,7 @@ export default function CoursesPage() {
   const search = useSearch();
   const searchParams = new URLSearchParams(search);
   const categoryParam = searchParams.get("category");
+  const [isEnrolled, setIsEnrolled] = useState(false);
 
   // Initialize category filter from URL parameter if available
   useEffect(() => {
@@ -65,36 +96,123 @@ export default function CoursesPage() {
     }
   }, [categoryParam]);
 
-  // Fetch courses
-  const { data: courses = [], isLoading: isLoadingCourses } = useQuery<
-    Course[]
-  >({
-    queryKey: ["/api/courses"],
+  useEffect(() => {
+    const checkEnrollment = async () => {
+      if (!user?.id || !selectedCourseId) return;
+      try {
+        const response = await apiRequest(`/api/courses/enrollment/me`, {
+          method: "GET",
+        });
+        const enrolled = response?.courses?.some(
+          (course: any) =>
+            course.course.id === selectedCourseId &&
+            course.enrollment.status === "ACTIVE"
+        );
+        setIsEnrolled(enrolled);
+      } catch (error) {
+        console.error("Error checking enrollment:", error);
+      }
+    };
+    checkEnrollment();
+  }, [user?.id, selectedCourseId]);
+
+  // Fetch courses with proper error handling
+  const {
+    data: courses = [] as Course[],
+    isLoading: isLoadingCourses,
+    error: coursesError,
+  } = useQuery<Course[]>({
+    queryKey: ["courses"],
+    queryFn: async () => {
+      const response = await fetchCourses();
+      return response.data;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  console.log(courses);
-
-  // Fetch categories
-  const { data: categories = [], isLoading: isLoadingCategories } = useQuery<
-    Category[]
-  >({
-    queryKey: ["/api/categories"],
+  // Fetch categories with proper error handling
+  const {
+    data: categories = [] as Category[],
+    isLoading: isLoadingCategories,
+    error: categoriesError,
+  } = useQuery<Category[]>({
+    queryKey: ["categories"],
+    queryFn: async () => {
+      const response = await fetchCategories();
+      return response.data;
+    },
+    staleTime: 10 * 60 * 1000, // 10 minutes
   });
 
-  console.log(categories);
+  console.log("Courses:", courses);
+  console.log("Categories:", categories);
 
-  // Find category name by ID - Moved up here so it's defined before it's used
-  const getCategoryName = (categoryId: number | null) => {
-    if (!categoryId) return "Uncategorized";
+  const enrollMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest(`/api/courses/enroll-course/${courseId}`, {
+        method: "POST",
+        data: {
+          userId: user?.id,
+        },
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(
+          errorData.message || "Failed to create checkout session"
+        );
+      }
+      console.log(res);
+      const { url } = await res;
+
+      // Redirect to Stripe Checkout
+      window.location.href = url;
+      return {};
+    },
+    onSuccess: () => {
+      toast({
+        title: "Redirecting to Checkout",
+        description: "Please complete your payment to enroll in this course.",
+      });
+      setEnrolling(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Enrollment Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      setEnrolling(false);
+    },
+  });
+
+  const handleEnroll = () => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to enroll in this course.",
+        variant: "destructive",
+      });
+      const currentPath = window.location.pathname;
+      window.location.href = `/auth?redirect=${encodeURIComponent(currentPath)}`;
+      return;
+    }
+
+    setEnrolling(true);
+    enrollMutation.mutate();
+  };
+
+  // Find category name by ID
+  const getCategoryName = (categoryId: number | undefined | null) => {
+    if (!categoryId || !categories.length) return "Uncategorized";
     const category = categories.find((c) => c.id === categoryId);
     return category ? category.name : "Uncategorized";
   };
 
   // Filter and sort courses
-  const filteredCourses = !courses
-    ? []
-    : courses
-        .filter((course) => {
+  const filteredCourses = Array.isArray(courses)
+    ? courses
+        .filter((course: Course) => {
           // Only show visible courses
           if (!course.visible) return false;
 
@@ -113,6 +231,8 @@ export default function CoursesPage() {
           if (
             categoryFilter &&
             categoryFilter !== "all" &&
+            categoryFilter !== "" &&
+            course.categoryId !== undefined &&
             course.categoryId !== parseInt(categoryFilter)
           ) {
             return false;
@@ -122,6 +242,7 @@ export default function CoursesPage() {
           if (
             levelFilter &&
             levelFilter !== "all" &&
+            levelFilter !== "" &&
             course.level !== levelFilter
           ) {
             return false;
@@ -129,7 +250,7 @@ export default function CoursesPage() {
 
           return true;
         })
-        .sort((a, b) => {
+        .sort((a: Course, b: Course) => {
           switch (sortBy) {
             case "newest":
               return (
@@ -149,10 +270,8 @@ export default function CoursesPage() {
                 new Date(a.createdAt || new Date()).getTime()
               );
           }
-        });
-
-  // Instead of grouping courses by category, we'll put them all in a single grid
-  // and use tabs to filter them
+        })
+    : [];
 
   // Handle search input change
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -161,12 +280,12 @@ export default function CoursesPage() {
 
   // Handle category filter change
   const handleCategoryChange = (value: string) => {
-    setCategoryFilter(value);
+    setCategoryFilter(value === "all" ? "" : value);
   };
 
   // Handle level filter change
   const handleLevelChange = (value: string) => {
-    setLevelFilter(value);
+    setLevelFilter(value === "all" ? "" : value);
   };
 
   // Handle sort by change
@@ -176,7 +295,73 @@ export default function CoursesPage() {
     setSortBy(value);
   };
 
+  // Handle image error
+  const handleImageError = (
+    e: React.SyntheticEvent<HTMLImageElement>,
+    course: Course
+  ) => {
+    try {
+      const target = e.currentTarget;
+      console.error(
+        "Error loading course image in courses page:",
+        course.title,
+        course.imageUrl
+      );
+
+      // Try to use a fallback based on category
+      const fallbackImg = `/images/thumbnails/${getCategoryName(course.categoryId).toLowerCase()}-techniques.jpg`;
+      target.src = fallbackImg;
+
+      // Set up secondary error handler for fallback
+      target.onerror = () => {
+        try {
+          // Hide image and show placeholder
+          target.style.display = "none";
+          const parent = target.parentElement;
+          if (parent) {
+            const initials = course.title?.[0] || "D";
+            const placeholder = document.createElement("div");
+            placeholder.className =
+              "w-full h-48 bg-primary/10 flex items-center justify-center";
+            placeholder.innerHTML = `<span class="text-primary text-5xl">${initials}</span>`;
+            parent.appendChild(placeholder);
+          }
+        } catch (error) {
+          console.error("Error creating placeholder:", error);
+        }
+      };
+    } catch (error) {
+      console.error("Error handling image error:", error);
+    }
+  };
+
   const isLoading = isLoadingCourses || isLoadingCategories;
+  const hasError = coursesError || categoriesError;
+
+  // Show error state
+  if (hasError) {
+    return (
+      <div className="w-full px-4 py-12">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center max-w-md mx-auto">
+          <h2 className="text-xl font-semibold text-red-800 mb-2">
+            Error Loading Data
+          </h2>
+          <p className="text-red-600">
+            {coursesError?.message ||
+              categoriesError?.message ||
+              "An error occurred"}
+          </p>
+          <Button
+            onClick={() => window.location.reload()}
+            className="mt-4"
+            variant="outline"
+          >
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full px-4 py-12">
@@ -189,7 +374,7 @@ export default function CoursesPage() {
         />
         <div className="absolute inset-0 bg-black/40 flex flex-col justify-center items-center text-center px-4">
           <h1 className="text-4xl md:text-5xl font-bold mb-4 text-white">
-            Dance Education Courses
+            Education Courses
           </h1>
           <p className="text-white text-xl max-w-3xl">
             Enhance your dance knowledge and skills with our comprehensive
@@ -212,13 +397,16 @@ export default function CoursesPage() {
             />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Select value={categoryFilter} onValueChange={handleCategoryChange}>
+            <Select
+              value={categoryFilter || "all"}
+              onValueChange={handleCategoryChange}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="All Categories" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Categories</SelectItem>
-                {categories.map((category) => (
+                {categories.map((category: Category) => (
                   <SelectItem key={category.id} value={category.id.toString()}>
                     {category.name}
                   </SelectItem>
@@ -226,7 +414,10 @@ export default function CoursesPage() {
               </SelectContent>
             </Select>
 
-            <Select value={levelFilter} onValueChange={handleLevelChange}>
+            <Select
+              value={levelFilter || "all"}
+              onValueChange={handleLevelChange}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="All Levels" />
               </SelectTrigger>
@@ -263,16 +454,21 @@ export default function CoursesPage() {
 
       {/* Category Tabs Navigation */}
       <div className="mb-6">
-        <Tabs defaultValue="all" className="w-full">
+        <Tabs value={categoryFilter || "all"} className="w-full">
           <TabsList className="grid grid-cols-2 md:flex md:flex-wrap gap-1 md:gap-2">
-            <TabsTrigger value="all" onClick={() => setCategoryFilter("")}>
+            <TabsTrigger
+              value="all"
+              onClick={() => setCategoryFilter("")}
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
               All Categories
             </TabsTrigger>
-            {categories.map((category) => (
+            {categories.map((category: Category) => (
               <TabsTrigger
                 key={category.id}
                 value={category.id.toString()}
                 onClick={() => setCategoryFilter(category.id.toString())}
+                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
               >
                 {category.name}
               </TabsTrigger>
@@ -285,6 +481,7 @@ export default function CoursesPage() {
       {isLoading ? (
         <div className="flex justify-center items-center h-64">
           <Loader2 className="h-8 w-8 animate-spin" />
+          <span className="ml-2 text-gray-600">Loading courses...</span>
         </div>
       ) : filteredCourses.length === 0 ? (
         <div className="bg-gray-50 rounded-lg shadow-sm p-6 text-center">
@@ -311,43 +508,17 @@ export default function CoursesPage() {
         // Display all courses in a single unified grid with exactly 3 cards per row
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 max-w-[95%] mx-auto">
           {filteredCourses.map((course: Course) => {
-            const categoryName = getCategoryName(course.categoryId);
             return (
               <Card key={course.id} className="bg-white overflow-hidden">
                 <div className="aspect-video relative overflow-hidden">
                   <img
                     src={
                       course.image_url ||
-                      `/images/thumbnails/${getCategoryName(course.categoryId).toLowerCase()}-techniques.jpg`
+                      `/images/thumbnails/${getCategoryName(course.category_id).toLowerCase()}-techniques.jpg`
                     }
                     alt={course.title}
                     className="w-full h-48 object-cover"
-                    onError={(e) => {
-                      console.error(
-                        "Error loading course image in courses page:",
-                        course.title,
-                        course.imageUrl
-                      );
-                      // Try to use a fallback based on category
-                      const fallbackImg = `/images/thumbnails/${getCategoryName(course.categoryId).toLowerCase()}-techniques.jpg`;
-                      e.currentTarget.src = fallbackImg;
-                      // Add event listener for fallback error too
-                      e.currentTarget.onerror = () => {
-                        // Safely access style properties after checking the element exists
-                        if (e.currentTarget) {
-                          e.currentTarget.style.display = "none";
-                          const parent = e.currentTarget.parentElement;
-                          if (parent) {
-                            const initials = course.title?.[0] || "D";
-                            const placeholder = document.createElement("div");
-                            placeholder.className =
-                              "w-full h-48 bg-primary/10 flex items-center justify-center";
-                            placeholder.innerHTML = `<span class="text-primary text-5xl">${initials}</span>`;
-                            parent.appendChild(placeholder);
-                          }
-                        }
-                      };
-                    }}
+                    // onError={(e) => handleImageError(e, course)}
                   />
                   {(course as any).featured && (
                     <div className="absolute top-2 left-2 rounded-full bg-yellow-600 text-white px-2 py-1 text-xs font-bold">
@@ -360,13 +531,21 @@ export default function CoursesPage() {
                     </div>
                   )}
                 </div>
-                <CardHeader>
-                  <CardTitle className="line-clamp-1">{course.title}</CardTitle>
-                  <CardDescription>
-                    {getCategoryName(course.categoryId)} • {course.level}
+                <CardHeader className="bg-gray-900">
+                  .
+                  <CardTitle
+                    className="line-clamp-1 text-white cursor-pointer"
+                    onClick={() => navigate(`/courses/${course.id}`)}
+                  >
+                    {course.title}
+                  </CardTitle>
+                  <CardDescription className="text-white">
+                    <p className="text-white">
+                      {course?.categories[0]?.name} • {course?.difficulty_level}
+                    </p>
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="bg-gray-900">
                   <p className="text-sm text-gray-500 line-clamp-2">
                     {course.description || "No description available."}
                   </p>
@@ -376,12 +555,12 @@ export default function CoursesPage() {
                       {course.duration || "Self-paced"}
                     </div>
                     <div className="flex items-center text-xs text-gray-500">
-                      <ThumbsUp className="h-3 w-3 mr-1" />
-                      {course.level}
+                      <ThumbsUp className="h-3 w-3 mr-1 text-white" />
+                      <p className="text-white">{course.difficulty_level}</p>
                     </div>
                   </div>
                 </CardContent>
-                <CardFooter className="flex justify-between">
+                <CardFooter className="flex justify-between bg-gray-900">
                   <div className="font-bold text-xl">
                     {Number(course.price) === 0 ? (
                       <span className="text-green-600">Free</span>
@@ -389,7 +568,7 @@ export default function CoursesPage() {
                       <span>${Number(course.price).toFixed(2)}</span>
                     )}
                   </div>
-                  <div className="flex space-x-2">
+                  <div className="flex space-x-2 bg-gray-900">
                     <Button
                       className="bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90"
                       onClick={() => {
@@ -399,9 +578,20 @@ export default function CoursesPage() {
                     >
                       View Details
                     </Button>
-                    <Link href={`/courses/${course.id}`}>
-                      <Button variant="outline">Enroll</Button>
-                    </Link>
+
+                    {isEnrolled ? (
+                      <Button
+                        onClick={() => navigate("/my-courses")}
+                        variant="outline"
+                      >
+                        Go to course
+                      </Button>
+                    ) : (
+                      ""
+                      // <Button onClick={handleEnroll} variant="outline">
+                      //   Enroll
+                      // </Button>
+                    )}
                   </div>
                 </CardFooter>
               </Card>
@@ -411,76 +601,91 @@ export default function CoursesPage() {
       )}
 
       {/* Featured Categories Section */}
-      <div className="mt-16 max-w-[95%] mx-auto">
-        <h2 className="text-2xl font-bold mb-6 text-center">
-          Browse by Category
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-          {categories.slice(0, 4).map((category, index) => {
-            // Get appropriate image for each category - using internet images
-            const getImagePath = (categoryName: string) => {
-              switch (categoryName.toLowerCase()) {
-                case "ballet":
-                  return "/assets/images/categories/ballet.jpg";
-                case "contemporary":
-                  return "/assets/images/categories/contemporary.jpg";
-                case "jazz":
-                  return "/assets/images/categories/jazz.jpg";
-                case "hip hop":
-                  return "/assets/images/categories/hiphop.jpg";
-                default:
-                  return "/assets/images/categories/contemporary.jpg";
-              }
-            };
+      {categories.length > 0 && (
+        <div className="mt-16 max-w-[95%] mx-auto">
+          <h2 className="text-2xl font-bold mb-6 text-center">
+            Browse by Category
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+            {categories.slice(0, 4).map((category: Category) => {
+              // Get appropriate image for each category
+              const getImagePath = (categoryName: string) => {
+                switch (categoryName.toLowerCase()) {
+                  case "ballet":
+                    return "/assets/images/categories/ballet.jpg";
+                  case "contemporary":
+                    return "/assets/images/categories/contemporary.jpg";
+                  case "jazz":
+                    return "/assets/images/categories/jazz.jpg";
+                  case "hip hop":
+                    return "/assets/images/categories/hiphop.jpg";
+                  default:
+                    return "/assets/images/categories/contemporary.jpg";
+                }
+              };
 
-            return (
-              <Card
-                key={category.id}
-                className="group hover:shadow-md transition-shadow overflow-hidden"
-              >
-                <CardHeader className="p-0">
-                  <div className="relative h-48 w-full overflow-hidden">
-                    <img
-                      src={getImagePath(category.name)}
-                      alt={`${category.name} Dance`}
-                      className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end">
-                      <CardTitle className="text-white p-4 w-full text-center">
-                        {category.name}
-                      </CardTitle>
+              return (
+                <Card
+                  key={category.id}
+                  className="group hover:shadow-md transition-shadow overflow-hidden cursor-pointer"
+                  onClick={() => {
+                    setCategoryFilter(category.id.toString());
+                    // Scroll to the courses section
+                    const element = document.querySelector(".mb-6");
+                    if (element) {
+                      window.scrollTo({
+                        top:
+                          element.getBoundingClientRect().top +
+                          window.scrollY -
+                          100,
+                        behavior: "smooth",
+                      });
+                    }
+                  }}
+                >
+                  <CardHeader className="p-0">
+                    <div className="relative h-48 w-full overflow-hidden">
+                      <img
+                        src={getImagePath(category.name)}
+                        alt={`${category.name} Dance`}
+                        className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end">
+                        <CardTitle className="text-white p-4 w-full text-center">
+                          {category.name}
+                        </CardTitle>
+                      </div>
                     </div>
-                  </div>
-                </CardHeader>
-                <CardFooter className="flex justify-center pt-4">
-                  <Button
-                    variant="ghost"
-                    className="group-hover:translate-x-1 transition-transform"
-                    onClick={() => {
-                      // Set the category filter
-                      setCategoryFilter(category.id.toString());
-
-                      // Scroll to the courses section
-                      const element = document.querySelector(".mb-6");
-                      if (element) {
-                        window.scrollTo({
-                          top:
-                            element.getBoundingClientRect().top +
-                            window.scrollY -
-                            100,
-                          behavior: "smooth",
-                        });
-                      }
-                    }}
-                  >
-                    Explore Courses <ChevronRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </CardFooter>
-              </Card>
-            );
-          })}
+                  </CardHeader>
+                  <CardFooter className="flex justify-center pt-4">
+                    <Button
+                      variant="ghost"
+                      className="group-hover:translate-x-1 transition-transform"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCategoryFilter(category.id.toString());
+                        // Scroll to the courses section
+                        const element = document.querySelector(".mb-6");
+                        if (element) {
+                          window.scrollTo({
+                            top:
+                              element.getBoundingClientRect().top +
+                              window.scrollY -
+                              100,
+                            behavior: "smooth",
+                          });
+                        }
+                      }}
+                    >
+                      Explore Courses <ChevronRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </CardFooter>
+                </Card>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Benefits Section */}
       <div className="mt-16 bg-gradient-to-r from-gray-100 to-gray-200 rounded-xl p-8 max-w-[95%] mx-auto">
@@ -498,7 +703,7 @@ export default function CoursesPage() {
             </div>
             <div className="p-6">
               <h3 className="text-xl font-bold mb-2 text-gray-800 flex items-center">
-                <Badge className="h-5 w-5 text-[#00d4ff] mr-2" />
+                <BadgeIcon className="h-5 w-5 text-[#00d4ff] mr-2" />
                 Industry Recognition
               </h3>
               <p className="text-gray-600">
@@ -518,7 +723,7 @@ export default function CoursesPage() {
             </div>
             <div className="p-6">
               <h3 className="text-xl font-bold mb-2 text-gray-800 flex items-center">
-                <Award className="h-4 w-4 text-blue-400" />
+                <Award className="h-5 w-5 text-blue-400 mr-2" />
                 Expert Instructors
               </h3>
               <p className="text-gray-600">

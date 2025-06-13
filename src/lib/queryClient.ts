@@ -1,4 +1,5 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { api } from "./api";
 
 // Use a static API_BASE_URL instead of runtime import.meta.env
@@ -61,8 +62,23 @@ export const getQueryFn = <T>(options: {
   };
 };
 
+const fetchCategories = async () => {
+  const response = await fetch("/api/categories"); // Replace with your endpoint
+  if (!response.ok) {
+    throw new Error("Failed to fetch categories");
+  }
+  return response.json();
+};
+
+export const useCategories = () => {
+  return useQuery({
+    queryKey: ["categories"],
+    queryFn: fetchCategories,
+  });
+};
+
 // ===========================================
-// VARIATION 2: Generic API Request Function
+// VARIATION 2: Generic API Request Function (FIXED)
 // ===========================================
 export const apiRequest = async <T = any>(
   endpoint: string,
@@ -71,23 +87,13 @@ export const apiRequest = async <T = any>(
     data?: any;
     requireAuth?: boolean;
     headers?: Record<string, string>;
-  } = {}
+  }
 ): Promise<T> => {
   try {
-    const {
-      method = "POST",
-      data,
-      requireAuth = false,
-      headers = {},
-    } = options;
+    const { method = "GET", data, requireAuth = false, headers = {} } = options;
 
     const authHeaders = requireAuth ? getAuthHeaders() : {};
     const finalHeaders = { ...authHeaders, ...headers };
-
-    const config = {
-      headers: finalHeaders,
-      ...(data && { data }),
-    };
 
     let response;
     switch (method) {
@@ -111,7 +117,11 @@ export const apiRequest = async <T = any>(
     }
 
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.response?.data?.message === "Invalid token") {
+      const currentPath = window.location.pathname;
+      window.location.href = `/auth?redirect=${encodeURIComponent(currentPath)}`;
+    }
     console.error("API request error:", error);
     throw error;
   }
@@ -146,7 +156,7 @@ export const authenticatedQueryFn = <T>(
           case "returnNull":
             return null as T;
           case "redirect":
-            window.location.href = "/authn";
+            window.location.href = "/auth";
             return null as T;
           case "throw":
           default:
@@ -328,7 +338,7 @@ export class ApiClient {
   }
 }
 
-// Create a singleton instance
+// Export an instance of ApiClient
 export const apiClient = new ApiClient();
 
 // ===========================================
@@ -342,7 +352,7 @@ const userQuery = useQuery({
   queryFn: getQueryFn<User>({ on401: 'redirect', requireAuth: true })
 });
 
-// Using Variation 2 (Generic)
+// Using Variation 2 (Generic) - FIXED USAGE
 const userData = await apiRequest<User>('/users/me', {
   method: 'GET',
   requireAuth: true

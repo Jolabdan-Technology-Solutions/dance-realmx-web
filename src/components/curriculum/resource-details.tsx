@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { useAuth } from '@/hooks/use-auth';
-import { Button } from '@/components/ui/button';
-import { Link } from 'wouter';
+import { useState, useEffect } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
+import { Button } from "@/components/ui/button";
+import { Link } from "wouter";
 import {
   Card,
   CardContent,
@@ -10,12 +10,26 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
-import { Clock, Download, Award, ThumbsUp, User, FileText, Edit, Heart, Share2, BookmarkPlus, Bookmark, PlayCircle, Video } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { 
+} from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import {
+  Clock,
+  Download,
+  Award,
+  ThumbsUp,
+  User,
+  FileText,
+  Edit,
+  Heart,
+  Share2,
+  BookmarkPlus,
+  Bookmark,
+  PlayCircle,
+  Video,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -24,21 +38,21 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import PurchaseButton from './purchase-button';
-import { Resource, ResourceReview, User as UserType } from '@shared/schema';
-import { SUBSCRIPTION_PLANS } from '@shared/schema';
-import { CachedImage } from '@/components/ui/cached-image';
-import { DEFAULT_RESOURCE_IMAGE } from '@/lib/constants';
+import PurchaseButton from "./purchase-button";
+import { Resource, ResourceReview, User as UserType } from "@shared/schema";
+import { SUBSCRIPTION_PLANS } from "@/shared/schema";
+import { CachedImage } from "@/components/ui/cached-image";
+import { DEFAULT_RESOURCE_IMAGE } from "@/lib/constants";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { convertToYouTubeEmbedUrl } from '@/lib/utils';
-import { VideoPreviewModal } from '@/components/curriculum/video-preview-modal';
+import { convertToYouTubeEmbedUrl } from "@/lib/utils";
+import { VideoPreviewModal } from "@/components/curriculum/video-preview-modal";
 
 // Helper function to format dates in a consistent way
 const formatDate = (date: Date): string => {
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
   });
 };
 
@@ -53,22 +67,24 @@ const ResourceDetails = ({ resourceId }: ResourceDetailsProps) => {
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
-  const [shareUrl, setShareUrl] = useState('');
+  const [shareUrl, setShareUrl] = useState("");
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [selectedVideoUrl, setSelectedVideoUrl] = useState<string | null>(null);
 
   // Fetch resource details
   const { data: resource, isLoading: isLoadingResource } = useQuery({
-    queryKey: ['/api/curriculum', resourceId],
+    queryKey: ["/api/curriculum", resourceId],
     queryFn: async ({ queryKey }) => {
-      const response = await fetch(`/api/curriculum/${queryKey[1]}`);
-      if (!response.ok) throw new Error('Failed to fetch resource');
-      const data = await response.json();
-      console.log("Query data from /api/curriculum/" + resourceId + ":", data);
+      const response = await fetch(
+        `https://api.livetestdomain.com/api/resources/${resourceId}`
+      );
+      if (!response.ok) throw new Error("Failed to fetch resource");
+      const data = await response;
+      console.log("Query data from /api/resources/" + resourceId + ":", data);
       return data;
     },
   });
-  
+
   // Generate share URL
   useEffect(() => {
     if (resource) {
@@ -86,30 +102,31 @@ const ResourceDetails = ({ resourceId }: ResourceDetailsProps) => {
       });
       return;
     }
-    
+
     // Toggle save state - in a real implementation, this would call an API
     setIsSaved(!isSaved);
-    
+
     toast({
       title: isSaved ? "Resource removed from saved items" : "Resource saved",
-      description: isSaved 
-        ? "This resource has been removed from your saved items" 
+      description: isSaved
+        ? "This resource has been removed from your saved items"
         : "This resource has been added to your saved items",
       variant: "default",
     });
   };
-  
+
   // Handle share functionality
   const handleShare = async () => {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: resource?.title || 'Dance curriculum resource',
-          text: resource?.description || 'Check out this dance curriculum resource',
+          title: resource?.title || "Dance curriculum resource",
+          text:
+            resource?.description || "Check out this dance curriculum resource",
           url: shareUrl,
         });
       } catch (error) {
-        console.error('Error sharing:', error);
+        console.error("Error sharing:", error);
         setShareDialogOpen(true);
       }
     } else {
@@ -127,7 +144,7 @@ const ResourceDetails = ({ resourceId }: ResourceDetailsProps) => {
         setShareDialogOpen(false);
       },
       (err) => {
-        console.error('Failed to copy link:', err);
+        console.error("Failed to copy link:", err);
         toast({
           title: "Failed to copy",
           description: "Could not copy the link to clipboard",
@@ -139,47 +156,60 @@ const ResourceDetails = ({ resourceId }: ResourceDetailsProps) => {
 
   // Fetch resource reviews
   const { data: reviews, isLoading: isLoadingReviews } = useQuery({
-    queryKey: ['/api/curriculum', resourceId, 'reviews'],
+    queryKey: ["/api/curriculum", resourceId, "reviews"],
     queryFn: async ({ queryKey }) => {
-      const response = await fetch(`/api/curriculum/${queryKey[1]}/reviews`);
-      if (!response.ok) throw new Error('Failed to fetch reviews');
-      return response.json();
+      const response = await fetch(
+        `https://api.livetestdomain.com/api/curriculum/${resourceId}/reviews`
+      );
+      if (!response.ok) throw new Error("Failed to fetch reviews");
+      return response;
     },
   });
 
   // Fetch seller details
   const { data: seller, isLoading: isLoadingSeller } = useQuery({
-    queryKey: ['/api/users', resource?.sellerId],
-    enabled: !!resource?.sellerId,
+    queryKey: ["/api/users", resource?.seller?.id],
+    enabled: !!resource?.seller?.id,
     queryFn: async ({ queryKey }) => {
-      const response = await fetch(`/api/users/${queryKey[1]}`);
-      if (!response.ok) throw new Error('Failed to fetch seller details');
-      return response.json();
+      const response = await fetch(
+        `https://api.livetestdomain.com/api/users/${resource?.seller?.id}`
+      );
+      if (!response.ok) throw new Error("Failed to fetch seller details");
+      return response;
     },
   });
 
   // Check if the user has purchased this resource
   const { data: userPurchases, isLoading: isLoadingPurchases } = useQuery({
-    queryKey: ['/api/resource-orders', 'user'],
+    queryKey: ["/api/resource-orders", "user"],
     enabled: !!user,
     queryFn: async () => {
-      const response = await fetch('/api/resource-orders');
-      if (!response.ok) throw new Error('Failed to fetch purchases');
-      return response.json();
+      const response = await fetch(
+        "https://api.livetestdomain.com/api/resource-orders"
+      );
+      if (!response.ok) throw new Error("Failed to fetch purchases");
+      return response;
     },
   });
 
   const hasPurchased = userPurchases?.some(
-    (purchase: any) => purchase.resourceId === resourceId && purchase.status === 'completed'
+    (purchase: any) =>
+      purchase.resourceId === resourceId && purchase.status === "completed"
   );
 
   // Calculate the appropriate price based on user's subscription
   const getPrice = () => {
-    if (!resource) return '0.00';
-    
-    if (user?.subscription_plan === SUBSCRIPTION_PLANS.ROYALTY && resource.price_royalty) {
+    if (!resource) return "0.00";
+
+    if (
+      user?.subscription_plan === SUBSCRIPTION_PLANS.ROYALTY &&
+      resource.price_royalty
+    ) {
       return resource.price_royalty;
-    } else if (user?.subscription_plan === SUBSCRIPTION_PLANS.PREMIUM && resource.price_premium) {
+    } else if (
+      user?.subscription_plan === SUBSCRIPTION_PLANS.PREMIUM &&
+      resource.price_premium
+    ) {
       return resource.price_premium;
     } else {
       return resource.price;
@@ -189,25 +219,27 @@ const ResourceDetails = ({ resourceId }: ResourceDetailsProps) => {
   // Handle resource download
   const handleDownload = async () => {
     if (!resource) return;
-    
+
     try {
       setIsDownloading(true);
-      const response = await fetch(`/api/curriculum/${resourceId}/download`);
-      
+      const response = await fetch(
+        `https://api.livetestdomain.com/api/resources/${resourceId}/download`
+      );
+
       if (!response.ok) {
-        throw new Error('Failed to download resource');
+        throw new Error("Failed to download resource");
       }
-      
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
       a.download = `${resource.title}.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();
     } catch (error) {
-      console.error('Download error:', error);
+      console.error("Download error:", error);
     } finally {
       setIsDownloading(false);
     }
@@ -241,11 +273,7 @@ const ResourceDetails = ({ resourceId }: ResourceDetailsProps) => {
             </DialogDescription>
           </DialogHeader>
           <div className="flex items-center space-x-2 mt-4">
-            <Input
-              value={shareUrl}
-              readOnly
-              className="flex-1"
-            />
+            <Input value={shareUrl} readOnly className="flex-1" />
             <Button type="button" size="sm" onClick={copyToClipboard}>
               Copy
             </Button>
@@ -261,7 +289,7 @@ const ResourceDetails = ({ resourceId }: ResourceDetailsProps) => {
           </div>
         </DialogContent>
       </Dialog>
-      
+
       <div className="flex flex-col md:flex-row gap-6">
         {/* Main content */}
         <div className="flex-1 space-y-4">
@@ -303,15 +331,18 @@ const ResourceDetails = ({ resourceId }: ResourceDetailsProps) => {
               {resource.level && (
                 <Badge variant="outline">{resource.level}</Badge>
               )}
-              {resource.resourceType && (
-                <Badge>{resource.resourceType}</Badge>
-              )}
+              {resource.resourceType && <Badge>{resource.resourceType}</Badge>}
             </div>
           </div>
 
           <div className="w-full max-h-96 rounded-lg overflow-hidden">
             <CachedImage
-              src={resource.imageUrl || resource.fileUrl || resource.thumbnailUrl || DEFAULT_RESOURCE_IMAGE}
+              src={
+                resource.imageUrl ||
+                resource.fileUrl ||
+                resource.thumbnailUrl ||
+                DEFAULT_RESOURCE_IMAGE
+              }
               alt={resource.title}
               className="w-full h-full object-cover"
               contentType="resource"
@@ -325,9 +356,13 @@ const ResourceDetails = ({ resourceId }: ResourceDetailsProps) => {
 
           <div className="prose prose-blue max-w-none">
             {resource.detailedDescription ? (
-              <div dangerouslySetInnerHTML={{ __html: resource.detailedDescription }} />
+              <div
+                dangerouslySetInnerHTML={{
+                  __html: resource.detailedDescription,
+                }}
+              />
             ) : (
-              <p>{resource.description || 'No description available.'}</p>
+              <p>{resource.description || "No description available."}</p>
             )}
           </div>
 
@@ -335,7 +370,7 @@ const ResourceDetails = ({ resourceId }: ResourceDetailsProps) => {
           {resource.fullVideoUrl && (
             <div className="mt-6">
               <h2 className="text-xl font-bold mb-4">Resource Video</h2>
-              
+
               {hasPurchased ? (
                 <>
                   {/* Full video for purchasers */}
@@ -349,7 +384,8 @@ const ResourceDetails = ({ resourceId }: ResourceDetailsProps) => {
                     ></iframe>
                   </div>
                   <p className="text-sm text-muted-foreground mt-2">
-                    This full instructional video is available to you as a purchaser of this resource.
+                    This full instructional video is available to you as a
+                    purchaser of this resource.
                   </p>
                 </>
               ) : (
@@ -357,7 +393,7 @@ const ResourceDetails = ({ resourceId }: ResourceDetailsProps) => {
                   {/* Preview thumbnail with play button */}
                   <div className="aspect-video rounded-lg overflow-hidden border relative group">
                     {/* Play button overlay for 15-second preview */}
-                    <div 
+                    <div
                       className="absolute inset-0 flex items-center justify-center bg-black/30 hover:bg-black/40 transition-colors cursor-pointer group"
                       onClick={() => {
                         setSelectedVideoUrl(resource.fullVideoUrl);
@@ -366,10 +402,12 @@ const ResourceDetails = ({ resourceId }: ResourceDetailsProps) => {
                     >
                       <div className="flex flex-col items-center justify-center text-white transform scale-90 group-hover:scale-100 transition-transform">
                         <PlayCircle className="h-16 w-16 mb-2" />
-                        <span className="text-sm font-medium">Play 15-second preview</span>
+                        <span className="text-sm font-medium">
+                          Play 15-second preview
+                        </span>
                       </div>
                     </div>
-                    
+
                     {/* Static thumbnail */}
                     <div className="w-full h-full">
                       <CachedImage
@@ -380,13 +418,13 @@ const ResourceDetails = ({ resourceId }: ResourceDetailsProps) => {
                       />
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center justify-between mt-3">
                     <p className="text-sm text-muted-foreground flex items-center">
                       <Video className="h-4 w-4 mr-1" />
                       Click to watch a 15-second preview
                     </p>
-                    
+
                     <PurchaseButton
                       resourceId={resourceId}
                       price={getPrice()}
@@ -394,16 +432,17 @@ const ResourceDetails = ({ resourceId }: ResourceDetailsProps) => {
                       className="ml-4"
                     />
                   </div>
-                  
+
                   <div className="mt-3 p-3 border rounded-md bg-muted/30">
                     <p className="text-sm flex items-start">
                       <div className="text-primary mr-2 mt-0.5">🔒</div>
-                      Purchase this resource to access the full instructional video and all included materials.
+                      Purchase this resource to access the full instructional
+                      video and all included materials.
                     </p>
                   </div>
                 </>
               )}
-              
+
               {/* Video Preview Modal */}
               <VideoPreviewModal
                 videoUrl={selectedVideoUrl}
@@ -438,12 +477,14 @@ const ResourceDetails = ({ resourceId }: ResourceDetailsProps) => {
                         </div>
                         <div className="text-sm text-muted-foreground flex items-center">
                           <Clock className="h-3 w-3 mr-1" />
-                          {review.createdAt ? formatDate(new Date(review.createdAt)) : 'Recently'}
+                          {review.createdAt
+                            ? formatDate(new Date(review.createdAt))
+                            : "Recently"}
                         </div>
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <p>{review.comment || 'No additional comments.'}</p>
+                      <p>{review.comment || "No additional comments."}</p>
                     </CardContent>
                   </Card>
                 ))}
@@ -468,7 +509,10 @@ const ResourceDetails = ({ resourceId }: ResourceDetailsProps) => {
                     <div className="flex items-center space-x-3">
                       <div className="w-12 h-12 rounded-full overflow-hidden">
                         <CachedImage
-                          src={seller.profile_image_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(seller.username)}&background=00d4ff&color=fff`}
+                          src={
+                            seller.profile_image_url ||
+                            `https://ui-avatars.com/api/?name=${encodeURIComponent(seller.username)}&background=00d4ff&color=fff`
+                          }
                           alt={seller.username}
                           className="w-full h-full"
                           contentType="resource"
@@ -485,9 +529,16 @@ const ResourceDetails = ({ resourceId }: ResourceDetailsProps) => {
                           {seller.username}
                         </h3>
                         <div className="flex items-center text-sm text-muted-foreground">
-                          
-                          {seller.role === 'instructor' && <span className="text-xs bg-blue-100 text-blue-800 rounded-full px-2 py-0.5">Instructor</span>}
-                          {seller.is_approved_seller && <span className="text-xs bg-green-100 text-green-800 rounded-full px-2 py-0.5 ml-1">Verified Seller</span>}
+                          {seller.role === "instructor" && (
+                            <span className="text-xs bg-blue-100 text-blue-800 rounded-full px-2 py-0.5">
+                              Instructor
+                            </span>
+                          )}
+                          {seller.is_approved_seller && (
+                            <span className="text-xs bg-green-100 text-green-800 rounded-full px-2 py-0.5 ml-1">
+                              Verified Seller
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -497,27 +548,36 @@ const ResourceDetails = ({ resourceId }: ResourceDetailsProps) => {
                       </div>
                     )}
                     <div className="mt-2">
-                      <Link href={`/instructors/${seller.id}`} className="flex items-center space-x-1 text-sm text-blue-600 hover:underline">
+                      <Link
+                        href={`/instructors/${seller.id}`}
+                        className="flex items-center space-x-1 text-sm text-blue-600 hover:underline"
+                      >
                         <User className="h-3 w-3" />
                         <span>View full profile</span>
                       </Link>
                     </div>
                   </div>
                 )}
-                
+
                 {/* Price and Purchase */}
                 <div className="border rounded-md p-3">
                   <div className="flex justify-between items-center mb-2">
                     <span className="font-medium">Price:</span>
-                    <span className="font-bold text-xl">${parseFloat(getPrice()).toFixed(2)}</span>
+                    <span className="font-bold text-xl">
+                      ${parseFloat(getPrice()).toFixed(2)}
+                    </span>
                   </div>
-                  
-                  {user?.subscription_plan && user.subscription_plan !== 'free' && (
-                    <div className="text-sm text-green-600">
-                      {user.subscription_plan === 'royalty' ? 'Royalty' : 'Premium'} member discount applied
-                    </div>
-                  )}
-                  
+
+                  {user?.subscription_plan &&
+                    user.subscription_plan !== "free" && (
+                      <div className="text-sm text-green-600">
+                        {user.subscription_plan === "royalty"
+                          ? "Royalty"
+                          : "Premium"}{" "}
+                        member discount applied
+                      </div>
+                    )}
+
                   {hasPurchased ? (
                     <Button
                       onClick={handleDownload}
@@ -546,7 +606,7 @@ const ResourceDetails = ({ resourceId }: ResourceDetailsProps) => {
                     />
                   )}
                 </div>
-                
+
                 {/* Resource Metadata */}
                 <div className="border rounded-md p-3">
                   <h3 className="font-medium mb-2">Resource Info</h3>
@@ -572,22 +632,28 @@ const ResourceDetails = ({ resourceId }: ResourceDetailsProps) => {
                       </div>
                     )}
                   </div>
-                  
+
                   {/* Edit Resource Button - Only visible to resource owner or curriculum officers */}
-                  {user && (user.id === resource.sellerId || user.role === 'curriculum_officer' || user.role === 'admin') && (
-                    <div className="mt-4 pt-3 border-t">
-                      <Link href={`/curriculum/${resource.id}/edit`} className="w-full">
-                        <Button variant="outline" className="w-full">
-                          <Edit className="h-4 w-4 mr-2" />
-                          Edit Resource
-                        </Button>
-                      </Link>
-                    </div>
-                  )}
+                  {user &&
+                    (user.id === resource.sellerId ||
+                      user.role === "curriculum_officer" ||
+                      user.role === "admin") && (
+                      <div className="mt-4 pt-3 border-t">
+                        <Link
+                          href={`/curriculum/${resource.id}/edit`}
+                          className="w-full"
+                        >
+                          <Button variant="outline" className="w-full">
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit Resource
+                          </Button>
+                        </Link>
+                      </div>
+                    )}
                 </div>
               </CardContent>
             </Card>
-            
+
             {/* Related resources could go here */}
           </div>
         </div>

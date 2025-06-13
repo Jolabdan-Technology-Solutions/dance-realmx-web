@@ -12,6 +12,8 @@ export function AdminRoute({
 }) {
   const { user, isLoading } = useAuth();
 
+  console.log(user);
+
   if (isLoading) {
     return (
       <Route path={path}>
@@ -30,13 +32,8 @@ export function AdminRoute({
     );
   }
 
-  const allowedRoles = [UserRole.ADMIN, UserRole.CURRICULUM_ADMIN, UserRole.INSTRUCTOR_ADMIN, UserRole.COURSE_CREATOR_ADMIN, UserRole.CERTIFICATION_MANAGER, UserRole.DIRECTORY_MEMBER, UserRole.BOOKING_PROFESSIONAL, UserRole.BOOKING_USER];
-  
-  const hasAdminRole = user.role_mappings?.some(mapping => 
-    allowedRoles.includes(mapping.role as keyof typeof UserRole)
-  );
-
-  if (!hasAdminRole) {
+  const allowedRoles = UserRole.ADMIN;
+  if (!user.role.includes(allowedRoles)) {
     return (
       <Route path={path}>
         <Redirect to="/" />
