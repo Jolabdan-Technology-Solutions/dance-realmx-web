@@ -93,6 +93,14 @@ interface VideoPreviewModalProps {
   previewDuration: number;
 }
 
+// Helper function to extract YouTube video ID from various YouTube URL formats
+const extractYouTubeId = (url: string): string => {
+  const regExp =
+    /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return match && match[2].length === 11 ? match[2] : "";
+};
+
 const VideoPreviewModal = ({
   videoUrl,
   isOpen,
@@ -122,12 +130,23 @@ const VideoPreviewModal = ({
           </button>
         </div>
         <div className="aspect-video bg-gray-200 rounded overflow-hidden">
-          <video
-            src={videoUrl || undefined}
-            controls
-            autoPlay
-            className="w-full h-full object-cover"
-          />
+          {videoUrl &&
+          (videoUrl.includes("youtube.com") ||
+            videoUrl.includes("youtu.be")) ? (
+            <iframe
+              src={`https://www.youtube.com/embed/${extractYouTubeId(videoUrl)}?autoplay=1`}
+              className="w-full h-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          ) : (
+            <video
+              src={videoUrl || undefined}
+              controls
+              autoPlay
+              className="w-full h-full object-cover"
+            />
+          )}
         </div>
       </div>
     </div>
