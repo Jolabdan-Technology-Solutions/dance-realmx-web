@@ -47,6 +47,7 @@ import { toast } from "@/components/ui/use-toast";
 import { navigate } from "wouter/use-browser-location";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
+import { api } from "@/lib/api";
 
 interface ApiResponse<T> {
   data: T;
@@ -54,19 +55,13 @@ interface ApiResponse<T> {
 
 // API functions
 const fetchCourses = async (): Promise<ApiResponse<Course[]>> => {
-  const response = await fetch("https://api.livetestdomain.com/api/courses");
-  if (!response.ok) {
-    throw new Error("Failed to fetch courses");
-  }
-  return response.json();
+  const response = await api.get("/api/courses");
+  return response.data;
 };
 
 const fetchCategories = async (): Promise<ApiResponse<Category[]>> => {
-  const response = await fetch("https://api.livetestdomain.com/api/categories");
-  if (!response.ok) {
-    throw new Error("Failed to fetch categories");
-  }
-  return response.json();
+  const response = await api.get("/api/categories");
+  return response.data;
 };
 
 export default function CoursesPage() {

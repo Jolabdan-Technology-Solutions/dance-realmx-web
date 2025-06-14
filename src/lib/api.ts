@@ -12,6 +12,7 @@ export const api = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
+  withCredentials: true,
 });
 
 // Add request interceptor for auth token
@@ -20,6 +21,11 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  // Remove any existing CORS headers to prevent duplication
+  delete config.headers["Access-Control-Allow-Origin"];
+  delete config.headers["Access-Control-Allow-Methods"];
+  delete config.headers["Access-Control-Allow-Headers"];
+  delete config.headers["Access-Control-Allow-Credentials"];
   return config;
 });
 

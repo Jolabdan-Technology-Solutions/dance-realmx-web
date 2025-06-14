@@ -99,13 +99,7 @@ export default function CurriculumPageSimple() {
         console.log("DEBUG CURRICULUM CLIENT: Starting resource fetch");
 
         // Fetch resources from the API with auth headers
-        const response = await api.get("/api/resources", {
-          headers: {
-            Authorization: localStorage.getItem("access_token")
-              ? `Bearer ${localStorage.getItem("access_token")}`
-              : undefined,
-          },
-        });
+        const response = await api.get("/api/resources");
 
         console.log(
           "DEBUG CURRICULUM CLIENT: Resources fetched successfully:",
