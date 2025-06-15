@@ -22,9 +22,22 @@ export default function MultiDashboardPage() {
   const { user, isLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<string>("");
   
-  // Fetch instructor courses
+  // Fetch instructor courses from the API
   const instructorCourses = useQuery({
-    queryKey: ['/api/courses'],
+    queryKey: ['instructor-courses'],
+    queryFn: async () => {
+      const response = await fetch('https://api.livetestdomain.com/api/courses', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`, // Adjust based on your auth setup
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch courses');
+      }
+      const data = await response.json();
+      return data.data; // Return the courses array from the API response
+    },
     // Only enabled when user is logged in and has instructor role
     enabled: !isLoading && !!user && Array.isArray(user.role) && user.role.includes(UserRole.INSTRUCTOR_ADMIN),
     staleTime: 1000 * 60 * 5, // 5 minutes
@@ -265,6 +278,12 @@ export default function MultiDashboardPage() {
                   </Link>
                 </Button>
                 <Button asChild variant="outline" size="sm">
+                  <Link href="/instructor-module-page">
+                    <Users className="h-4 w-4 mr-2" />
+                    Modules
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" size="sm">
                   <Link href="/instructor/dashboard">Full Instructor Portal</Link>
                 </Button>
               </div>
@@ -279,7 +298,13 @@ export default function MultiDashboardPage() {
                 <CardContent>
                   <div className="text-3xl font-bold text-primary">
                     <BookOpen className="inline mr-2 h-5 w-5" />
-                    4
+                    {instructorCourses.isLoading ? (
+                      <Loader2 className="inline h-6 w-6 animate-spin ml-2" />
+                    ) : instructorCourses.error ? (
+                      <span className="text-red-500">-</span>
+                    ) : (
+                      instructorCourses.data?.length || 0
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -291,7 +316,13 @@ export default function MultiDashboardPage() {
                 <CardContent>
                   <div className="text-3xl font-bold text-primary">
                     <Users className="inline mr-2 h-5 w-5" />
-                    42
+                    {instructorCourses.isLoading ? (
+                      <Loader2 className="inline h-6 w-6 animate-spin ml-2" />
+                    ) : instructorCourses.error ? (
+                      <span className="text-red-500">-</span>
+                    ) : (
+                      instructorCourses.data?.reduce((total, course) => total + (course.enrollment_count || 0), 0) || 0
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -335,7 +366,7 @@ export default function MultiDashboardPage() {
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="font-medium">Edit course content</span>
-                      <Link href="/instructor/courses/edit" className="text-primary hover:underline">
+                      <Link href="/instructor/courses" className="text-primary hover:underline">
                         Edit
                       </Link>
                     </div>
@@ -498,9 +529,9 @@ export default function MultiDashboardPage() {
                   <Card key={course.id}>
                     <CardHeader className="pb-2">
                       <div className="w-full h-32 rounded-md bg-muted mb-2 flex items-center justify-center">
-                        {course.imageUrl ? (
+                        {course.image_url ? (
                           <img 
-                            src={course.imageUrl} 
+                            src={course.image_url} 
                             alt={course.title} 
                             className="h-full w-full object-cover rounded-md"
                           />
@@ -512,20 +543,22 @@ export default function MultiDashboardPage() {
                     </CardHeader>
                     <CardContent className="pb-2">
                       <div className="flex justify-between text-sm text-muted-foreground mb-2">
-                        <span>Modules</span>
-                        <span>{course.moduleCount || 0}</span>
+                        <span>Duration</span>
+                        <span>{course.duration}</span>
                       </div>
-                      <div className="w-full bg-muted rounded-full h-2.5">
-                        <div 
-                          className="bg-primary h-2.5 rounded-full" 
-                          style={{ width: course.moduleCount ? `${Math.min(100, course.moduleCount * 10)}%` : '10%' }}
-                        ></div>
+                      <div className="flex justify-between text-sm text-muted-foreground mb-2">
+                        <span>Level</span>
+                        <span className="capitalize">{course.difficulty_level}</span>
+                      </div>
+                      <div className="flex justify-between text-sm text-muted-foreground mb-2">
+                        <span>Price</span>
+                        <span>${course.price}</span>
                       </div>
                     </CardContent>
                     <CardFooter className="flex justify-between">
                       <Badge variant="outline">
                         <Users className="h-3 w-3 mr-1" />
-                        {course.enrollmentCount || 0} Students
+                        {course.enrollment_count || 0} Students
                       </Badge>
                       <div className="flex space-x-2">
                         <Button variant="ghost" size="sm" asChild>

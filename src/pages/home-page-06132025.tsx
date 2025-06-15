@@ -271,7 +271,7 @@ export default function HomePage() {
                     </Button>
                   </Link>
                 ) : (
-                  <Link href="/dashboard">
+                  <Link href="/dashboard">  
                     <Button
                       className="bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90 rounded-full px-8 py-3 font-bold"
                       aria-label="Go to Your Dashboard"
@@ -1087,7 +1087,7 @@ export default function HomePage() {
                         <Input
                           id="resource-name"
                           value={resourceName}
-                          onChange={(e) => setResourceName(e.target.value)}
+                          onChange={(e: { target: { value: any; }; }) => setResourceName(e.target.value)}
                           className="bg-gray-800 border-gray-700"
                           placeholder={
                             reviewType === "course"
@@ -1103,7 +1103,7 @@ export default function HomePage() {
                         <Checkbox
                           id="verified-professional"
                           checked={verified}
-                          onCheckedChange={(checked) =>
+                          onCheckedChange={(checked: boolean) =>
                             setVerified(checked === true)
                           }
                         />

@@ -12,6 +12,8 @@ import { AuthProvider } from "./hooks/use-auth";
 import { GuestModeProvider } from "./hooks/use-guest-mode";
 import { GuestCartProvider } from "./hooks/use-guest-cart";
 import { CartProvider } from "./hooks/use-cart";
+import instructorModulePage from "./pages/instructor/instructor-module-page";
+
 
 // Loading fallback component
 function LoadingFallback() {
@@ -328,6 +330,7 @@ const Pages = {
   InstructorCertificates: withLayout(InstructorCertificatesPage),
   IssueCertificate: withLayout(IssueCertificatePage),
   CourseEdit: withLayout(CourseEditPages),
+  instructorModulePage: withLayout(instructorModulePage),
 
   // Admin Pages
   AdminDashboard: withAdminLayout(AdminDashboardPage),
@@ -583,6 +586,10 @@ function Router() {
         <ProtectedRoute
           path="/instructor/certificates/issue"
           component={Pages.IssueCertificate}
+        />
+        <ProtectedRoute 
+        path="/instructor/instructor-module-page"
+        component={Pages.instructorModulePage}
         />
 
         {/* Admin Routes */}
