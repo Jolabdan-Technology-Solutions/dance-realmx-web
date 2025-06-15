@@ -19,7 +19,8 @@ import {
   CheckCircle2,
   XCircle,
   MoreHorizontal,
-  GraduationCap
+  GraduationCap,
+  Loader2
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
