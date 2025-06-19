@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Body,
+  Put,
   Patch,
   Param,
   Delete,
@@ -85,7 +86,7 @@ export class CoursesController {
   }
 
   @Post('enroll-course/:id')
-  @UseGuards(JwtAuthGuard, RolesGuard, SubscriptionGuard)
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Enroll a user in a course' })
   @ApiParam({ name: 'id', type: 'string', description: 'Course ID' })
   @ApiBody({
@@ -96,7 +97,7 @@ export class CoursesController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 404, description: 'Course not found' })
-  @Roles(UserRole.STUDENT, UserRole.ADMIN)
+  // @Roles(UserRole.STUDENT, UserRole.ADMIN, UserRole.INSTRUCTOR_ADMIN, UserRole.INSTRUCTOR, UserRole.GUEST_USER, UserRole.BOOKING_PROFESSIONAL)
   async enrollCourse(
     @Param('id') courseId: string,
     @Body() body: { userId: number },
@@ -104,7 +105,7 @@ export class CoursesController {
     return this.coursesService.purchaseCourse(body.userId, +courseId);
   }
 
-  @Patch(':id')
+  @Put(':id')
   @UseGuards(JwtAuthGuard, RolesGuard, SubscriptionGuard)
   @ApiOperation({ summary: 'Update a course' })
   @ApiParam({ name: 'id', type: 'string', description: 'Course ID' })
@@ -185,7 +186,7 @@ export class CoursesController {
     return this.coursesService.getModules(+courseId);
   }
 
-  @Patch(':id/visibility')
+  @Put(':id/visibility')
   @UseGuards(JwtAuthGuard, RolesGuard, SubscriptionGuard)
   @ApiOperation({ summary: 'Toggle course visibility' })
   @ApiParam({ name: 'id', type: 'string', description: 'Course ID' })

@@ -32,13 +32,12 @@ import { ResourceDto } from './dto/resource.dto';
 @ApiTags('Resources')
 @ApiBearerAuth()
 @Controller('resources')
-@UseGuards(JwtAuthGuard)
 export class ResourcesController {
   constructor(private readonly resourcesService: ResourcesService) {}
 
   @Post()
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.CURRICULUM_SELLER, UserRole.INSTRUCTOR, UserRole.ADMIN)
+  @UseGuards(RolesGuard, JwtAuthGuard)
+  @Roles(UserRole.CURRICULUM_SELLER, UserRole.INSTRUCTOR_ADMIN, UserRole.ADMIN)
   @ApiOperation({ summary: 'Create a new resource' })
   @ApiBody({ type: CreateResourceDto })
   @ApiResponse({
@@ -292,8 +291,8 @@ export class ResourcesController {
   }
 
   @Post(':id/purchase')
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.STUDENT, UserRole.INSTRUCTOR)
+  @UseGuards(RolesGuard, JwtAuthGuard)
+  @Roles(UserRole.STUDENT, UserRole.INSTRUCTOR, UserRole.ADMIN)
   @ApiOperation({ summary: 'Purchase a resource' })
   @ApiParam({ name: 'id', type: Number, description: 'Resource ID' })
   @ApiResponse({

@@ -22,6 +22,7 @@ import { UserRole } from '@prisma/client';
 import { Request } from 'express';
 import { Prisma, Subscription, SubscriptionTier } from '@prisma/client';
 import { SubscriptionStatus } from './enums/subscription-status.enum';
+import { PrismaService } from '../prisma/prisma.service';
 
 interface RequestWithUser extends Request {
   user: {
@@ -35,7 +36,10 @@ interface RequestWithUser extends Request {
 export class SubscriptionsController {
   private readonly logger = new Logger(SubscriptionsController.name);
 
-  constructor(private readonly subscriptionsService: SubscriptionsService) {}
+  constructor(
+    private readonly subscriptionsService: SubscriptionsService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   @Get('plans')
   findAllPlans() {
@@ -247,6 +251,15 @@ export class SubscriptionsController {
           'User not found. Please make sure you are logged in.',
           HttpStatus.NOT_FOUND,
         );
+      }
+
+      // Check if user has a subscription tier, if not set it to 'free'
+      if (!user.subscription_tier) {
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: { subscription_tier: 'free' },
+        });
+        console.log('Set initial subscription tier to free for user:', user.id);
       }
 
       // Get the appropriate price ID

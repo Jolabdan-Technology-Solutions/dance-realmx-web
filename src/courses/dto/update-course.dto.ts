@@ -1,24 +1,64 @@
-import { IsString, IsNumber, IsOptional, IsUrl, Min } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsOptional,
+  IsUrl,
+  Min,
+  IsBoolean,
+  IsNotEmpty,
+} from 'class-validator';
+import { Transform } from 'class-transformer';
 
 export class UpdateCourseDto {
-  @IsOptional()
   @IsString()
-  title?: string;
+  @IsNotEmpty()
+  title: string;
 
-  @IsOptional()
   @IsString()
-  description?: string;
+  @IsNotEmpty()
+  description: string;
 
-  @IsOptional()
-  @IsNumber()
+  @Transform(({ value }) => parseFloat(value))
+  @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
-  price?: number;
+  price: number;
+
+  @IsString()
+  @IsNotEmpty()
+  short_name?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  detailed_description: string;
+
+  @IsNumber()
+  category_id?: number;
+
+  @IsString()
+  @IsNotEmpty()
+  duration?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  visible?: boolean = true;
 
   @IsOptional()
   @IsUrl()
   image_url?: string;
 
-  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  video_url?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  preview_video_url?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  difficulty_level?: string;
+
   @IsNumber()
+  @IsNotEmpty()
   instructor_id?: number;
 }

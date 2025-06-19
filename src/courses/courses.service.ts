@@ -269,7 +269,7 @@ export class CoursesService implements OnModuleInit {
         throw new NotFoundException(`Course with ID ${id} not found`);
       }
 
-      const { instructor_id, ...updateData } = updateCourseDto;
+      const { instructor_id, category_id, ...updateData } = updateCourseDto;
 
       // If instructor_id is provided, check if it exists
       if (instructor_id) {
@@ -283,6 +283,18 @@ export class CoursesService implements OnModuleInit {
         }
       }
 
+      // If category_id is provided, check if it exists
+      if (category_id) {
+        const category = await this.prisma.category.findUnique({
+          where: { id: category_id },
+        });
+        if (!category) {
+          throw new NotFoundException(
+            `Category with ID ${category_id} not found`,
+          );
+        }
+      }
+
       return await this.prisma.course.update({
         where: { id },
         data: {
@@ -291,6 +303,14 @@ export class CoursesService implements OnModuleInit {
             instructor: {
               connect: {
                 id: instructor_id,
+              },
+            },
+          }),
+          ...(category_id && {
+            categories: {
+              set: [], // Clear existing categories
+              connect: {
+                id: category_id,
               },
             },
           }),

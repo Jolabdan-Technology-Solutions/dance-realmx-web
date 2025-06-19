@@ -451,9 +451,9 @@ enum UserRole {
 
 enum SubscriptionTier {
   FREE
-  SILVER
-  GOLD
-  PLATINUM
+  NOBILITY
+  IMPERIAL
+  ROYAL
 }
 
 enum EnrollmentStatus {

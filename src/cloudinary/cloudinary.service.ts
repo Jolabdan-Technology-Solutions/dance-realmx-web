@@ -19,7 +19,9 @@ export class CloudinaryService implements OnModuleInit {
     console.log('CLOUDINARY_API_SECRET exists:', !!apiSecret);
 
     if (!cloudName || !apiKey || !apiSecret) {
-      console.warn('Cloudinary configuration is incomplete. File uploads will be disabled.');
+      console.warn(
+        'Cloudinary configuration is incomplete. File uploads will be disabled.',
+      );
       return;
     }
 
@@ -38,7 +40,9 @@ export class CloudinaryService implements OnModuleInit {
     options: { folder?: string; resource_type?: CloudinaryResourceType } = {},
   ) {
     if (!this.isConfigured) {
-      throw new Error('Cloudinary is not configured. Please check your environment variables.');
+      throw new Error(
+        'Cloudinary is not configured. Please check your environment variables.',
+      );
     }
 
     try {
@@ -59,6 +63,7 @@ export class CloudinaryService implements OnModuleInit {
               'docx',
               'mp4',
               'mov',
+              'svg',
               'mp3',
               'wav',
             ],
@@ -95,7 +100,9 @@ export class CloudinaryService implements OnModuleInit {
 
   async deleteFile(publicId: string) {
     if (!this.isConfigured) {
-      throw new Error('Cloudinary is not configured. Please check your environment variables.');
+      throw new Error(
+        'Cloudinary is not configured. Please check your environment variables.',
+      );
     }
 
     try {
@@ -115,7 +122,9 @@ export class CloudinaryService implements OnModuleInit {
 
   async getFileInfo(publicId: string) {
     if (!this.isConfigured) {
-      throw new Error('Cloudinary is not configured. Please check your environment variables.');
+      throw new Error(
+        'Cloudinary is not configured. Please check your environment variables.',
+      );
     }
 
     try {
