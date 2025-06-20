@@ -12,25 +12,6 @@ import {
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { User } from '@prisma/client';
-import { CreateUserDto } from './dto/create-user-dto';
-import { LoginDto } from './dto/login-dto';
-import { LoginResponseDto } from './dto/login-response-dto';
-
-@Controller()
-export class AuthController {
-  constructor(private readonly usersService: UsersService) {}
-
-  @Post('register')
-  async register(@Body() createUserDto: CreateUserDto): Promise<User> {
-    return this.usersService.create(createUserDto);
-  }
-
-  @Post('login')
-  @HttpCode(HttpStatus.OK)
-  async login(@Body() loginDto: LoginDto): Promise<LoginResponseDto> {
-    return this.usersService.login(loginDto);
-  }
-}
 
 @Controller('users')
 export class UsersController {

@@ -23,7 +23,7 @@ export class TenantsController {
   @Post()
   @Roles(Role.ADMIN)
   create(@Body('name') name: string) {
-    return this.tenantsService.createTenant(name);
+    return this.tenantsService.create(name);
   }
 
   @Get(':id')

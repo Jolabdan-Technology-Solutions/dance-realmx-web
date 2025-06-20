@@ -7,23 +7,11 @@ export class PrismaService
   implements OnModuleInit, OnModuleDestroy
 {
   constructor() {
-    super({
-      log: ['query', 'info', 'warn', 'error'],
-      datasources: {
-        db: {
-          url: process.env.DATABASE_URL,
-        },
-      },
-    });
+    super();
   }
 
   async onModuleInit() {
-    try {
-      await this.$connect();
-    } catch (error) {
-      console.error('Failed to connect to database:', error);
-      throw error;
-    }
+    await this.$connect();
   }
 
   async onModuleDestroy() {
@@ -33,6 +21,10 @@ export class PrismaService
   // Expose models with proper typing
   get category() {
     return this.category;
+  }
+
+  get instructor() {
+    return this.instructor;
   }
 
   get user() {
@@ -113,5 +105,25 @@ export class PrismaService
 
   get review() {
     return this.review;
+  }
+
+  get cartItem() {
+    return this.cartItem;
+  }
+
+  get order() {
+    return this.order;
+  }
+
+  get passwordReset() {
+    return this.passwordReset;
+  }
+
+  get emailVerification() {
+    return this.emailVerification;
+  }
+
+  get UserRole() {
+    return this.UserRole;
   }
 }

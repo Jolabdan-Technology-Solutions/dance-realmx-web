@@ -20,8 +20,8 @@ const plans = [
     unlockedRoles: [UserRole.DIRECTORY_MEMBER],
   },
   {
-    name: 'Silver',
-    slug: 'silver',
+    name: 'Nobility',
+    slug: 'nobility',
     description: 'Royal - Silver',
     features: [
       'Profile Listing in Directory',
@@ -40,13 +40,13 @@ const plans = [
     isActive: true,
     isPopular: true,
     planType: 'main',
-    tier: SubscriptionTier.SILVER,
+    tier: SubscriptionTier.NOBILITY,
     unlockedRoles: [UserRole.DIRECTORY_MEMBER, UserRole.CURRICULUM_SELLER],
   },
   {
-    name: 'Gold',
-    slug: 'gold',
-    description: 'Royal - Gold',
+    name: 'Royal',
+    slug: 'royal',
+    description: 'Royal - Royal',
     features: [
       'All Silver Features',
       'Access to Certification Tools',
@@ -59,7 +59,7 @@ const plans = [
     isActive: true,
     isPopular: false,
     planType: 'main',
-    tier: SubscriptionTier.GOLD,
+    tier: SubscriptionTier.ROYAL,
     unlockedRoles: [
       UserRole.DIRECTORY_MEMBER,
       UserRole.CURRICULUM_SELLER,
@@ -67,9 +67,9 @@ const plans = [
     ],
   },
   {
-    name: 'Platinum',
-    slug: 'platinum',
-    description: 'Royal - Platinum',
+    name: 'Imperial',
+    slug: 'imperial',
+    description: 'Royal - Imperial',
     features: [
       'All Gold Features',
       'Admin Dashboard',
@@ -83,7 +83,7 @@ const plans = [
     isActive: true,
     isPopular: false,
     planType: 'main',
-    tier: SubscriptionTier.PLATINUM,
+    tier: SubscriptionTier.IMPERIAL,
     unlockedRoles: [
       UserRole.DIRECTORY_MEMBER,
       UserRole.CURRICULUM_SELLER,

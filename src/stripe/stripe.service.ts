@@ -1,41 +1,47 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
 
 @Injectable()
 export class StripeService {
+  private readonly logger = new Logger(StripeService.name);
   private stripe: Stripe;
 
   constructor(private configService: ConfigService) {
-    const stripeKey = this.configService.get<string>('STRIPE_SECRET_KEY');
-    if (!stripeKey) {
-      throw new Error(
-        'STRIPE_SECRET_KEY is not defined in environment variables',
-      );
+    const stripeSecretKey = this.configService.get<string>('STRIPE_SECRET_KEY');
+    if (!stripeSecretKey) {
+      throw new Error('STRIPE_SECRET_KEY is not defined');
     }
-    this.stripe = new Stripe(stripeKey, {
+    this.stripe = new Stripe(stripeSecretKey, {
       apiVersion: '2025-05-28.basil',
     });
   }
 
-  async createPaymentIntent(data: {
-    amount: number;
-    currency: string;
-    metadata?: Record<string, string>;
-  }) {
-    return this.stripe.paymentIntents.create({
-      amount: data.amount,
-      currency: data.currency,
-      metadata: data.metadata,
-    });
-  }
+  private handleStripeError(error: any, context: string): never {
+    this.logger.error(
+      `Stripe error in ${context}: ${error.message}`,
+      error.stack,
+    );
 
-  async retrievePaymentIntent(paymentIntentId: string) {
-    return this.stripe.paymentIntents.retrieve(paymentIntentId);
-  }
-
-  async confirmPaymentIntent(paymentIntentId: string) {
-    return this.stripe.paymentIntents.confirm(paymentIntentId);
+    if (error instanceof Stripe.errors.StripeError) {
+      switch (error.type) {
+        case 'StripeCardError':
+          throw new BadRequestException('The card was declined');
+        case 'StripeInvalidRequestError':
+          throw new BadRequestException(error.message);
+        case 'StripeAPIError':
+          throw new InternalServerErrorException('Stripe API error');
+        case 'StripeConnectionError':
+          throw new InternalServerErrorException('Stripe connection error');
+      }
+    }
+    // Always throw as a fallback
+    throw new InternalServerErrorException('An unknown Stripe error occurred');
   }
 
   async cancelPaymentIntent(paymentIntentId: string) {

@@ -1,5 +1,3 @@
-// ecosystem.config.ts
-// Instead of importing, just export an object
 export default {
   apps: [
     {
@@ -14,4 +12,3 @@ export default {
     },
   ],
 };
-

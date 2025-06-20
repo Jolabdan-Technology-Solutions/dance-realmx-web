@@ -5,14 +5,17 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AddToCartDto, CartItemType } from './dto/add-to-cart.dto';
-import {
-  CartItem,
-  Order,
-  OrderItem,
-  PaymentStatus,
-  PaymentType,
-} from '@prisma/client';
 import { StripeService } from '../stripe/stripe.service';
+
+interface CartItem {
+  id: number;
+  user_id: number;
+  course_id?: number;
+  resource_id?: number;
+  quantity: number;
+  created_at: Date;
+  updated_at: Date;
+}
 
 @Injectable()
 export class CartService {
@@ -22,33 +25,32 @@ export class CartService {
   ) {}
 
   async addToCart(userId: number, dto: AddToCartDto): Promise<CartItem> {
-    // Check if item exists and is available
-    await this.validateItem(dto.itemType, dto.itemId);
+    await this.validateItem(dto.type, dto.itemId);
 
-    // Check if item is already in cart
+    // Check if item already exists in cart
     const existingItem = await this.prisma.cartItem.findFirst({
       where: {
         user_id: userId,
-        course_id: dto.itemType === CartItemType.COURSE ? dto.itemId : null,
-        resource_id: dto.itemType === CartItemType.RESOURCE ? dto.itemId : null,
+        course_id: dto.type === CartItemType.COURSE ? dto.itemId : null,
+        resource_id: dto.type === CartItemType.SUBSCRIPTION ? dto.itemId : null,
       },
     });
 
     if (existingItem) {
-      // Update quantity if item exists
+      // Update quantity
       return this.prisma.cartItem.update({
         where: { id: existingItem.id },
-        data: { quantity: existingItem.quantity + dto.quantity },
+        data: { quantity: existingItem.quantity + 1 },
       });
     }
 
-    // Add new item to cart
+    // Create new cart item
     return this.prisma.cartItem.create({
       data: {
         user_id: userId,
-        course_id: dto.itemType === CartItemType.COURSE ? dto.itemId : null,
-        resource_id: dto.itemType === CartItemType.RESOURCE ? dto.itemId : null,
-        quantity: dto.quantity,
+        course_id: dto.type === CartItemType.COURSE ? dto.itemId : null,
+        resource_id: dto.type === CartItemType.SUBSCRIPTION ? dto.itemId : null,
+        quantity: 1,
       },
     });
   }
@@ -64,6 +66,12 @@ export class CartService {
 
     await this.prisma.cartItem.delete({
       where: { id: cartItemId },
+    });
+  }
+
+  async clearCart(userId: number): Promise<void> {
+    await this.prisma.cartItem.deleteMany({
+      where: { user_id: userId },
     });
   }
 
@@ -91,6 +99,7 @@ export class CartService {
   }
 
   async getCart(userId: number) {
+    console.log(userId);
     const cartItems = await this.prisma.cartItem.findMany({
       where: { user_id: userId },
       include: {
@@ -176,9 +185,7 @@ export class CartService {
     });
 
     // Clear cart
-    await this.prisma.cartItem.deleteMany({
-      where: { user_id: userId },
-    });
+    await this.clearCart(userId);
 
     return {
       order,

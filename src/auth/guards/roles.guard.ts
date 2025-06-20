@@ -33,7 +33,10 @@ export class RolesGuard implements CanActivate {
       return false;
     }
 
+    // Handle both array and single role formats
+    const userRoles = Array.isArray(user.role) ? user.role : [user.role];
+
     // Check if user has any of the required roles
-    return this.permissionsService.hasAnyRole(user.id, requiredRoles);
+    return requiredRoles.some((role) => userRoles.includes(role));
   }
 }

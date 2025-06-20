@@ -6,9 +6,52 @@ import { UserRole } from '@prisma/client';
 export class TenantsService {
   constructor(private prisma: PrismaService) {}
 
-  async createTenant(name: string) {
+  async create(name: string) {
     return this.prisma.tenant.create({
-      data: { name },
+      data: {
+        name,
+        created_at: new Date(),
+        updated_at: new Date()
+      }
+    });
+  }
+
+  async findAll() {
+    return this.prisma.tenant.findMany({
+      select: {
+        id: true,
+        name: true,
+        created_at: true,
+        updated_at: true,
+      },
+    });
+  }
+
+  async findOne(id: number) {
+    return this.prisma.tenant.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        created_at: true,
+        updated_at: true,
+      },
+    });
+  }
+
+  async update(id: number, data: any) {
+    return this.prisma.tenant.update({
+      where: { id },
+      data: {
+        ...data,
+        updated_at: new Date()
+      }
+    });
+  }
+
+  async remove(id: number) {
+    return this.prisma.tenant.delete({
+      where: { id }
     });
   }
 
@@ -71,8 +114,11 @@ export class TenantsService {
   async getTenantById(id: number) {
     const tenant = await this.prisma.tenant.findUnique({
       where: { id },
-      include: {
-        users: true,
+      select: {
+        id: true,
+        name: true,
+        created_at: true,
+        updated_at: true,
       },
     });
 

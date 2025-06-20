@@ -24,7 +24,11 @@ export class CloudinaryController {
   constructor(private readonly cloudinaryService: CloudinaryService) {}
 
   @Post()
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', {
+  limits: {
+    fileSize: 100 * 1024 * 1024,
+  },
+}))
   async uploadFile(
     @UploadedFile() file: Express.Multer.File,
     @Body() uploadFileDto: UploadFileDto,

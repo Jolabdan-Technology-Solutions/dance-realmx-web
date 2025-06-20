@@ -1,10 +1,22 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
+import * as express from 'express';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import * as bodyParser from 'body-parser';
+import * as dotenv from 'dotenv';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // Load environment variables before creating the app
+  dotenv.config();
+
+  const app = await NestFactory.create(AppModule, {
+    rawBody: true,
+    logger: ['error', 'warn', 'log', 'debug', 'verbose'],
+  });
+
+  app.useLogger(new Logger());
+
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,
@@ -12,6 +24,33 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
     }),
   );
+
+  // Configure raw body parser for Stripe webhooks
+  app.use(
+    '/api/courses/webhook/stripe',
+    bodyParser.raw({ type: 'application/json' }),
+  );
+
+  app.use(express.json({ limit: '50mb' }));
+  app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+  app.enableCors({
+    origin: 'http://localhost:5173',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'Accept',
+      'Origin',
+      'X-Requested-With',
+    ],
+    exposedHeaders: ['Content-Range', 'X-Content-Range'],
+    credentials: true,
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
+  });
+
+  app.use(bodyParser.json());
 
   app.setGlobalPrefix('api');
 
@@ -51,10 +90,12 @@ async function bootstrap() {
     customSiteTitle: 'Dance Realm API Documentation',
   });
 
+  const port = process.env.PORT || 3000;
+
   await app
-    .listen(process.env.PORT ?? 3000)
+    .listen(port)
     .then(() => {
-      console.log(`Server is running on port ${process.env.PORT ?? 3000}`);
+      console.log(`Server is running on port ${port}`);
       console.log(`Swagger documentation is available at /docs`);
     })
     .catch((error) => {

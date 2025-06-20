@@ -10,16 +10,23 @@ import {
   Req,
   HttpException,
   HttpStatus,
+  Put,
+  Logger,
 } from '@nestjs/common';
+import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { SubscriptionsService } from './subscriptions.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { UserRole } from '@prisma/client';
 import { Request } from 'express';
 import { Prisma, Subscription, SubscriptionTier } from '@prisma/client';
 import { SubscriptionStatus } from './enums/subscription-status.enum';
+import { PrismaService } from '../prisma/prisma.service';
 
 interface RequestWithUser extends Request {
   user: {
-    id: number;
+    sub: number;
     email: string;
     role: string;
   };
@@ -27,7 +34,12 @@ interface RequestWithUser extends Request {
 
 @Controller('subscriptions')
 export class SubscriptionsController {
-  constructor(private readonly subscriptionsService: SubscriptionsService) {}
+  private readonly logger = new Logger(SubscriptionsController.name);
+
+  constructor(
+    private readonly subscriptionsService: SubscriptionsService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   @Get('plans')
   findAllPlans() {
@@ -43,7 +55,108 @@ export class SubscriptionsController {
   @Get('user')
   @UseGuards(JwtAuthGuard)
   findByUser(@Req() req: RequestWithUser) {
-    return this.subscriptionsService.findByUserId(req.user.id);
+    console.log('findByUser', req.user);
+    return this.subscriptionsService.findByUserId(req.user.sub);
+  }
+
+  @Get('course-stats')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Get course and enrollment statistics' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns course and enrollment statistics',
+  })
+  async getCourseStats() {
+    try {
+      const [instructorCourses, courseEnrollments, instructorEnrollments] =
+        await Promise.all([
+          this.subscriptionsService.getInstructorCourseStats(),
+          this.subscriptionsService.getCourseEnrollmentStats(),
+          this.subscriptionsService.getInstructorEnrollmentStats(),
+        ]);
+
+      return {
+        instructor_courses: instructorCourses,
+        course_enrollments: courseEnrollments,
+        instructor_enrollments: instructorEnrollments,
+      };
+    } catch (error) {
+      this.logger.error(`Course stats error: ${error.message}`, error.stack);
+      throw new HttpException(
+        'Failed to fetch course statistics',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('analytics')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Get subscription analytics' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns subscription statistics and metrics',
+  })
+  async getSubscriptionAnalytics() {
+    try {
+      // Get total subscriptions
+      const totalSubscriptions =
+        await this.subscriptionsService.getTotalSubscriptions();
+
+      // Get active subscriptions
+      const activeSubscriptions =
+        await this.subscriptionsService.getActiveSubscriptions();
+
+      // Get expired subscriptions
+      const expiredSubscriptions =
+        await this.subscriptionsService.getExpiredSubscriptions();
+
+      // Get subscriptions by plan
+      const subscriptionsByPlan =
+        await this.subscriptionsService.getSubscriptionsByPlan();
+
+      // Get subscriptions by frequency (monthly/yearly)
+      const subscriptionsByFrequency =
+        await this.subscriptionsService.getSubscriptionsByFrequency();
+
+      // Get revenue metrics
+      const revenueMetrics =
+        await this.subscriptionsService.getSubscriptionRevenueMetrics();
+
+      // Get churn rate
+      const churnRate = await this.subscriptionsService.getChurnRate();
+
+      // Get subscription growth
+      const subscriptionGrowth =
+        await this.subscriptionsService.getSubscriptionGrowth();
+
+      return {
+        overview: {
+          total: totalSubscriptions,
+          active: activeSubscriptions,
+          expired: expiredSubscriptions,
+        },
+        distribution: {
+          byPlan: subscriptionsByPlan,
+          byFrequency: subscriptionsByFrequency,
+        },
+        metrics: {
+          revenue: revenueMetrics,
+          churnRate,
+          growth: subscriptionGrowth,
+        },
+      };
+    } catch (error) {
+      this.logger.error(
+        `Subscription analytics error: ${error.message}`,
+        error.stack,
+      );
+      throw new HttpException(
+        'Failed to fetch subscription analytics',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 
   @Get(':id')
@@ -61,7 +174,9 @@ export class SubscriptionsController {
       email: string;
     },
   ) {
-    return this.subscriptionsService.createCheckoutSession(createSubscriptionDto);
+    return this.subscriptionsService.createCheckoutSession(
+      createSubscriptionDto,
+    );
   }
 
   @Patch(':id')
@@ -73,13 +188,13 @@ export class SubscriptionsController {
     return this.subscriptionsService.update(+id, updateSubscriptionDto);
   }
 
-  @Patch(':id/status')
+  @Put(':id/status')
   @UseGuards(JwtAuthGuard)
   updateStatus(
     @Param('id') id: string,
     @Body('status') status: SubscriptionStatus,
   ) {
-    return this.subscriptionsService.updateStatus(+id, status);
+    return this.subscriptionsService.updateStatus(id, status);
   }
 
   @Delete(':id')
@@ -89,52 +204,86 @@ export class SubscriptionsController {
   }
 
   @Post('checkout')
-  async createSubscriptionCheckout(@Body() dto: { planSlug: string; frequency: 'MONTHLY' | 'YEARLY'; email: string }) {
+  async createSubscriptionCheckout(
+    @Body()
+    dto: {
+      planSlug: string;
+      frequency: 'MONTHLY' | 'YEARLY';
+      email: string;
+    },
+  ) {
     try {
-      console.log('Creating subscription checkout with data:', { ...dto, email: dto.email ? '***' : null });
+      console.log('Creating subscription checkout with data:', {
+        ...dto,
+        email: dto.email ? '***' : null,
+      });
 
       // Validate required fields
       if (!dto.planSlug || !dto.frequency || !dto.email) {
         throw new HttpException(
           'Missing required fields: planSlug, frequency, and email are required',
-          HttpStatus.BAD_REQUEST
+          HttpStatus.BAD_REQUEST,
         );
       }
 
       // Find the plan first
-      const plan = await this.subscriptionsService.findPlanBySlug(dto.planSlug);
+      const plan = await this.subscriptionsService.findPlanBySlug(
+        dto.planSlug.toLowerCase(),
+      );
       if (!plan) {
-        throw new HttpException('Subscription plan not found', HttpStatus.NOT_FOUND);
+        throw new HttpException(
+          'Subscription plan not found',
+          HttpStatus.NOT_FOUND,
+        );
       }
       console.log('Found plan:', { id: plan.id, name: plan.name });
 
       // Find the user
       const user = await this.subscriptionsService.findUserByEmail(dto.email);
-      console.log('User lookup result:', user ? { id: user.id, email: user.email } : 'User not found');
-      
+      console.log('User:', dto.email);
+      console.log(
+        'User lookup result:',
+        user ? { id: user.id, email: user.email } : 'User not found',
+      );
+
       if (!user) {
-        throw new HttpException('User not found. Please make sure you are logged in.', HttpStatus.NOT_FOUND);
+        throw new HttpException(
+          'User not found. Please make sure you are logged in.',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      // Check if user has a subscription tier, if not set it to 'free'
+      if (!user.subscription_tier) {
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: { subscription_tier: 'free' },
+        });
+        console.log('Set initial subscription tier to free for user:', user.id);
       }
 
       // Get the appropriate price ID
-      const priceId = dto.frequency === 'MONTHLY' ? plan.priceMonthly : plan.priceYearly;
+      const priceId =
+        dto.frequency === 'MONTHLY' ? plan.priceMonthly : plan.priceYearly;
       if (!priceId) {
         throw new HttpException(
           `Stripe price ID for ${dto.frequency.toLowerCase()} plan is not set`,
-          HttpStatus.BAD_REQUEST
+          HttpStatus.BAD_REQUEST,
         );
       }
       console.log('Using price ID:', priceId);
 
-     // Instead of using a stored price ID
-const priceAmount = dto.frequency === 'MONTHLY' ? plan.priceMonthly : plan.priceYearly;
+      // Instead of using a stored price ID
+      const priceAmount =
+        dto.frequency === 'MONTHLY' ? plan.priceMonthly : plan.priceYearly;
 
-const session = await this.subscriptionsService.createStripeSubscriptionSession(
-  user,
-  plan,
-  Number(priceAmount),
-  dto.frequency
-);
+      const session =
+        await this.subscriptionsService.createStripeSubscriptionSession(
+          user,
+          plan,
+          Number(priceAmount),
+          dto.frequency,
+        );
 
       console.log('Created Stripe session:', { id: session.id });
 
@@ -158,7 +307,7 @@ const session = await this.subscriptionsService.createStripeSubscriptionSession(
       }
       throw new HttpException(
         error.message || 'Failed to create subscription checkout session',
-        HttpStatus.INTERNAL_SERVER_ERROR
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
