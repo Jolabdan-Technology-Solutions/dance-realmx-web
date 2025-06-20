@@ -13,6 +13,7 @@ import { GuestModeProvider } from "./hooks/use-guest-mode";
 import { GuestCartProvider } from "./hooks/use-guest-cart";
 import { CartProvider } from "./hooks/use-cart";
 import instructorModulePage from "./pages/instructor/instructor-module-page";
+// import 
 
 
 // Loading fallback component
@@ -65,6 +66,7 @@ const RegistrationFlowPage = lazy(() => import("@/pages/registration-flow"));
 const ProfileImageDebugPage = lazy(() => import("@/pages/profile-image-debug"));
 const NotFound = createLazyComponent(() => import("./pages/not-found"));
 
+
 // Course Certification Module
 const CoursesPage = lazy(() => import("@/pages/courses/courses-page"));
 const CourseDetailsPage = lazy(
@@ -73,6 +75,7 @@ const CourseDetailsPage = lazy(
 const MyCertificationsPage = lazy(
   () => import("@/pages/my-certifications-page")
 );
+
 const MyCoursesPage = lazy(() => import("@/pages/courses/my-courses-page"));
 const CourseModulePage = lazy(
   () => import("@/pages/courses/course-module-page")
@@ -185,6 +188,13 @@ const IssueCertificatePage = createLazyComponent(
 const CourseEditPages = createLazyComponent(
   () => import("./components/form/Edit-course")
 );
+const getBooked = createLazyComponent(
+  () => import("./pages/instructor/get-booked-page")
+);
+
+const bookProfessional = createLazyComponent(
+  () => import("./pages/instructor/book-professional-page")
+)
 
 // Admin Pages
 const AdminDashboardPage = createLazyComponent(
@@ -322,6 +332,8 @@ const Pages = {
   UserProfile: withLayout(UserProfilePage),
 
   // Instructor Pages
+  bookProfessional: withLayout(bookProfessional),
+  getBooked: withLayout(getBooked),
   InstructorDashboard: withLayout(InstructorDashboardPage),
   CourseCreate: withLayout(CourseCreatePage),
   CourseDetail: withLayout(CourseDetailPage),
@@ -565,6 +577,16 @@ function Router() {
         <ProtectedRoute
           path="/instructor/courses/:id"
           component={Pages.CourseDetail}
+        />
+
+        <ProtectedRoute
+        path="/connect/get-booked"
+        component={Pages.getBooked}
+        />
+
+        <ProtectedRoute
+        path="/connect/book"
+        component={Pages.bookProfessional}
         />
 
         <ProtectedRoute
