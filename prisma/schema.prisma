@@ -94,10 +94,21 @@ model Profile {
   state           String?
   country         String?
   zip_code        String?
-  created_at      DateTime @default(now())
-  updated_at      DateTime @updatedAt
   is_professional Boolean  @default(false)
+  is_verified     Boolean @default(false)
   user            User     @relation(fields: [user_id], references: [id])
+  service_category   String[]   // Array of service categories
+  dance_style        String[]   // Array of dance styles
+  location           String?
+  travel_distance    Int?       // in miles/km
+  price_min          Int?
+  price_max          Int?
+  session_duration   Int?       // in minutes
+  years_experience   Int?
+  services           String[]   // Array of services offered
+  availability       Json?      // Array of available dates/times
+  portfolio          String?
+  pricing            Int?
 }
 
 model Course {

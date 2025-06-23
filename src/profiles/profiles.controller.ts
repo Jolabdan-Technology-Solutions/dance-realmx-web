@@ -18,6 +18,9 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { RequireSubscription } from '../auth/decorators/require-subscription.decorator';
 import { User } from '@prisma/client';
+import { UpdateProfileDto } from './update-profile.dto';
+import { RolesGuard, Roles } from '../auth/guards/roles.guard';
+import { Role } from '../auth/enums/role.enum';
 
 interface RequestWithUser extends Request {
   user: {
@@ -41,7 +44,10 @@ export class ProfilesController {
   }
 
   @Patch('me')
-  async updateMyProfile(@Req() req: RequestWithUser, @Body() updateData: any) {
+  async updateMyProfile(
+    @Req() req: RequestWithUser,
+    @Body() updateData: UpdateProfileDto,
+  ) {
     return this.profilesService.update(req.user.sub, updateData);
   }
 
@@ -75,6 +81,8 @@ export class ProfilesController {
 
   @Post('become-professional')
   @RequireSubscription('BOOKING_PROFESSIONAL')
+  @UseGuards(RolesGuard)
+  @Roles(Role.BOOKING_PROFESSIONAL)
   async becomeProfessional(@Req() req: { user: User }) {
     return this.profilesService.becomeProfessional(req.user.id);
   }
