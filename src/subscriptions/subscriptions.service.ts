@@ -209,8 +209,6 @@ export class SubscriptionsService {
       throw new Error('User not found');
     }
 
-<<<<<<< HEAD
-=======
     // Check for existing pending subscription
     const existingPendingSubscription =
       await this.prisma.subscription.findFirst({
@@ -237,7 +235,6 @@ export class SubscriptionsService {
       }
     }
 
->>>>>>> dev-backend
     const priceId =
       data.frequency === 'MONTHLY'
         ? plan.stripePriceIdMonthly

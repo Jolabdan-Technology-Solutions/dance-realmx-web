@@ -4,18 +4,12 @@ import {
   Body,
   UseGuards,
   Get,
-<<<<<<< HEAD
-  Request,
-  HttpCode,
-  HttpStatus,
-=======
   Req,
   HttpCode,
   HttpStatus,
   UnauthorizedException,
   ConflictException,
   GoneException,
->>>>>>> dev-backend
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
@@ -26,14 +20,6 @@ import {
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
-<<<<<<< HEAD
-} from '@nestjs/swagger';
-
-@ApiTags('Authentication')
-@Controller('/api/')
-export class AuthController {
-  constructor(private authService: AuthService) {}
-=======
   ApiBody,
 } from '@nestjs/swagger';
 import { EmailDto } from './dto/email.dto';
@@ -56,7 +42,6 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly jwtService: JwtService,
   ) {}
->>>>>>> dev-backend
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
@@ -64,39 +49,13 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Login successful' })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
   async login(@Body() loginDto: LoginDto) {
-<<<<<<< HEAD
-    const user = await this.authService.validateUser(
-      loginDto.email,
-      loginDto.password,
-    );
-    return this.authService.login(user);
-=======
     return this.authService.login(loginDto);
->>>>>>> dev-backend
   }
 
   @Post('register')
   @ApiOperation({ summary: 'User registration' })
   @ApiResponse({ status: 201, description: 'Registration successful' })
   @ApiResponse({ status: 400, description: 'Invalid input' })
-<<<<<<< HEAD
-  async register(@Body() registerDto: CreateUserDto) {
-    return this.authService.register(registerDto);
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Get('profile')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get user profile' })
-  @ApiResponse({ status: 200, description: 'Profile retrieved successfully' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async getProfile(@Request() req) {
-    const user = await this.authService.validateUser(
-      req.user.email,
-      req.user.password,
-    );
-    return user;
-=======
   async register(@Body() createUserDto: CreateUserDto) {
     return this.authService.register(createUserDto);
   }
@@ -214,6 +173,5 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getInstructorAnalytics(): Promise<InstructorAnalyticsResponseDto> {
     return this.authService.getInstructorAnalytics();
->>>>>>> dev-backend
   }
 }

@@ -47,4 +47,12 @@ export class StripeService {
   async cancelPaymentIntent(paymentIntentId: string) {
     return this.stripe.paymentIntents.cancel(paymentIntentId);
   }
+
+  async createPaymentIntent(options: Stripe.PaymentIntentCreateParams) {
+    try {
+      return await this.stripe.paymentIntents.create(options);
+    } catch (error) {
+      this.handleStripeError(error, 'createPaymentIntent');
+    }
+  }
 }

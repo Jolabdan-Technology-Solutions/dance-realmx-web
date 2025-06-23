@@ -10,18 +10,11 @@ import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
-<<<<<<< HEAD
-import { User } from '@prisma/client';
-import { CreateUserDto } from './dto/register.dto';
-=======
 import * as crypto from 'crypto';
-import { User, UserRole } from '@prisma/client';
 import { LoginDto } from './dto/login.dto';
 import { CreateUserDto } from './dto/register.dto';
 import { ResetPasswordDto, ChangePasswordDto } from './dto/password.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
-import { Role } from './enums/role.enum';
->>>>>>> dev-backend
 
 export interface LoginResponse {
   user: {
@@ -61,23 +54,12 @@ export class AuthService {
     private readonly config: ConfigService,
   ) {}
 
-<<<<<<< HEAD
-  async validateUser(
-    email: string,
-    password: string,
-  ): Promise<Omit<User, 'password'>> {
-    const user = await this.prisma.user.findUnique({ where: { email } });
-    if (!user || !user.password) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
-=======
   async login(loginDto: LoginDto): Promise<LoginResponse> {
     try {
       const user = await this.validateUser(
         loginDto.username,
         loginDto.password,
       );
->>>>>>> dev-backend
 
       if (!user) {
         throw new UnauthorizedException('Invalid credentials');
@@ -211,13 +193,6 @@ export class AuthService {
     };
   }
 
-<<<<<<< HEAD
-  async register(data: CreateUserDto) {
-    const user = await this.prisma.user.create({
-      data: {
-        ...data,
-        role: data.role || Role.STUDENT,
-=======
   private async formatUserResponse(user: any) {
     return {
       id: user.id,
@@ -657,7 +632,6 @@ export class AuthService {
         created_at: {
           gte: new Date(Date.now() - this.RATE_LIMIT_WINDOW),
         },
->>>>>>> dev-backend
       },
     });
 
