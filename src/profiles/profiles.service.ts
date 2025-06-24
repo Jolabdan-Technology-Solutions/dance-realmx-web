@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { SearchProfessionalsDto } from './dto/search-professionals.dto';
+import { NotFoundException, BadRequestException } from '@nestjs/common';
 
 @Injectable()
 export class ProfilesService {
@@ -23,13 +24,23 @@ export class ProfilesService {
     });
   }
 
-  async becomeProfessional(userId: number) /*: any*/ {
-    return this.prisma.profile.update({
+  async becomeProfessional(userId: number, profileData: any) {
+    // Check if profile exists
+    const profile = await this.prisma.profile.findUnique({
       where: { user_id: userId },
-      data: {
-        is_professional: true,
-      },
     });
+    if (!profile) {
+      throw new NotFoundException('Profile not found for this user.');
+    }
+    if (profile.is_professional) {
+      throw new BadRequestException('User is already a professional.');
+    }
+    // Optionally, check for required fields in profileData here
+    await this.prisma.profile.update({
+      where: { user_id: userId },
+      data: { ...profileData, is_professional: true },
+    });
+    return { message: 'User is now a professional and profile updated.' };
   }
 
   async bookProfessional(professionalId: string, userId: number) {
@@ -137,38 +148,73 @@ export class ProfilesService {
 
   async searchProfessionals(filters: SearchProfessionalsDto) {
     const {
-      location,
-      danceStyle,
-      danceStyles,
-      category,
-      categories,
-      state,
+      bio,
+      phone_number,
+      address,
       city,
+      state,
+      country,
+      zip_code,
+      is_professional,
+      is_verified,
+      service_category,
+      dance_style,
+      location,
+      travel_distance,
+      price_min,
+      price_max,
+      pricing,
+      session_duration,
+      years_experience,
+      services,
+      portfolio,
       date,
-      min,
-      max,
       page = 1,
       pageSize = 10,
-      sortBy = 'created_at',
+      sortBy = 'id',
       sortOrder = 'desc',
     } = filters;
 
     const where: any = {
-      is_professional: true,
+      ...(bio && { bio: { contains: bio, mode: 'insensitive' } }),
+      ...(phone_number && {
+        phone_number: { contains: phone_number, mode: 'insensitive' },
+      }),
+      ...(address && { address: { contains: address, mode: 'insensitive' } }),
+      ...(city && { city: { contains: city, mode: 'insensitive' } }),
+      ...(state && { state: { contains: state, mode: 'insensitive' } }),
+      ...(country && { country: { contains: country, mode: 'insensitive' } }),
+      ...(zip_code && {
+        zip_code: { contains: zip_code, mode: 'insensitive' },
+      }),
+      ...(is_professional !== undefined && { is_professional }),
+      ...(is_verified !== undefined && { is_verified }),
+      ...(service_category &&
+        service_category.length && {
+          service_category: { hasSome: service_category },
+        }),
+      ...(dance_style &&
+        dance_style.length && { dance_style: { hasSome: dance_style } }),
       ...(location && {
         location: { contains: location, mode: 'insensitive' },
       }),
-      ...(danceStyle && { dance_style: { has: danceStyle } }),
-      ...(Array.isArray(danceStyles) &&
-        danceStyles.length > 0 && { dance_style: { hasSome: danceStyles } }),
-      ...(category && { service_category: { has: category } }),
-      ...(Array.isArray(categories) &&
-        categories.length > 0 && { service_category: { hasSome: categories } }),
-      ...(state && { state: { contains: state, mode: 'insensitive' } }),
-      ...(city && { city: { contains: city, mode: 'insensitive' } }),
+      ...(travel_distance !== undefined && {
+        travel_distance: { lte: travel_distance },
+      }),
+      ...(price_min !== undefined && { price_min: { gte: price_min } }),
+      ...(price_max !== undefined && { price_max: { lte: price_max } }),
+      ...(pricing !== undefined && { pricing }),
+      ...(session_duration !== undefined && {
+        session_duration: { lte: session_duration },
+      }),
+      ...(years_experience !== undefined && {
+        years_experience: { gte: years_experience },
+      }),
+      ...(services && services.length && { services: { hasSome: services } }),
+      ...(portfolio && {
+        portfolio: { contains: portfolio, mode: 'insensitive' },
+      }),
       ...(date && { availability: { array_contains: [date] } }),
-      ...(min !== undefined &&
-        max !== undefined && { pricing: { gte: min, lte: max } }),
     };
 
     const [results, total] = await Promise.all([

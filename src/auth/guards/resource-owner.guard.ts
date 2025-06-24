@@ -3,6 +3,7 @@ import {
   CanActivate,
   ExecutionContext,
   SetMetadata,
+  ForbiddenException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Role } from '../enums/role.enum';
@@ -35,6 +36,9 @@ export class ResourceOwnerGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest();
     const { user } = request;
+    if (!user) {
+      throw new ForbiddenException('User not authenticated.');
+    }
     const resourceId = request.params.id;
 
     // Admins can access any resource

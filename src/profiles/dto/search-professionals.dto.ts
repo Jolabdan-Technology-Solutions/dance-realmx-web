@@ -4,31 +4,26 @@ import {
   IsNumber,
   Min,
   IsArray,
+  IsBoolean,
   IsDateString,
 } from 'class-validator';
 
 export class SearchProfessionalsDto {
   @IsOptional()
   @IsString()
-  location?: string;
+  bio?: string;
 
   @IsOptional()
   @IsString()
-  danceStyle?: string;
-
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  danceStyles?: string[];
+  phone_number?: string;
 
   @IsOptional()
   @IsString()
-  category?: string;
+  address?: string;
 
   @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  categories?: string[];
+  @IsString()
+  city?: string;
 
   @IsOptional()
   @IsString()
@@ -36,21 +31,76 @@ export class SearchProfessionalsDto {
 
   @IsOptional()
   @IsString()
-  city?: string;
+  country?: string;
+
+  @IsOptional()
+  @IsString()
+  zip_code?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  is_professional?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  is_verified?: boolean;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  service_category?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  dance_style?: string[];
+
+  @IsOptional()
+  @IsString()
+  location?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  travel_distance?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  price_min?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  price_max?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  pricing?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  session_duration?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  years_experience?: number;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  services?: string[];
+
+  @IsOptional()
+  @IsString()
+  portfolio?: string;
 
   @IsOptional()
   @IsDateString()
   date?: string;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  min?: number;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  max?: number;
 
   @IsOptional()
   @IsNumber()

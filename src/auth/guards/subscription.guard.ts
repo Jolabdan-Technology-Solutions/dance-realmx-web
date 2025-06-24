@@ -3,6 +3,7 @@ import {
   CanActivate,
   ExecutionContext,
   SetMetadata,
+  ForbiddenException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Role } from '../enums/role.enum';
@@ -32,6 +33,10 @@ export class SubscriptionGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const { user } = request;
 
+    if (!user) {
+      throw new ForbiddenException('User not authenticated.');
+    }
+
     // Admins and instructors don't need subscriptions
     if (user.role === Role.ADMIN || user.role === Role.INSTRUCTOR_ADMIN) {
       return true;
@@ -41,6 +46,9 @@ export class SubscriptionGuard implements CanActivate {
     const activeSubscription = await this.subscriptionsService.findActive(
       user.id,
     );
-    return !!activeSubscription;
+    if (!activeSubscription) {
+      throw new ForbiddenException('You do not have an active subscription.');
+    }
+    return true;
   }
 }

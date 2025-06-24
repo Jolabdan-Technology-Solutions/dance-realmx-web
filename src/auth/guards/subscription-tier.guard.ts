@@ -3,13 +3,15 @@ import {
   CanActivate,
   ExecutionContext,
   SetMetadata,
+  ForbiddenException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { SubscriptionsService } from '../../subscriptions/subscriptions.service';
 import { UserRole } from '@prisma/client';
 
 export const REQUIRED_TIER_KEY = 'requiredTier';
-export const RequireTier = (tier: string) => SetMetadata(REQUIRED_TIER_KEY, tier);
+export const RequireTier = (tier: string) =>
+  SetMetadata(REQUIRED_TIER_KEY, tier);
 
 @Injectable()
 export class SubscriptionTierGuard implements CanActivate {
@@ -32,24 +34,36 @@ export class SubscriptionTierGuard implements CanActivate {
     const { user } = request;
 
     if (!user) {
-      return false;
+      throw new ForbiddenException('User not authenticated.');
     }
 
     // Get user's active subscription
-    const subscription = await this.subscriptionsService.getActiveSubscription(user.id);
-    
+    const subscription = await this.subscriptionsService.getActiveSubscription(
+      user.id,
+    );
     if (!subscription) {
-      return false;
+      throw new ForbiddenException(
+        'You do not have an active subscription required to perform this action.',
+      );
     }
 
-    // Check if user's subscription tier has the required role
-    const plan = await this.subscriptionsService.getSubscriptionPlan(subscription.plan_id);
-    
+    // Check if user's subscription plan exists
+    const plan = await this.subscriptionsService.getSubscriptionPlan(
+      subscription.plan_id,
+    );
     if (!plan) {
-      return false;
+      throw new ForbiddenException(
+        'Your subscription plan could not be found.',
+      );
     }
 
     // Check if the plan's unlocked roles include the required role
-    return plan.unlockedRoles.includes(requiredTier as UserRole);
+    if (!plan.unlockedRoles.includes(requiredTier as UserRole)) {
+      throw new ForbiddenException(
+        `Your subscription does not grant access to the required role: ${requiredTier}.`,
+      );
+    }
+
+    return true;
   }
-} 
+}

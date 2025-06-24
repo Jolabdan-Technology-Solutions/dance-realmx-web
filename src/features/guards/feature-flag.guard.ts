@@ -3,6 +3,7 @@ import {
   CanActivate,
   ExecutionContext,
   SetMetadata,
+  ForbiddenException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { FeatureFlagsService } from '../feature-flags.service';
@@ -28,9 +29,10 @@ export class FeatureFlagGuard implements CanActivate {
       return true;
     }
 
-    const { user } = context.switchToHttp().getRequest();
+    const request = context.switchToHttp().getRequest();
+    const { user } = request;
     if (!user) {
-      return false;
+      throw new ForbiddenException('User not authenticated.');
     }
 
     return this.featureFlags.isFeatureEnabled(user.id, requiredFeature);

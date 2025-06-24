@@ -3,6 +3,7 @@ import {
   CanActivate,
   ExecutionContext,
   SetMetadata,
+  ForbiddenException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { TenantsService } from '../tenants.service';
@@ -31,7 +32,7 @@ export class TenantGuard implements CanActivate {
     const { user, params, query } = request;
 
     if (!user) {
-      return false;
+      throw new ForbiddenException('User not authenticated.');
     }
 
     // Get tenant ID from params, query, or request body

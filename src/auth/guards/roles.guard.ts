@@ -3,6 +3,7 @@ import {
   CanActivate,
   ExecutionContext,
   SetMetadata,
+  ForbiddenException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { PermissionsService } from '../../permissions/permissions.service';
@@ -30,13 +31,19 @@ export class RolesGuard implements CanActivate {
 
     const { user } = context.switchToHttp().getRequest();
     if (!user) {
-      return false;
+      throw new ForbiddenException('User not authenticated.');
     }
 
     // Handle both array and single role formats
     const userRoles = Array.isArray(user.role) ? user.role : [user.role];
 
     // Check if user has any of the required roles
-    return requiredRoles.some((role) => userRoles.includes(role));
+    const hasRole = requiredRoles.some((role) => userRoles.includes(role));
+    if (!hasRole) {
+      throw new ForbiddenException(
+        `You do not have the required role(s): ${requiredRoles.join(', ')}.`,
+      );
+    }
+    return true;
   }
 }

@@ -86,8 +86,11 @@ export class ProfilesController {
   @RequireSubscription('BOOKING_PROFESSIONAL')
   @UseGuards(RolesGuard)
   @Roles(Role.BOOKING_PROFESSIONAL)
-  async becomeProfessional(@Req() req: { user: User }) {
-    return this.profilesService.becomeProfessional(req.user.id);
+  async becomeProfessional(
+    @Req() req: { user: User },
+    @Body() profileData: UpdateProfileDto,
+  ) {
+    return this.profilesService.becomeProfessional(req.user.id, profileData);
   }
 
   @Post(':id/book')
