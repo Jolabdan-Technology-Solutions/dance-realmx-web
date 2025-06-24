@@ -296,6 +296,13 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
           ...(formData.session_duration && {
             session_duration: formData.session_duration.toString(),
           }),
+          ...(formData.availability &&
+            formData.availability.length > 0 && {
+              availability:
+                formData.availability[0] instanceof Date
+                  ? formData.availability[0].toISOString()
+                  : formData.availability[0],
+            }),
         });
         response = await fetch(
           `https://api.livetestdomain.com/api/profiles/professionals/search?${params.toString()}`,
@@ -993,14 +1000,16 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                           Availability:{" "}
                         </span>
                         <span className="text-gray-300">
-                          {formData.availability
-                            .map((date) =>
-                              date.toLocaleDateString("en-US", {
-                                month: "short",
-                                day: "numeric",
-                              })
-                            )
-                            .join(", ")}
+                          {formData.availability[0] instanceof Date
+                            ? formData.availability[0].toLocaleDateString(
+                                "en-US",
+                                {
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric",
+                                }
+                              )
+                            : formData.availability[0]}
                         </span>
                       </div>
                     )}
