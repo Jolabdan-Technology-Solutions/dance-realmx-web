@@ -38,7 +38,7 @@ export class SubscriptionGuard implements CanActivate {
     }
 
     // Admins and instructors don't need subscriptions
-    if (user.role === Role.ADMIN || user.role === Role.INSTRUCTOR_ADMIN) {
+    if (user.role === Role.ADMIN) {
       return true;
     }
 

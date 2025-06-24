@@ -31,10 +31,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       return null;
     }
 
-    return {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-    };
+    // Exclude sensitive fields like password
+    const { password, ...safeUser } = user;
+    return safeUser;
   }
 }
