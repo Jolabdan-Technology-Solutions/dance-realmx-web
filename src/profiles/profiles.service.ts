@@ -26,14 +26,18 @@ export class ProfilesService {
 
   async becomeProfessional(userId: number, profileData: any) {
     // Check if profile exists
-    const profile = await this.prisma.profile.findUnique({
+    let profile = await this.prisma.profile.findUnique({
       where: { user_id: userId },
     });
-    if (!profile) {
-      throw new NotFoundException('Profile not found for this user.');
-    }
-    if (profile.is_professional) {
+    if (profile && profile.is_professional) {
       throw new BadRequestException('User is already a professional.');
+    }
+    if (!profile) {
+      // Create profile if it does not exist
+      await this.prisma.profile.create({
+        data: { ...profileData, user_id: userId, is_professional: true },
+      });
+      return { message: 'Profile created and user is now a professional.' };
     }
     // Optionally, check for required fields in profileData here
     await this.prisma.profile.update({
