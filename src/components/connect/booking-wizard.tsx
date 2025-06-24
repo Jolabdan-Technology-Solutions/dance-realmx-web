@@ -59,25 +59,23 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState({
-    serviceCategory: [] as string[],
-    danceStyle: [] as string[],
+    service_category: [] as string[],
+    dance_style: [] as string[],
     location: "",
-    zipcode: "",
+    zip_code: "",
     city: "",
     state: "",
-    travelDistance: 20,
+    travel_distance: 20,
     date: new Date(),
-    priceMin: 20,
-    priceMax: 150,
-    sessionDuration: 60,
+    session_duration: 60,
     // Professional specific fields
-    yearsExperience: 0,
+    years_experience: 0,
     services: [] as string[],
     availability: [] as Date[],
     bio: "",
     portfolio: "",
     pricing: 50,
-    phone: "",
+    phone_number: "",
   });
 
   const [isZipLookupLoading, setIsZipLookupLoading] = useState(false);
@@ -226,7 +224,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
 
   const handleNext = () => {
     // Validate current step
-    if (currentStep === 1 && formData.serviceCategory.length === 0) {
+    if (currentStep === 1 && formData.service_category.length === 0) {
       toast({
         title: "Please select a category",
         description:
@@ -235,7 +233,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
       });
       return;
     }
-    if (currentStep === 2 && !formData.zipcode) {
+    if (currentStep === 2 && !formData.zip_code) {
       toast({
         title: "Location required",
         description: "Please enter a zipcode or location to continue.",
@@ -261,20 +259,54 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
 
     try {
       const payload = transformFormDataToAPI(formData, mode, user);
-
       console.log("Submitting payload:", payload);
 
-      const response = await fetch(
-        "https://api.livetestdomain.com/api/bookings",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${user?.token || "demo_token"}`,
-          },
-          body: JSON.stringify(payload),
-        }
-      );
+      let response;
+      if (mode === "get-booked") {
+        // POST to become professional
+        response = await fetch(
+          "https://api.livetestdomain.com/api/profiles/become-professional",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${user?.token || "demo_token"}`,
+            },
+            body: JSON.stringify(payload),
+          }
+        );
+      } else {
+        // GET professionals search
+        // Build query string from relevant formData fields
+        const params = new URLSearchParams({
+          ...(formData.service_category?.length > 0 && {
+            service_category: formData.service_category.join(","),
+          }),
+          ...(formData.dance_style?.length > 0 && {
+            dance_style: formData.dance_style.join(","),
+          }),
+          ...(formData.zip_code && { zip_code: formData.zip_code }),
+          ...(formData.city && { city: formData.city }),
+          ...(formData.state && { state: formData.state }),
+          ...(formData.location && { location: formData.location }),
+          ...(formData.travel_distance && {
+            travel_distance: formData.travel_distance.toString(),
+          }),
+          ...(formData.pricing && { pricing: formData.pricing.toString() }),
+          ...(formData.session_duration && {
+            session_duration: formData.session_duration.toString(),
+          }),
+        });
+        response = await fetch(
+          `https://api.livetestdomain.com/api/profiles/professionals/search?${params.toString()}`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${user?.token || "demo_token"}`,
+            },
+          }
+        );
+      }
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -503,7 +535,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
               <Card
                 key={category.id}
                 className={`cursor-pointer transition-all hover:shadow-md backdrop-blur-sm ${
-                  formData.serviceCategory.includes(category.id)
+                  formData.service_category.includes(category.id)
                     ? "border-blue-400 bg-blue-500/20 shadow-lg shadow-blue-500/25"
                     : "bg-black/40 border-white/20 hover:bg-black/60"
                 }`}
@@ -524,7 +556,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                     <div className="font-medium text-white">
                       {category.name}
                     </div>
-                    {formData.serviceCategory.includes(category.id) && (
+                    {formData.service_category.includes(category.id) && (
                       <CheckIcon className="h-4 w-4 text-blue-400 mt-1" />
                     )}
                   </div>
@@ -540,7 +572,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                 <div
                   key={style.id}
                   className={`px-3 py-2 rounded-md cursor-pointer border text-sm flex items-center justify-between backdrop-blur-sm transition-all ${
-                    formData.danceStyle.includes(style.id.toString())
+                    formData.dance_style.includes(style.id.toString())
                       ? "border-blue-400 bg-blue-500/20 text-white shadow-lg shadow-blue-500/25"
                       : "border-white/20 bg-black/40 text-white hover:bg-black/60"
                   }`}
@@ -738,45 +770,69 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
           <h3 className="text-xl font-medium text-white">
             {mode === "book" ? "What's your budget?" : "Set your pricing"}
           </h3>
-
-          {mode === "book" ? (
-            <div className="space-y-4">
-              <div className="pt-4">
-                <div className="flex justify-between mb-2">
-                  <Label className="text-white">Hourly rate range</Label>
-                  <span className="text-sm text-white">
-                    ${formData.priceMin} - ${formData.priceMax}
-                  </span>
-                </div>
-                <div className="h-12 pt-4">
-                  <Slider
-                    value={[formData.priceMin, formData.priceMax]}
-                    min={10}
-                    max={300}
-                    step={5}
-                    onValueChange={(value) => {
-                      updateFormData("priceMin", value[0]);
-                      updateFormData("priceMax", value[1]);
-                    }}
-                    className="py-4"
-                  />
-                </div>
-                <div className="flex justify-between text-xs text-gray-300">
-                  <span>$10</span>
-                  <span>$100</span>
-                  <span>$200</span>
-                  <span>$300</span>
+          <div className="space-y-4">
+            <div className="pt-4">
+              <div className="flex justify-between mb-2">
+                <Label className="text-white">
+                  {mode === "book"
+                    ? "Your budget (hourly rate)"
+                    : "Your hourly rate"}
+                </Label>
+                <span className="text-sm text-white">${formData.pricing}</span>
+              </div>
+              <div className="h-12 pt-4">
+                <Slider
+                  value={[formData.pricing]}
+                  min={10}
+                  max={300}
+                  step={5}
+                  onValueChange={(value) => updateFormData("pricing", value[0])}
+                  className="py-4"
+                />
+              </div>
+              <div className="flex justify-between text-xs text-gray-300">
+                <span>$10</span>
+                <span>$100</span>
+                <span>$200</span>
+                <span>$300</span>
+              </div>
+            </div>
+            {mode === "get-booked" && (
+              <div className="bg-black/40 backdrop-blur-sm p-4 rounded-lg border border-white/20">
+                <h4 className="font-medium mb-3 text-white">
+                  Price suggestions based on experience
+                </h4>
+                <div className="space-y-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-300">Beginner (0-2 years)</span>
+                    <span className="text-white">$20-$40</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-300">
+                      Intermediate (3-5 years)
+                    </span>
+                    <span className="text-white">$40-$75</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-300">Advanced (5-10 years)</span>
+                    <span className="text-white">$75-$150</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-300">Expert (10+ years)</span>
+                    <span className="text-white">$150-$300+</span>
+                  </div>
                 </div>
               </div>
-
+            )}
+            {mode === "book" && (
               <div className="mt-4 pt-4 border-t border-white/20">
                 <h4 className="font-medium mb-3 text-white">
                   Preferred session duration
                 </h4>
                 <RadioGroup
-                  value={formData.sessionDuration.toString()}
+                  value={formData.session_duration.toString()}
                   onValueChange={(value) =>
-                    updateFormData("sessionDuration", Number.parseInt(value))
+                    updateFormData("session_duration", Number.parseInt(value))
                   }
                   className="text-white"
                 >
@@ -806,59 +862,8 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                   </div>
                 </RadioGroup>
               </div>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              <div>
-                <div className="flex justify-between mb-2">
-                  <Label className="text-white">Your hourly rate</Label>
-                  <span className="text-sm text-white">
-                    ${formData.pricing}
-                  </span>
-                </div>
-                <Slider
-                  value={[formData.pricing]}
-                  min={10}
-                  max={300}
-                  step={5}
-                  onValueChange={(value) => updateFormData("pricing", value[0])}
-                  className="py-4"
-                />
-                <div className="flex justify-between text-xs text-gray-300">
-                  <span>$10</span>
-                  <span>$100</span>
-                  <span>$200</span>
-                  <span>$300</span>
-                </div>
-              </div>
-
-              <div className="bg-black/40 backdrop-blur-sm p-4 rounded-lg border border-white/20">
-                <h4 className="font-medium mb-3 text-white">
-                  Price suggestions based on experience
-                </h4>
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-300">Beginner (0-2 years)</span>
-                    <span className="text-white">$20-$40</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-300">
-                      Intermediate (3-5 years)
-                    </span>
-                    <span className="text-white">$40-$75</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-300">Advanced (5-10 years)</span>
-                    <span className="text-white">$75-$150</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-300">Expert (10+ years)</span>
-                    <span className="text-white">$150-$300+</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       );
     }
@@ -906,7 +911,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                 <div>
                   <span className="font-medium text-white">Categories: </span>
                   <span className="text-gray-300">
-                    {formData.serviceCategory
+                    {formData.service_category
                       .map(
                         (cat) =>
                           serviceCategories.find((c) => c.id === cat)?.name
@@ -948,7 +953,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                     <div>
                       <span className="font-medium text-white">Budget: </span>
                       <span className="text-gray-300">
-                        ${formData.priceMin} - ${formData.priceMax} per hour
+                        ${formData.pricing} per hour
                       </span>
                     </div>
                     <div>
@@ -956,7 +961,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                         Session Duration:{" "}
                       </span>
                       <span className="text-gray-300">
-                        {formData.sessionDuration} minutes
+                        {formData.session_duration} minutes
                       </span>
                     </div>
                   </>
