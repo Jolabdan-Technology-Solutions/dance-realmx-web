@@ -10,6 +10,8 @@ import {
   UseInterceptors,
   BadRequestException,
   Param,
+  Query,
+  ValidationPipe,
 } from '@nestjs/common';
 import { ProfilesService } from './profiles.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -21,6 +23,7 @@ import { User } from '@prisma/client';
 import { UpdateProfileDto } from './update-profile.dto';
 import { RolesGuard, Roles } from '../auth/guards/roles.guard';
 import { Role } from '../auth/enums/role.enum';
+import { SearchProfessionalsDto } from './dto/search-professionals.dto';
 
 interface RequestWithUser extends Request {
   user: {
@@ -97,5 +100,61 @@ export class ProfilesController {
   @RequireSubscription('BOOKING_USER')
   async getProfessionals() {
     return this.profilesService.getProfessionals();
+  }
+
+  @Get('professionals/by-location')
+  async findByLocation(@Query('location') location: string) {
+    return this.profilesService.findProfessionalsByLocation(location);
+  }
+
+  @Get('professionals/by-dance-style')
+  async findByDanceStyle(@Query('danceStyle') danceStyle: string) {
+    return this.profilesService.findProfessionalsByDanceStyle(danceStyle);
+  }
+
+  @Get('professionals/by-category')
+  async findByCategory(@Query('category') category: string) {
+    return this.profilesService.findProfessionalsByCategory(category);
+  }
+
+  @Get('professionals/by-state')
+  async findByState(@Query('state') state: string) {
+    return this.profilesService.findProfessionalsByState(state);
+  }
+
+  @Get('professionals/by-city')
+  async findByCity(@Query('city') city: string) {
+    return this.profilesService.findProfessionalsByCity(city);
+  }
+
+  @Get('professionals/by-date')
+  async findByDate(@Query('date') date: string) {
+    return this.profilesService.findProfessionalsByDate(date);
+  }
+
+  @Get('professionals/by-pricing')
+  async findByPricing(@Query('min') min: number, @Query('max') max: number) {
+    return this.profilesService.findProfessionalsByPricing(min, max);
+  }
+
+  @Get('professionals/search')
+  async searchProfessionals(
+    @Query(new ValidationPipe({ transform: true }))
+    query: SearchProfessionalsDto,
+  ) {
+    return this.profilesService.searchProfessionals(query);
+  }
+
+  @Post('professionals/:id/book')
+  async bookProfessionalById(
+    @Param('id') id: string,
+    @Body() bookingDto: any,
+    @Req() req: { user: User },
+  ) {
+    return this.profilesService.bookProfessionalById(
+      id,
+      req.user.id,
+      bookingDto,
+    );
   }
 }
