@@ -42,7 +42,16 @@ export class SubscriptionGuard implements CanActivate {
       return true;
     }
 
-    // Check if user has an active subscription
+    // Allow if user.is_active is true and subscription_tier is not 'FREE'
+    if (
+      user.is_active &&
+      user.subscription_tier &&
+      user.subscription_tier !== 'FREE'
+    ) {
+      return true;
+    }
+
+    // Check if user has an active subscription in the subscription table
     const activeSubscription = await this.subscriptionsService.findActive(
       user.id,
     );
