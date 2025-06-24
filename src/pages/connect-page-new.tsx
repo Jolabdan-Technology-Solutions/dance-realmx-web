@@ -701,7 +701,7 @@ export default function ConnectPage() {
                     <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 mb-8">
                       <UserPlus className="w-10 h-10 text-emerald-400" />
                     </div>
-                    <h2 className="text-4xl md:text-5xl font-bold mb-6 text-white">
+                    <h2 className="text-4xl md:text-3xl font-bold mb-6 text-white">
                       Share Your Dance
                       <span className="block text-emerald-400">Expertise</span>
                     </h2>
