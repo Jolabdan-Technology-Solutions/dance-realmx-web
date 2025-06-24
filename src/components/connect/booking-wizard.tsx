@@ -22,6 +22,7 @@ import {
   Clock,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { apiRequest } from "@/lib/queryClient";
 
 // Define service categories
 const serviceCategories = [
@@ -261,23 +262,19 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
       const payload = transformFormDataToAPI(formData, mode, user);
       console.log("Submitting payload:", payload);
 
-      let response;
+      let result;
       if (mode === "get-booked") {
         // POST to become professional
-        response = await fetch(
+        result = await apiRequest(
           "https://api.livetestdomain.com/api/profiles/become-professional",
           {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${user?.token || "demo_token"}`,
-            },
-            body: JSON.stringify(payload),
+            data: payload,
+            requireAuth: true,
           }
         );
       } else {
         // GET professionals search
-        // Build query string from relevant formData fields
         const params = new URLSearchParams({
           ...(formData.service_category?.length > 0 && {
             service_category: formData.service_category.join(","),
@@ -304,25 +301,14 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                   : formData.availability[0],
             }),
         });
-        response = await fetch(
+        result = await apiRequest(
           `https://api.livetestdomain.com/api/profiles/professionals/search?${params.toString()}`,
           {
             method: "GET",
-            headers: {
-              Authorization: `Bearer ${user?.token || "demo_token"}`,
-            },
+            requireAuth: true,
           }
         );
       }
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          errorData.message || `HTTP error! status: ${response.status}`
-        );
-      }
-
-      const result = await response.json();
 
       setSubmitSuccess(true);
 
