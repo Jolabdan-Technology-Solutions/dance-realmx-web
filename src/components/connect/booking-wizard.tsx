@@ -1,14 +1,14 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Slider } from "@/components/ui/slider"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Calendar } from "@/components/ui/calendar"
-import { Card, CardContent } from "@/components/ui/card"
+import type React from "react";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Calendar } from "@/components/ui/calendar";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   CalendarIcon,
   ArrowRight,
@@ -20,8 +20,8 @@ import {
   Star,
   Users,
   Clock,
-} from "lucide-react"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+} from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 // Define service categories
 const serviceCategories = [
@@ -30,7 +30,7 @@ const serviceCategories = [
   { id: "studio", name: "Dance Studio", icon: "🏢" },
   { id: "choreographer", name: "Choreographer", icon: "💃" },
   { id: "other", name: "Other Professional", icon: "👔" },
-]
+];
 
 // Define dance styles
 const dance_styles = [
@@ -44,16 +44,20 @@ const dance_styles = [
   { id: 8, name: "Swing" },
   { id: 9, name: "Folk" },
   { id: 10, name: "Other" },
-]
+];
 
 interface BookingWizardProps {
-  mode: "book" | "get-booked"
-  onComplete: (data: any) => void
-  user: any | null
+  mode: "book" | "get-booked";
+  onComplete: (data: any) => void;
+  user: any | null;
 }
 
-export const BookingWizard: React.FC<BookingWizardProps> = ({ mode, onComplete, user }) => {
-  const [currentStep, setCurrentStep] = useState(0)
+export const BookingWizard: React.FC<BookingWizardProps> = ({
+  mode,
+  onComplete,
+  user,
+}) => {
+  const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState({
     serviceCategory: [] as string[],
     danceStyle: [] as string[],
@@ -73,63 +77,99 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ mode, onComplete, 
     bio: "",
     portfolio: "",
     pricing: 50,
-  })
+    phone: "",
+  });
 
-  const [isZipLookupLoading, setIsZipLookupLoading] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [submitError, setSubmitError] = useState<string | null>(null)
-  const [submitSuccess, setSubmitSuccess] = useState(false)
+  const [isZipLookupLoading, setIsZipLookupLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
 
   // Mock toast function - replace with your actual toast implementation
-  const toast = (options: { title: string; description: string; variant?: string }) => {
-    console.log("Toast:", options)
+  const toast = (options: {
+    title: string;
+    description: string;
+    variant?: string;
+  }) => {
+    console.log("Toast:", options);
     // Replace this with your actual toast implementation
-  }
+  };
 
   // Mock navigate function - replace with your actual navigation
   const navigate = (path: string) => {
-    console.log("Navigate to:", path)
+    console.log("Navigate to:", path);
     // Replace this with your actual navigation implementation
-  }
+  };
 
   // Function to fetch city and state based on zipcode
   const lookupZipcode = async (zipcode: string) => {
     if (zipcode.length === 5 && /^\d{5}$/.test(zipcode)) {
-      console.log(`Looking up zipcode: ${zipcode}`)
-      setIsZipLookupLoading(true)
+      console.log(`Looking up zipcode: ${zipcode}`);
+      setIsZipLookupLoading(true);
       try {
         // Special case for 30078 that's causing issues
         if (zipcode === "30078") {
-          console.log("Using hardcoded data for zipcode 30078 (Snellville, GA)")
-          updateFormData("city", "Snellville")
-          updateFormData("state", "GA")
-          updateFormData("location", "Snellville, GA")
-          setIsZipLookupLoading(false)
-          return
+          console.log(
+            "Using hardcoded data for zipcode 30078 (Snellville, GA)"
+          );
+          updateFormData("city", "Snellville");
+          updateFormData("state", "GA");
+          updateFormData("location", "Snellville, GA");
+          setIsZipLookupLoading(false);
+          return;
         }
 
-        const response = await fetch(`/api/zipcode-lookup/${zipcode}`)
-        console.log(`Zipcode lookup response status: ${response.status}`)
+        // Use Zippopotam.us API for zipcode lookup
+        const response = await fetch(`https://api.zippopotam.us/us/${zipcode}`);
+        console.log(`Zipcode lookup response status: ${response.status}`);
 
         if (response.ok) {
-          const data = await response.json()
-          console.log(`Zipcode lookup response data:`, data)
-
-          updateFormData("city", data.city)
-          updateFormData("state", data.state)
-          updateFormData("location", `${data.city}, ${data.state}`)
-
-          console.log(`Updated location to: ${data.city}, ${data.state}`)
+          const data = await response.json();
+          console.log(`Zipcode lookup response data:`, data);
+          if (data.places && data.places.length > 0) {
+            const place = data.places[0];
+            updateFormData("city", place["place name"]);
+            updateFormData("state", place["state abbreviation"]);
+            updateFormData(
+              "location",
+              `${place["place name"]}, ${place["state abbreviation"]}`
+            );
+            console.log(
+              `Updated location to: ${place["place name"]}, ${place["state abbreviation"]}`
+            );
+          } else {
+            // No places found for this zipcode
+            updateFormData("city", "");
+            updateFormData("state", "");
+            updateFormData("location", "");
+            toast({
+              title: "Invalid Zipcode",
+              description:
+                "No city/state found for this zipcode. Please check and try again.",
+              variant: "destructive",
+            });
+            console.error("No places found for this zipcode");
+          }
         } else {
-          console.error("Failed to lookup zipcode")
+          // API call failed (e.g., 404 for unsupported zipcode)
+          updateFormData("city", "");
+          updateFormData("state", "");
+          updateFormData("location", "");
+          toast({
+            title: "Zipcode Not Supported",
+            description:
+              "This zipcode could not be found. Please check and try another.",
+            variant: "destructive",
+          });
+          console.error("Failed to lookup zipcode");
         }
       } catch (error) {
-        console.error("Error looking up zipcode:", error)
+        console.error("Error looking up zipcode:", error);
       } finally {
-        setIsZipLookupLoading(false)
+        setIsZipLookupLoading(false);
       }
     }
-  }
+  };
 
   // Transform form data to API format
   const transformFormDataToAPI = (formData: any, mode: string, user: any) => {
@@ -149,7 +189,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ mode, onComplete, 
         timestamp: new Date().toISOString(),
         source: "booking-wizard",
       },
-    }
+    };
 
     if (mode === "book") {
       return {
@@ -162,12 +202,14 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ mode, onComplete, 
           budgetMax: formData.priceMax,
           sessionDuration: formData.sessionDuration,
         },
-      }
+      };
     } else {
       return {
         ...basePayload,
         timing: {
-          availability: formData.availability.map((date: Date) => date.toISOString()),
+          availability: formData.availability.map((date: Date) =>
+            date.toISOString()
+          ),
         },
         pricing: {
           hourlyRate: formData.pricing,
@@ -178,97 +220,105 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ mode, onComplete, 
           services: formData.services,
           portfolio: formData.portfolio,
         },
-      }
+      };
     }
-  }
+  };
 
   const handleNext = () => {
     // Validate current step
-    if (currentStep === 0 && formData.serviceCategory.length === 0) {
+    if (currentStep === 1 && formData.serviceCategory.length === 0) {
       toast({
         title: "Please select a category",
-        description: "You need to select at least one professional category to proceed.",
+        description:
+          "You need to select at least one professional category to proceed.",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
-
-    if (currentStep === 1 && !formData.zipcode) {
+    if (currentStep === 2 && !formData.zipcode) {
       toast({
         title: "Location required",
         description: "Please enter a zipcode or location to continue.",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
-
-    // If we're at step 2 (user creation/authentication) and user is not logged in
-    if (currentStep === 2 && !user) {
-      navigate("/auth?returnTo=/connect&mode=" + mode)
-      return
+    // If we're at step 0 (user creation/authentication) and user is not logged in
+    if (currentStep === 0 && !user) {
+      navigate("/auth?returnTo=/connect&mode=" + mode);
+      return;
     }
-
-    setCurrentStep((prev) => prev + 1)
-  }
+    setCurrentStep((prev) => prev + 1);
+  };
 
   const handlePrevious = () => {
-    setCurrentStep((prev) => Math.max(0, prev - 1))
-  }
+    setCurrentStep((prev) => Math.max(0, prev - 1));
+  };
 
   const handleComplete = async () => {
-    setIsSubmitting(true)
-    setSubmitError(null)
+    setIsSubmitting(true);
+    setSubmitError(null);
 
     try {
-      const payload = transformFormDataToAPI(formData, mode, user)
+      const payload = transformFormDataToAPI(formData, mode, user);
 
-      console.log("Submitting payload:", payload)
+      console.log("Submitting payload:", payload);
 
-      const response = await fetch("https://api.livetestdomain.com/api/bookings", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${user?.token || "demo_token"}`,
-        },
-        body: JSON.stringify(payload),
-      })
+      const response = await fetch(
+        "https://api.livetestdomain.com/api/bookings",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${user?.token || "demo_token"}`,
+          },
+          body: JSON.stringify(payload),
+        }
+      );
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.message || `HTTP error! status: ${response.status}`
+        );
       }
 
-      const result = await response.json()
+      const result = await response.json();
 
-      setSubmitSuccess(true)
+      setSubmitSuccess(true);
 
       toast({
-        title: mode === "book" ? "Booking request submitted!" : "Profile created!",
+        title:
+          mode === "book" ? "Booking request submitted!" : "Profile created!",
         description:
           mode === "book"
             ? "We'll connect you with matching professionals soon."
             : "Your professional profile is now live.",
-      })
+      });
 
       // Call the original onComplete callback
-      onComplete(result)
+      onComplete(result);
     } catch (error) {
-      console.error("Error submitting booking:", error)
-      setSubmitError(error instanceof Error ? error.message : "Failed to submit request. Please try again.")
+      console.error("Error submitting booking:", error);
+      setSubmitError(
+        error instanceof Error
+          ? error.message
+          : "Failed to submit request. Please try again."
+      );
 
       toast({
         title: "Error",
         description: "Failed to submit request. Please try again.",
         variant: "destructive",
-      })
+      });
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   const updateFormData = (key: string, value: any) => {
-    setFormData((prev) => ({ ...prev, [key]: value }))
-  }
+    setFormData((prev) => ({ ...prev, [key]: value }));
+  };
 
   // Format date helper
   const formatDate = (date: Date) => {
@@ -277,158 +327,18 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ mode, onComplete, 
       year: "numeric",
       month: "long",
       day: "numeric",
-    })
-  }
+    });
+  };
 
   // Render steps based on current step and mode
   const renderStep = () => {
-    // Common steps for both modes
+    // Step 0: Account
     if (currentStep === 0) {
       return (
         <div className="space-y-6">
           <h3 className="text-xl font-medium text-white">
-            {mode === "book"
-              ? "What type of dance professional are you looking for?"
-              : "What type of dance professional are you?"}
+            {user ? "Account Connected" : "Create an Account"}
           </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {serviceCategories.map((category) => (
-              <Card
-                key={category.id}
-                className={`cursor-pointer transition-all hover:shadow-md backdrop-blur-sm ${
-                  formData.serviceCategory.includes(category.id)
-                    ? "border-blue-400 bg-blue-500/20 shadow-lg shadow-blue-500/25"
-                    : "bg-black/40 border-white/20 hover:bg-black/60"
-                }`}
-                onClick={() => {
-                  const updatedCategories = formData.serviceCategory.includes(category.id)
-                    ? formData.serviceCategory.filter((id) => id !== category.id)
-                    : [...formData.serviceCategory, category.id]
-                  updateFormData("serviceCategory", updatedCategories)
-                }}
-              >
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="text-2xl">{category.icon}</div>
-                  <div>
-                    <div className="font-medium text-white">{category.name}</div>
-                    {formData.serviceCategory.includes(category.id) && (
-                      <CheckIcon className="h-4 w-4 text-blue-400 mt-1" />
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          <div className="space-y-4 mt-6">
-            <h4 className="font-medium text-white">Select Dance Style(s)</h4>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-              {dance_styles.map((style) => (
-                <div
-                  key={style.id}
-                  className={`px-3 py-2 rounded-md cursor-pointer border text-sm flex items-center justify-between backdrop-blur-sm transition-all ${
-                    formData.danceStyle.includes(style.id.toString())
-                      ? "border-blue-400 bg-blue-500/20 text-white shadow-lg shadow-blue-500/25"
-                      : "border-white/20 bg-black/40 text-white hover:bg-black/60"
-                  }`}
-                  onClick={() => {
-                    const updatedStyles = formData.danceStyle.includes(style.id.toString())
-                      ? formData.danceStyle.filter((id) => id !== style.id.toString())
-                      : [...formData.danceStyle, style.id.toString()]
-                    updateFormData("danceStyle", updatedStyles)
-                  }}
-                >
-                  {style.name}
-                  {formData.danceStyle.includes(style.id.toString()) && <CheckIcon className="h-3 w-3 text-blue-400" />}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )
-    }
-
-    if (currentStep === 1) {
-      return (
-        <div className="space-y-6">
-          <h3 className="text-xl font-medium text-white">
-            {mode === "book" ? "Where are you looking for dance professionals?" : "Where are you located?"}
-          </h3>
-
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="zipcode" className="text-white">
-                Zipcode
-              </Label>
-              <div className="relative">
-                <Input
-                  id="zipcode"
-                  type="text"
-                  placeholder="Enter your zipcode"
-                  value={formData.zipcode}
-                  onChange={(e) => {
-                    const zipcode = e.target.value
-                    updateFormData("zipcode", zipcode)
-
-                    if (zipcode.length === 5) {
-                      lookupZipcode(zipcode)
-                    }
-                  }}
-                  className="bg-black/40 border-white/20 text-white placeholder:text-gray-400 backdrop-blur-sm"
-                  maxLength={5}
-                />
-                {isZipLookupLoading && (
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                    <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="location" className="text-white">
-                City, State (Optional)
-              </Label>
-              <Input
-                id="location"
-                type="text"
-                placeholder="e.g. Los Angeles, CA"
-                value={formData.location}
-                onChange={(e) => updateFormData("location", e.target.value)}
-                className="bg-black/40 border-white/20 text-white placeholder:text-gray-400 backdrop-blur-sm"
-              />
-            </div>
-          </div>
-
-          <div className="pt-4">
-            <div className="flex justify-between mb-2">
-              <Label className="text-white">How far are you willing to travel?</Label>
-              <span className="text-sm text-white">{formData.travelDistance} miles</span>
-            </div>
-            <Slider
-              value={[formData.travelDistance]}
-              min={1}
-              max={100}
-              step={1}
-              onValueChange={(value) => updateFormData("travelDistance", value[0])}
-              className="py-4"
-            />
-            <div className="flex justify-between text-xs text-gray-300">
-              <span>1 mile</span>
-              <span>25</span>
-              <span>50</span>
-              <span>75</span>
-              <span>100 miles</span>
-            </div>
-          </div>
-        </div>
-      )
-    }
-
-    if (currentStep === 2) {
-      return (
-        <div className="space-y-6">
-          <h3 className="text-xl font-medium text-white">{user ? "Account Connected" : "Create an Account"}</h3>
 
           {user ? (
             <div className="bg-black/40 backdrop-blur-sm p-6 rounded-lg border border-white/20">
@@ -450,7 +360,9 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ mode, onComplete, 
             </div>
           ) : (
             <div className="bg-black/40 backdrop-blur-sm p-6 rounded-lg border border-white/20">
-              <p className="mb-4 text-white">Please create an account or log in to continue.</p>
+              <p className="mb-4 text-white">
+                Please create an account or log in to continue.
+              </p>
               <Button
                 onClick={() => navigate("/auth?returnTo=/connect&mode=" + mode)}
                 className="w-full bg-blue-500 text-white hover:bg-blue-600"
@@ -465,15 +377,20 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ mode, onComplete, 
               <h4 className="font-medium text-white">Professional Details</h4>
 
               <div>
-                <Label htmlFor="yearsExperience" className="text-white">
+                <Label htmlFor="years_experience" className="text-white">
                   Years of Experience
                 </Label>
                 <Input
-                  id="yearsExperience"
+                  id="years_experience"
                   type="number"
                   min="0"
-                  value={formData.yearsExperience}
-                  onChange={(e) => updateFormData("yearsExperience", Number.parseInt(e.target.value) || 0)}
+                  value={formData.years_experience}
+                  onChange={(e) =>
+                    updateFormData(
+                      "years_experience",
+                      Number.parseInt(e.target.value) || 0
+                    )
+                  }
                   className="bg-black/40 border-white/20 text-white backdrop-blur-sm"
                 />
               </div>
@@ -507,7 +424,9 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ mode, onComplete, 
               </div>
 
               <div>
-                <Label className="mb-2 block text-white">Services Offered</Label>
+                <Label className="mb-2 block text-white">
+                  Services Offered
+                </Label>
                 <div className="grid grid-cols-2 gap-2">
                   {[
                     "Private Lessons",
@@ -526,34 +445,222 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ mode, onComplete, 
                         checked={formData.services.includes(service)}
                         onChange={(e) => {
                           if (e.target.checked) {
-                            updateFormData("services", [...formData.services, service])
+                            updateFormData("services", [
+                              ...formData.services,
+                              service,
+                            ]);
                           } else {
                             updateFormData(
                               "services",
-                              formData.services.filter((s) => s !== service),
-                            )
+                              formData.services.filter((s) => s !== service)
+                            );
                           }
                         }}
                         className="mt-1"
                       />
-                      <Label htmlFor={`service-${service}`} className="cursor-pointer text-sm text-white">
+                      <Label
+                        htmlFor={`service-${service}`}
+                        className="cursor-pointer text-sm text-white"
+                      >
                         {service}
                       </Label>
                     </div>
                   ))}
                 </div>
               </div>
+
+              <div>
+                <Label htmlFor="phone_number" className="text-white">
+                  Phone Number
+                </Label>
+                <Input
+                  id="phone_number"
+                  type="tel"
+                  placeholder="(555) 123-4567"
+                  value={formData.phone_number || ""}
+                  onChange={(e) =>
+                    updateFormData("phone_number", e.target.value)
+                  }
+                  className="bg-black/40 border-white/20 text-white placeholder:text-gray-400 backdrop-blur-sm"
+                />
+              </div>
             </div>
           )}
         </div>
-      )
+      );
+    }
+    // Step 1: Category
+    if (currentStep === 1) {
+      return (
+        <div className="space-y-6">
+          <h3 className="text-xl font-medium text-white">
+            {mode === "book"
+              ? "What type of dance professional are you looking for?"
+              : "What type of dance professional are you?"}
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {serviceCategories.map((category) => (
+              <Card
+                key={category.id}
+                className={`cursor-pointer transition-all hover:shadow-md backdrop-blur-sm ${
+                  formData.serviceCategory.includes(category.id)
+                    ? "border-blue-400 bg-blue-500/20 shadow-lg shadow-blue-500/25"
+                    : "bg-black/40 border-white/20 hover:bg-black/60"
+                }`}
+                onClick={() => {
+                  const updatedCategories = formData.service_category.includes(
+                    category.id
+                  )
+                    ? formData.service_category.filter(
+                        (id) => id !== category.id
+                      )
+                    : [...formData.service_category, category.id];
+                  updateFormData("service_category", updatedCategories);
+                }}
+              >
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="text-2xl">{category.icon}</div>
+                  <div>
+                    <div className="font-medium text-white">
+                      {category.name}
+                    </div>
+                    {formData.serviceCategory.includes(category.id) && (
+                      <CheckIcon className="h-4 w-4 text-blue-400 mt-1" />
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <div className="space-y-4 mt-6">
+            <h4 className="font-medium text-white">Select Dance Style(s)</h4>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+              {dance_styles.map((style) => (
+                <div
+                  key={style.id}
+                  className={`px-3 py-2 rounded-md cursor-pointer border text-sm flex items-center justify-between backdrop-blur-sm transition-all ${
+                    formData.danceStyle.includes(style.id.toString())
+                      ? "border-blue-400 bg-blue-500/20 text-white shadow-lg shadow-blue-500/25"
+                      : "border-white/20 bg-black/40 text-white hover:bg-black/60"
+                  }`}
+                  onClick={() => {
+                    const updatedStyles = formData.dance_style.includes(
+                      style.id.toString()
+                    )
+                      ? formData.dance_style.filter(
+                          (id) => id !== style.id.toString()
+                        )
+                      : [...formData.dance_style, style.id.toString()];
+                    updateFormData("dance_style", updatedStyles);
+                  }}
+                >
+                  {style.name}
+                  {formData.dance_style.includes(style.id.toString()) && (
+                    <CheckIcon className="h-3 w-3 text-blue-400" />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
     }
 
+    // Step 2: Location
+    if (currentStep === 2) {
+      return (
+        <div className="space-y-6">
+          <h3 className="text-xl font-medium text-white">
+            {mode === "book"
+              ? "Where are you looking for dance professionals?"
+              : "Where are you located?"}
+          </h3>
+
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="zipcode" className="text-white">
+                Zipcode
+              </Label>
+              <div className="relative">
+                <Input
+                  id="zipcode"
+                  type="text"
+                  placeholder="Enter your zipcode"
+                  value={formData.zip_code}
+                  onChange={(e) => {
+                    const zipcode = e.target.value;
+                    updateFormData("zip_code", zipcode);
+
+                    if (zipcode.length === 5) {
+                      lookupZipcode(zipcode);
+                    }
+                  }}
+                  className="bg-black/40 border-white/20 text-white placeholder:text-gray-400 backdrop-blur-sm"
+                  maxLength={5}
+                />
+                {isZipLookupLoading && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="location" className="text-white">
+                City, State (Optional)
+              </Label>
+              <Input
+                id="location"
+                type="text"
+                placeholder="e.g. Los Angeles, CA"
+                value={formData.location}
+                onChange={(e) => updateFormData("location", e.target.value)}
+                className="bg-black/40 border-white/20 text-white placeholder:text-gray-400 backdrop-blur-sm"
+              />
+            </div>
+          </div>
+
+          <div className="pt-4">
+            <div className="flex justify-between mb-2">
+              <Label className="text-white">
+                How far are you willing to travel?
+              </Label>
+              <span className="text-sm text-white">
+                {formData.travel_distance} miles
+              </span>
+            </div>
+            <Slider
+              value={[formData.travel_distance]}
+              min={1}
+              max={100}
+              step={1}
+              onValueChange={(value) =>
+                updateFormData("travel_distance", value[0])
+              }
+              className="py-4"
+            />
+            <div className="flex justify-between text-xs text-gray-300">
+              <span>1 mile</span>
+              <span>25</span>
+              <span>50</span>
+              <span>75</span>
+              <span>100 miles</span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Step 3: Date
     if (currentStep === 3) {
       return (
         <div className="space-y-6">
           <h3 className="text-xl font-medium text-white">
-            {mode === "book" ? "When would you like to begin?" : "Set your availability"}
+            {mode === "book"
+              ? "When would you like to begin?"
+              : "Set your availability"}
           </h3>
 
           <div className="bg-black/40 backdrop-blur-sm p-4 rounded-lg border border-white/20">
@@ -566,20 +673,25 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ mode, onComplete, 
 
             {mode === "get-booked" && (
               <div className="mt-4 pt-4 border-t border-white/20">
-                <Label className="mb-2 block text-white">Select multiple dates you're available</Label>
+                <Label className="mb-2 block text-white">
+                  Select multiple dates you're available
+                </Label>
                 <div className="flex flex-wrap gap-2 mt-2">
                   {formData.availability.map((date, index) => (
                     <div
                       key={index}
                       className="px-3 py-1 bg-blue-500/20 backdrop-blur-sm rounded-full text-sm flex items-center gap-1 text-white border border-blue-400/30"
                     >
-                      {date.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                      {date.toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                      })}
                       <button
                         className="h-4 w-4 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30"
                         onClick={() =>
                           updateFormData(
                             "availability",
-                            formData.availability.filter((_, i) => i !== index),
+                            formData.availability.filter((_, i) => i !== index)
                           )
                         }
                       >
@@ -593,8 +705,15 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ mode, onComplete, 
                   size="sm"
                   className="mt-3 bg-black/40 border-white/20 text-white hover:bg-black/60"
                   onClick={() => {
-                    if (!formData.availability.some((d) => d.toDateString() === formData.date.toDateString())) {
-                      updateFormData("availability", [...formData.availability, formData.date])
+                    if (
+                      !formData.availability.some(
+                        (d) => d.toDateString() === formData.date.toDateString()
+                      )
+                    ) {
+                      updateFormData("availability", [
+                        ...formData.availability,
+                        formData.date,
+                      ]);
                     }
                   }}
                 >
@@ -609,9 +728,10 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ mode, onComplete, 
             {formatDate(formData.date)}
           </div>
         </div>
-      )
+      );
     }
 
+    // Step 4: Pricing
     if (currentStep === 4) {
       return (
         <div className="space-y-6">
@@ -635,8 +755,8 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ mode, onComplete, 
                     max={300}
                     step={5}
                     onValueChange={(value) => {
-                      updateFormData("priceMin", value[0])
-                      updateFormData("priceMax", value[1])
+                      updateFormData("priceMin", value[0]);
+                      updateFormData("priceMax", value[1]);
                     }}
                     className="py-4"
                   />
@@ -650,10 +770,14 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ mode, onComplete, 
               </div>
 
               <div className="mt-4 pt-4 border-t border-white/20">
-                <h4 className="font-medium mb-3 text-white">Preferred session duration</h4>
+                <h4 className="font-medium mb-3 text-white">
+                  Preferred session duration
+                </h4>
                 <RadioGroup
                   value={formData.sessionDuration.toString()}
-                  onValueChange={(value) => updateFormData("sessionDuration", Number.parseInt(value))}
+                  onValueChange={(value) =>
+                    updateFormData("sessionDuration", Number.parseInt(value))
+                  }
                   className="text-white"
                 >
                   <div className="flex items-center space-x-2">
@@ -688,7 +812,9 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ mode, onComplete, 
               <div>
                 <div className="flex justify-between mb-2">
                   <Label className="text-white">Your hourly rate</Label>
-                  <span className="text-sm text-white">${formData.pricing}</span>
+                  <span className="text-sm text-white">
+                    ${formData.pricing}
+                  </span>
                 </div>
                 <Slider
                   value={[formData.pricing]}
@@ -707,14 +833,18 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ mode, onComplete, 
               </div>
 
               <div className="bg-black/40 backdrop-blur-sm p-4 rounded-lg border border-white/20">
-                <h4 className="font-medium mb-3 text-white">Price suggestions based on experience</h4>
+                <h4 className="font-medium mb-3 text-white">
+                  Price suggestions based on experience
+                </h4>
                 <div className="space-y-3">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-300">Beginner (0-2 years)</span>
                     <span className="text-white">$20-$40</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-300">Intermediate (3-5 years)</span>
+                    <span className="text-gray-300">
+                      Intermediate (3-5 years)
+                    </span>
                     <span className="text-white">$40-$75</span>
                   </div>
                   <div className="flex justify-between text-sm">
@@ -730,18 +860,23 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ mode, onComplete, 
             </div>
           )}
         </div>
-      )
+      );
     }
 
+    // Step 5: Submit
     if (currentStep === 5) {
       return (
         <div className="space-y-6">
-          <h3 className="text-xl font-medium text-white">{submitSuccess ? "Success!" : "Review and Submit"}</h3>
+          <h3 className="text-xl font-medium text-white">
+            {submitSuccess ? "Success!" : "Review and Submit"}
+          </h3>
 
           {submitError && (
             <Alert className="border-red-500 bg-red-500/10 backdrop-blur-sm">
               <AlertCircle className="h-4 w-4" />
-              <AlertDescription className="text-white">{submitError}</AlertDescription>
+              <AlertDescription className="text-white">
+                {submitError}
+              </AlertDescription>
             </Alert>
           )}
 
@@ -751,7 +886,9 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ mode, onComplete, 
                 <CheckIcon className="h-8 w-8 text-white" />
               </div>
               <h4 className="text-lg font-medium text-white">
-                {mode === "book" ? "Booking Request Submitted!" : "Professional Profile Created!"}
+                {mode === "book"
+                  ? "Booking Request Submitted!"
+                  : "Professional Profile Created!"}
               </h4>
               <p className="text-gray-300">
                 {mode === "book"
@@ -761,14 +898,19 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ mode, onComplete, 
             </div>
           ) : (
             <div className="space-y-6">
-              <h4 className="font-medium text-white">Review Your Information</h4>
+              <h4 className="font-medium text-white">
+                Review Your Information
+              </h4>
 
               <div className="bg-black/40 backdrop-blur-sm p-4 rounded-lg border border-white/20 space-y-3">
                 <div>
                   <span className="font-medium text-white">Categories: </span>
                   <span className="text-gray-300">
                     {formData.serviceCategory
-                      .map((cat) => serviceCategories.find((c) => c.id === cat)?.name)
+                      .map(
+                        (cat) =>
+                          serviceCategories.find((c) => c.id === cat)?.name
+                      )
                       .join(", ")}
                   </span>
                 </div>
@@ -776,8 +918,12 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ mode, onComplete, 
                 <div>
                   <span className="font-medium text-white">Dance Styles: </span>
                   <span className="text-gray-300">
-                    {formData.danceStyle
-                      .map((style) => dance_styles.find((s) => s.id.toString() === style)?.name)
+                    {formData.dance_style
+                      .map(
+                        (style) =>
+                          dance_styles.find((s) => s.id.toString() === style)
+                            ?.name
+                      )
                       .join(", ")}
                   </span>
                 </div>
@@ -785,13 +931,16 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ mode, onComplete, 
                 <div>
                   <span className="font-medium text-white">Location: </span>
                   <span className="text-gray-300">
-                    {formData.location || `${formData.city}, ${formData.state}`} ({formData.travelDistance} miles)
+                    {formData.location || `${formData.city}, ${formData.state}`}{" "}
+                    ({formData.travel_distance} miles)
                   </span>
                 </div>
 
                 <div>
                   <span className="font-medium text-white">Date: </span>
-                  <span className="text-gray-300">{formatDate(formData.date)}</span>
+                  <span className="text-gray-300">
+                    {formatDate(formData.date)}
+                  </span>
                 </div>
 
                 {mode === "book" ? (
@@ -803,30 +952,49 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ mode, onComplete, 
                       </span>
                     </div>
                     <div>
-                      <span className="font-medium text-white">Session Duration: </span>
-                      <span className="text-gray-300">{formData.sessionDuration} minutes</span>
+                      <span className="font-medium text-white">
+                        Session Duration:{" "}
+                      </span>
+                      <span className="text-gray-300">
+                        {formData.sessionDuration} minutes
+                      </span>
                     </div>
                   </>
                 ) : (
                   <>
                     <div>
-                      <span className="font-medium text-white">Hourly Rate: </span>
+                      <span className="font-medium text-white">
+                        Hourly Rate:{" "}
+                      </span>
                       <span className="text-gray-300">${formData.pricing}</span>
                     </div>
                     <div>
-                      <span className="font-medium text-white">Experience: </span>
-                      <span className="text-gray-300">{formData.yearsExperience} years</span>
+                      <span className="font-medium text-white">
+                        Experience:{" "}
+                      </span>
+                      <span className="text-gray-300">
+                        {formData.years_experience} years
+                      </span>
                     </div>
                     <div>
                       <span className="font-medium text-white">Services: </span>
-                      <span className="text-gray-300">{formData.services.join(", ")}</span>
+                      <span className="text-gray-300">
+                        {formData.services.join(", ")}
+                      </span>
                     </div>
                     {formData.availability.length > 0 && (
                       <div>
-                        <span className="font-medium text-white">Availability: </span>
+                        <span className="font-medium text-white">
+                          Availability:{" "}
+                        </span>
                         <span className="text-gray-300">
                           {formData.availability
-                            .map((date) => date.toLocaleDateString("en-US", { month: "short", day: "numeric" }))
+                            .map((date) =>
+                              date.toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                              })
+                            )
                             .join(", ")}
                         </span>
                       </div>
@@ -843,11 +1011,11 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ mode, onComplete, 
             </div>
           )}
         </div>
-      )
+      );
     }
 
-    return null
-  }
+    return null;
+  };
 
   return (
     <div className="min-h-screen relative">
@@ -873,7 +1041,8 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ mode, onComplete, 
               </span>
             </h1>
             <p className="text-xl md:text-2xl text-gray-200 mb-8 max-w-3xl mx-auto leading-relaxed">
-              Connect with top dance professionals or showcase your expertise to find new clients
+              Connect with top dance professionals or showcase your expertise to
+              find new clients
             </p>
 
             {/* Stats */}
@@ -899,7 +1068,14 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ mode, onComplete, 
               {/* Progress indicator */}
               <div className="mb-8">
                 <div className="flex justify-between items-center">
-                  {["Category", "Location", "Account", "Date", "Pricing", "Submit"].map((step, index) => (
+                  {[
+                    "Account",
+                    "Category",
+                    "Location",
+                    "Date",
+                    "Pricing",
+                    "Submit",
+                  ].map((step, index) => (
                     <div
                       key={index}
                       className={`flex flex-col items-center ${index > currentStep ? "text-gray-500" : ""}`}
@@ -913,9 +1089,15 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ mode, onComplete, 
                               : "bg-white/10 text-gray-400 backdrop-blur-sm"
                         }`}
                       >
-                        {index < currentStep ? <CheckIcon className="h-4 w-4" /> : index + 1}
+                        {index < currentStep ? (
+                          <CheckIcon className="h-4 w-4" />
+                        ) : (
+                          index + 1
+                        )}
                       </div>
-                      <span className="text-xs hidden sm:block text-white font-medium">{step}</span>
+                      <span className="text-xs hidden sm:block text-white font-medium">
+                        {step}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -961,7 +1143,9 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ mode, onComplete, 
                       {isSubmitting ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          {mode === "book" ? "Submitting..." : "Creating Profile..."}
+                          {mode === "book"
+                            ? "Submitting..."
+                            : "Creating Profile..."}
                         </>
                       ) : mode === "book" ? (
                         "Submit Booking Request"
@@ -977,7 +1161,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({ mode, onComplete, 
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default BookingWizard
+export default BookingWizard;
