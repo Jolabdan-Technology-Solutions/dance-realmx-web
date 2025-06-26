@@ -20,6 +20,7 @@ import {
   Star,
   Users,
   Clock,
+  Heart,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { apiRequest } from "@/lib/queryClient";
@@ -80,9 +81,11 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
   });
 
   const [isZipLookupLoading, setIsZipLookupLoading] = useState(false);
+  const [data, setData] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [favorites, setFavorites] = useState<number[]>([]);
 
   // Mock toast function - replace with your actual toast implementation
   const toast = (options: {
@@ -275,32 +278,38 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         );
       } else {
         // GET professionals search
-        const params = new URLSearchParams({
-          ...(formData.service_category?.length > 0 && {
-            service_category: formData.service_category.join(","),
-          }),
-          ...(formData.dance_style?.length > 0 && {
-            dance_style: formData.dance_style.join(","),
-          }),
-          ...(formData.zip_code && { zip_code: formData.zip_code }),
-          ...(formData.city && { city: formData.city }),
-          ...(formData.state && { state: formData.state }),
-          ...(formData.location && { location: formData.location }),
-          ...(formData.travel_distance && {
-            travel_distance: formData.travel_distance.toString(),
-          }),
-          ...(formData.pricing && { pricing: formData.pricing.toString() }),
-          ...(formData.session_duration && {
-            session_duration: formData.session_duration.toString(),
-          }),
-          ...(formData.availability &&
-            formData.availability.length > 0 && {
-              availability:
-                formData.availability[0] instanceof Date
-                  ? formData.availability[0].toISOString()
-                  : formData.availability[0],
-            }),
-        });
+        const params = new URLSearchParams();
+        if (formData.service_category?.length > 0) {
+          formData.service_category.forEach((cat: string) => {
+            params.append("service_category", cat);
+          });
+        }
+        if (formData.dance_style?.length > 0) {
+          formData.dance_style.forEach((style: string) => {
+            params.append("dance_style", style);
+          });
+        }
+        if (formData.zip_code) params.append("zip_code", formData.zip_code);
+        if (formData.city) params.append("city", formData.city);
+        if (formData.state) params.append("state", formData.state);
+        if (formData.location) params.append("location", formData.location);
+        if (formData.travel_distance)
+          params.append("travel_distance", formData.travel_distance.toString());
+        if (formData.pricing)
+          params.append("pricing", formData.pricing.toString());
+        if (formData.session_duration)
+          params.append(
+            "session_duration",
+            formData.session_duration.toString()
+          );
+        if (formData.availability && formData.availability.length > 0) {
+          params.append(
+            "availability",
+            formData.availability[0] instanceof Date
+              ? formData.availability[0].toISOString()
+              : formData.availability[0]
+          );
+        }
         result = await apiRequest(
           `https://api.livetestdomain.com/api/profiles/professionals/search?${params.toString()}`,
           {
@@ -309,7 +318,8 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
           }
         );
       }
-
+      setData(result.results);
+      console.log("data:", data);
       setSubmitSuccess(true);
 
       toast({
@@ -325,11 +335,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
       onComplete(result);
     } catch (error) {
       console.error("Error submitting booking:", error);
-      setSubmitError(
-        error instanceof Error
-          ? error.message
-          : "Failed to submit request. Please try again."
-      );
+      setSubmitError("Failed to submit request. Please try again.");
 
       toast({
         title: "Error",
@@ -353,6 +359,31 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
       month: "long",
       day: "numeric",
     });
+  };
+
+  // Add a function to handle favorite API call
+  const handleFavorite = async (profileId: number, isFav: boolean) => {
+    try {
+      await apiRequest(
+        `https://api.livetestdomain.com/api/profiles/${profileId}/book`,
+        { method: "POST", requireAuth: true }
+      );
+      setFavorites((prev) =>
+        isFav ? prev.filter((id) => id !== profileId) : [...prev, profileId]
+      );
+      toast({
+        title: isFav ? "Removed from favorites" : "Added to favorites",
+        description: isFav
+          ? "Profile removed from your favorites."
+          : "Profile added to your favorites.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update favorite. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Render steps based on current step and mode
@@ -646,34 +677,6 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
               />
             </div>
           </div>
-
-          <div className="pt-4">
-            <div className="flex justify-between mb-2">
-              <Label className="text-white">
-                How far are you willing to travel?
-              </Label>
-              <span className="text-sm text-white">
-                {formData.travel_distance} miles
-              </span>
-            </div>
-            <Slider
-              value={[formData.travel_distance]}
-              min={1}
-              max={100}
-              step={1}
-              onValueChange={(value) =>
-                updateFormData("travel_distance", value[0])
-              }
-              className="py-4"
-            />
-            <div className="flex justify-between text-xs text-gray-300">
-              <span>1 mile</span>
-              <span>25</span>
-              <span>50</span>
-              <span>75</span>
-              <span>100 miles</span>
-            </div>
-          </div>
         </div>
       );
     }
@@ -692,8 +695,39 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
             <Calendar
               mode="single"
               selected={formData.date}
-              onSelect={(date) => date && updateFormData("date", date)}
-              className="mx-auto text-white"
+              onSelect={(date) => {
+                // Only allow selecting dates up to the originally selected date
+                if (!formData.date || !date) {
+                  updateFormData("date", date);
+                  return;
+                }
+                // If the new date is after the original selection, do not update
+                if (date <= formData.date) {
+                  updateFormData("date", date);
+                }
+              }}
+              className="w-full mx-auto text-white"
+              // Disable days after the originally selected date
+              disabled={formData.date ? [{ after: formData.date }] : []}
+              classNames={{
+                root: "w-full", // ensure the calendar root takes full width
+                months: "flex flex-col sm:flex-row w-full", // months row full width
+                nav_button: "h-7 w-7 bg-transparent p-0 opacity-100 text-white", // make arrow white
+              }}
+            />
+            <Input
+              type="date"
+              className="mx-auto text-white bg-black/40 border-white/20 placeholder:text-gray-400 backdrop-blur-sm"
+              value={
+                formData.date
+                  ? new Date(formData.date).toISOString().split("T")[0]
+                  : ""
+              }
+              min={new Date().toISOString().split("T")[0]}
+              onChange={(e) => {
+                const date = e.target.value ? new Date(e.target.value) : null;
+                if (date) updateFormData("date", date);
+              }}
             />
 
             {mode === "get-booked" && (
@@ -774,14 +808,34 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                 <span className="text-sm text-white">${formData.pricing}</span>
               </div>
               <div className="h-12 pt-4">
-                <Slider
-                  value={[formData.pricing]}
-                  min={10}
-                  max={300}
-                  step={5}
-                  onValueChange={(value) => updateFormData("pricing", value[0])}
-                  className="py-4"
-                />
+                {mode === "get-booked" ? (
+                  <Slider
+                    min={10}
+                    max={300}
+                    step={5}
+                    value={[formData.pricing]}
+                    onValueChange={([value]) =>
+                      updateFormData("pricing", value)
+                    }
+                    className="w-full"
+                  />
+                ) : (
+                  <input
+                    type="number"
+                    min={10}
+                    max={100000}
+                    step={5}
+                    value={formData.pricing}
+                    onChange={(e) => {
+                      const value = Math.max(
+                        10,
+                        Math.min(300, Number(e.target.value))
+                      );
+                      updateFormData("pricing", value);
+                    }}
+                    className="w-full py-2 px-3 rounded bg-black/60 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                )}
               </div>
               <div className="flex justify-between text-xs text-gray-300">
                 <span>$10</span>
@@ -879,21 +933,141 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
           )}
 
           {submitSuccess ? (
-            <div className="text-center space-y-4">
-              <div className="h-16 w-16 bg-green-500 rounded-full flex items-center justify-center mx-auto">
-                <CheckIcon className="h-8 w-8 text-white" />
+            mode === "book" ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-6">
+                {data.map((d: any, idx: number) => {
+                  const isFav = favorites.includes(d.id);
+                  return (
+                    <div
+                      key={idx}
+                      className="relative bg-gradient-to-br from-blue-900/80 to-purple-900/80 border border-white/10 rounded-2xl shadow-xl p-6 flex flex-col items-center group hover:scale-105 transition-transform duration-300"
+                    >
+                      {/* Favorite Button */}
+                      <button
+                        className="absolute top-4 right-4 z-10 text-white hover:text-pink-400 transition-colors"
+                        onClick={() => {
+                          handleFavorite(d?.user?.id, isFav);
+                          setFavorites((prev) =>
+                            isFav
+                              ? prev.filter((id) => id !== d.id)
+                              : [...prev, d.id]
+                          );
+                        }}
+                        aria-label={
+                          isFav ? "Remove from favorites" : "Add to favorites"
+                        }
+                      >
+                        <Heart
+                          className={`h-7 w-7 drop-shadow-lg ${isFav ? "fill-pink-500 text-pink-500" : "fill-none text-white"}`}
+                          strokeWidth={2}
+                        />
+                      </button>
+                      {/* Profile Image */}
+                      <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-blue-400 to-purple-400 flex items-center justify-center mb-4 overflow-hidden border-4 border-white/20 shadow-lg">
+                        {d.user?.profile_image_url ? (
+                          <img
+                            src={d.user.profile_image_url}
+                            alt={d.user.first_name + " " + d.user.last_name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-3xl font-bold text-white">
+                            {d.user?.first_name?.[0] || "?"}
+                          </span>
+                        )}
+                      </div>
+                      {/* Name & Bio */}
+                      <h3 className="text-xl font-semibold text-white text-center mb-1">
+                        {d.user?.first_name} {d.user?.last_name}
+                      </h3>
+                      <p className="text-gray-200 text-center mb-2 line-clamp-3 min-h-[48px] line-clamp-2">
+                        {d.bio}
+                      </p>
+                      {/* Location & Experience */}
+                      <div className="flex flex-col items-center mb-2">
+                        <span className="text-sm text-blue-200 font-medium">
+                          {d.location || `${d.city}, ${d.state}`}
+                        </span>
+                        <span className="text-xs text-gray-300">
+                          {d.years_experience} yrs experience
+                        </span>
+                      </div>
+                      {/* Dance Styles & Categories */}
+                      <div className="flex flex-wrap justify-center gap-2 mb-2">
+                        {d.dance_style?.map((style: string, i: number) => (
+                          <span
+                            key={i}
+                            className="bg-blue-500/20 text-blue-200 px-2 py-1 rounded-full text-xs font-medium"
+                          >
+                            {style}
+                          </span>
+                        ))}
+                        {d.service_category?.map((cat: string, i: number) => (
+                          <span
+                            key={"cat-" + i}
+                            className="bg-purple-500/20 text-purple-200 px-2 py-1 rounded-full text-xs font-medium"
+                          >
+                            {cat}
+                          </span>
+                        ))}
+                      </div>
+                      {/* Pricing */}
+                      <div className="flex items-center gap-2 mt-2 mb-1">
+                        <span className="text-lg font-bold text-green-400">
+                          {d.pricing
+                            ? `₦${d.pricing.toLocaleString()}`
+                            : "Contact for pricing"}
+                        </span>
+                        <span className="text-xs text-gray-300">/session</span>
+                      </div>
+                      {/* Portfolio Link */}
+                      {d.portfolio && (
+                        <a
+                          href={d.portfolio}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-300 underline text-xs mt-1 hover:text-blue-400"
+                        >
+                          View Portfolio
+                        </a>
+                      )}
+                      {/* Services */}
+                      {d.services && d.services.length > 0 && (
+                        <div className="mt-2 w-full">
+                          <div className="text-xs text-gray-400 mb-1">
+                            Services:
+                          </div>
+                          <ul className="flex flex-wrap gap-1 justify-center">
+                            {d.services.map((srv: string, i: number) => (
+                              <li
+                                key={i}
+                                className="bg-white/10 text-white px-2 py-0.5 rounded text-xs"
+                              >
+                                {srv}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-              <h4 className="text-lg font-medium text-white">
-                {mode === "book"
-                  ? "Booking Request Submitted!"
-                  : "Professional Profile Created!"}
-              </h4>
-              <p className="text-gray-300">
-                {mode === "book"
-                  ? "We'll connect you with matching professionals soon. You'll receive notifications when professionals respond to your request."
-                  : "Your professional profile is now live! Clients can now find and book your services."}
-              </p>
-            </div>
+            ) : (
+              <div className="text-center space-y-4">
+                <div className="h-16 w-16 bg-green-500 rounded-full flex items-center justify-center mx-auto">
+                  <CheckIcon className="h-8 w-8 text-white" />
+                </div>
+                <h4 className="text-lg font-medium text-white">
+                  Booking Request Submitted!
+                </h4>
+                <p className="text-gray-300">
+                  We'll connect you with matching professionals soon. You'll
+                  receive notifications when professionals respond to your
+                  request.
+                </p>
+              </div>
+            )
           ) : (
             <div className="space-y-6">
               <h4 className="font-medium text-white">
@@ -1134,26 +1308,25 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 ) : (
-                  !submitSuccess && (
-                    <Button
-                      onClick={handleComplete}
-                      disabled={isSubmitting}
-                      className="bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600 shadow-lg shadow-blue-500/25"
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          {mode === "book"
-                            ? "Submitting..."
-                            : "Creating Profile..."}
-                        </>
-                      ) : mode === "book" ? (
-                        "Submit Booking Request"
-                      ) : (
-                        "Create Professional Profile"
-                      )}
-                    </Button>
-                  )
+                  // !submitSuccess && (
+                  <Button
+                    onClick={handleComplete}
+                    disabled={isSubmitting}
+                    className="bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600 shadow-lg shadow-blue-500/25"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        {mode === "book"
+                          ? "Submitting..."
+                          : "Creating Profile..."}
+                      </>
+                    ) : mode === "book" ? (
+                      "Submit Booking Request"
+                    ) : (
+                      "Create Professional Profile"
+                    )}
+                  </Button>
                 )}
               </div>
             </div>
