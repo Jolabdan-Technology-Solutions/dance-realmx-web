@@ -175,55 +175,63 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
 
   // Transform form data to API format
   const transformFormDataToAPI = (formData: any, mode: string, user: any) => {
+    if (mode === "get-booked") {
+      // Professional profile payload matching UpdateProfileDto
+      return {
+        bio: formData.bio,
+        phone_number: formData.phone_number,
+        address: formData.address,
+        city: formData.city,
+        state: formData.state,
+        country: formData.country,
+        zip_code: formData.zip_code,
+        service_category: formData.service_category,
+        dance_style: formData.dance_style,
+        location: formData.location,
+        zipcode: formData.zipcode,
+        travel_distance: formData.travel_distance,
+        price_min: formData.price_min,
+        price_max: formData.price_max,
+        session_duration: formData.session_duration,
+        years_experience: formData.years_experience,
+        services: formData.services,
+        availability: formData.availability,
+        portfolio: formData.portfolio,
+        pricing: formData.pricing,
+        profile_image_url: formData.profile_image_url,
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        email: formData.email,
+      };
+    }
     const basePayload = {
       mode,
       userId: user?.id || user?.user_id || "demo_user",
-      serviceCategory: formData.serviceCategory,
-      danceStyle: formData.danceStyle,
+      serviceCategory: formData.service_category,
+      danceStyle: formData.dance_style,
       location: {
         zipcode: formData.zipcode,
         city: formData.city,
         state: formData.state,
         locationString: formData.location,
-        travelDistance: formData.travelDistance,
+        travelDistance: formData.travel_distance,
       },
       metadata: {
         timestamp: new Date().toISOString(),
         source: "booking-wizard",
       },
     };
-
-    if (mode === "book") {
-      return {
-        ...basePayload,
-        timing: {
-          preferredDate: formData.date.toISOString(),
-        },
-        pricing: {
-          budgetMin: formData.priceMin,
-          budgetMax: formData.priceMax,
-          sessionDuration: formData.sessionDuration,
-        },
-      };
-    } else {
-      return {
-        ...basePayload,
-        timing: {
-          availability: formData.availability.map((date: Date) =>
-            date.toISOString()
-          ),
-        },
-        pricing: {
-          hourlyRate: formData.pricing,
-        },
-        professionalProfile: {
-          yearsExperience: formData.yearsExperience,
-          bio: formData.bio,
-          services: formData.services,
-          portfolio: formData.portfolio,
-        },
-      };
-    }
+    return {
+      ...basePayload,
+      timing: {
+        preferredDate: formData.date.toISOString(),
+      },
+      pricing: {
+        budgetMin: formData.priceMin,
+        budgetMax: formData.priceMax,
+        sessionDuration: formData.session_duration,
+      },
+    };
   };
 
   const handleNext = () => {
@@ -333,13 +341,14 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
 
       // Call the original onComplete callback
       onComplete(result);
-    } catch (error) {
+    } catch (error: any) {
+      console.log(error);
       console.error("Error submitting booking:", error);
-      setSubmitError("Failed to submit request. Please try again.");
+      setSubmitError(error?.response?.data?.message);
 
       toast({
         title: "Error",
-        description: "Failed to submit request. Please try again.",
+        description: error?.response?.data?.message,
         variant: "destructive",
       });
     } finally {
@@ -844,33 +853,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                 <span>$300</span>
               </div>
             </div>
-            {mode === "get-booked" && (
-              <div className="bg-black/40 backdrop-blur-sm p-4 rounded-lg border border-white/20">
-                <h4 className="font-medium mb-3 text-white">
-                  Price suggestions based on experience
-                </h4>
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-300">Beginner (0-2 years)</span>
-                    <span className="text-white">$20-$40</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-300">
-                      Intermediate (3-5 years)
-                    </span>
-                    <span className="text-white">$40-$75</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-300">Advanced (5-10 years)</span>
-                    <span className="text-white">$75-$150</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-300">Expert (10+ years)</span>
-                    <span className="text-white">$150-$300+</span>
-                  </div>
-                </div>
-              </div>
-            )}
+
             {mode === "book" && (
               <div className="mt-4 pt-4 border-t border-white/20">
                 <h4 className="font-medium mb-3 text-white">
