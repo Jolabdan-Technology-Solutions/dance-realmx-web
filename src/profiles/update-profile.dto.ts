@@ -59,22 +59,27 @@ export class UpdateProfileDto {
 
   @IsOptional()
   @IsInt()
+  @Min(0)
   travel_distance?: number;
 
   @IsOptional()
   @IsInt()
+  @Min(0)
   price_min?: number;
 
   @IsOptional()
   @IsInt()
+  @Min(0)
   price_max?: number;
 
   @IsOptional()
   @IsInt()
+  @Min(0)
   session_duration?: number;
 
   @IsOptional()
   @IsInt()
+  @Min(0)
   years_experience?: number;
 
   @IsOptional()
@@ -93,6 +98,7 @@ export class UpdateProfileDto {
 
   @IsOptional()
   @IsInt()
+  @Min(0)
   pricing?: number;
 
   // Existing fields
