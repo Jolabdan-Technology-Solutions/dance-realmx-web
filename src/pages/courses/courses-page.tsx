@@ -1258,7 +1258,7 @@ export default function CoursesPage() {
                       `/images/thumbnails/${getCategoryName(course.category_id || course.categoryId).toLowerCase()}-techniques.jpg`
                     }
                     alt={course.title}
-                    className="w-full h-48 object-cover"
+                    className="w-full h-80 object-cover"
                     onError={(e) => {
                       e.currentTarget.src = "/placeholder.svg?height=192&width=384"
                     }}
@@ -1431,7 +1431,7 @@ export default function CoursesPage() {
                 <BadgeIcon className="h-5 w-5 text-[#00d4ff] mr-2" />
                 Industry Recognition
               </h3>
-              <p className="text-gray-600">
+              <p className="text-gray-900">
                 Our certifications are recognized by leading dance organizations and studios worldwide.
               </p>
             </div>
