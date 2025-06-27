@@ -19,8 +19,6 @@ function UserSessionMenu() {
   // Use the hook directly instead of context for better reliability
   const { user, logoutMutation } = useAuth();
 
-  console.log("UserSessionMenu - Current user state:", user);
-
   const handleLogout = async () => {
     console.log("Logout button clicked from dropdown");
     try {
@@ -154,8 +152,6 @@ function UserSessionMenu() {
 function MobileUserMenu() {
   // Use the hook directly instead of context for better reliability
   const { user, logoutMutation } = useAuth();
-
-  console.log("MobileUserMenu - Current user state:", user);
 
   const handleLogout = () => {
     console.log("Logout button clicked");
