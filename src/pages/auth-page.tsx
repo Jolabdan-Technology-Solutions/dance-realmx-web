@@ -21,11 +21,21 @@ import {
   TabsList,
   TabsTrigger,
 } from "../components/ui/tabs";
-import { Loader2 } from "lucide-react";
+import { Loader2, Check, Star } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
 import { Separator } from "../components/ui/separator";
 import { Checkbox } from "../components/ui/checkbox";
 import { UserRole } from "@/constants/roles";
+import { useQuery } from "@tanstack/react-query";
+import { apiClient, apiRequest } from "@/lib/queryClient";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from "../components/ui/card";
 
 // Define form schemas
 const loginSchema = z.object({
@@ -44,6 +54,17 @@ const registerSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 type RegisterFormValues = z.infer<typeof registerSchema>;
+
+// Add SubscriptionPlan type
+interface SubscriptionPlan {
+  id: number;
+  name: string;
+  slug: string;
+  priceMonthly: number;
+  description?: string;
+  features: string[];
+  isPopular?: boolean;
+}
 
 // Auth page with auth context
 function AuthPageWithAuth() {
@@ -145,7 +166,26 @@ function AuthPageWithAuth() {
     }
   };
 
-  const onRegisterSubmit = (data: RegisterFormValues) => {
+  const [selectedPlan, setSelectedPlan] = useState<string>("");
+
+  // Fetch subscription plans
+  const {
+    data: plans = [],
+    isLoading: isLoadingPlans,
+    error: plansError,
+  } = useQuery<SubscriptionPlan[]>({
+    queryKey: ["subscription-plans"],
+    queryFn: async () => {
+      const response = await apiClient.get(
+        `https://api.livetestdomain.com/api/subscriptions/plans`,
+        false
+      );
+      return response;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const onRegisterSubmit = async (data: RegisterFormValues) => {
     // Clear any previous errors
     setAuthError(null);
 
@@ -160,13 +200,47 @@ function AuthPageWithAuth() {
         last_name: data.last_name.trim(),
         profile_image_url: "",
         auth_provider: "local",
+        frequency: "MONTHLY",
+        is_active: true,
+        role_mappings: [],
       };
 
       console.log("Register form submission:", {
         ...trimmedData,
         password: "***",
       });
-      registerMutation.mutate(trimmedData);
+
+      const createCheckoutSession = async (request: {
+        planSlug: string;
+        frequency: "MONTHLY" | "YEARLY";
+        email: string;
+      }) => {
+        const response = await apiRequest("/api/subscriptions/checkout", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          data: request,
+          requireAuth: true,
+        });
+        if (!response?.url) {
+          throw new Error(
+            response?.message || "Failed to create checkout session"
+          );
+        }
+        return response.url;
+      };
+
+      if (selectedPlan && selectedPlan !== "free") {
+        const checkoutUrl = await createCheckoutSession({
+          planSlug: selectedPlan,
+          frequency: "MONTHLY",
+          email: data.email,
+        });
+        window.location.href = checkoutUrl;
+      } else {
+        registerMutation.mutate(trimmedData);
+      }
     } else {
       console.error("Registration mutation is not available");
       setAuthError(
@@ -292,8 +366,7 @@ function AuthPageWithAuth() {
                       </form>
                     </Form>
 
-                   
-                   {/* <div className="my-6 flex items-center">
+                    {/* <div className="my-6 flex items-center">
                       <Separator className="flex-grow" />
                       <span className="mx-4 text-sm text-gray-400">OR</span>
                       <Separator className="flex-grow" />
@@ -494,6 +567,81 @@ function AuthPageWithAuth() {
                             </FormItem>
                           )}
                         />
+
+                        <div className="mb-6">
+                          <h3 className="text-lg font-bold mb-2">
+                            Choose a Plan
+                          </h3>
+                          {isLoadingPlans ? (
+                            <Loader2 className="h-6 w-6 animate-spin" />
+                          ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {plans.map((plan) => {
+                                const isSelected = selectedPlan === plan.slug;
+                                const isPopular = plan.isPopular;
+                                return (
+                                  <Card
+                                    key={plan.id}
+                                    className={`cursor-pointer border-2 transition-all ${
+                                      isSelected
+                                        ? "border-blue-500 shadow-lg"
+                                        : "border-gray-700"
+                                    } ${isPopular ? "ring-2 ring-blue-400" : ""}`}
+                                    onClick={() => setSelectedPlan(plan.slug)}
+                                  >
+                                    {isPopular && (
+                                      <div className="absolute top-2 right-2 bg-blue-500 text-white px-2 py-1 rounded text-xs flex items-center">
+                                        <Star className="h-3 w-3 mr-1" /> Most
+                                        Popular
+                                      </div>
+                                    )}
+                                    <CardHeader>
+                                      <CardTitle className="text-xl">
+                                        {plan.name}
+                                      </CardTitle>
+                                      <CardDescription>
+                                        <span className="font-bold text-lg">
+                                          $
+                                          {Number(plan.priceMonthly).toFixed(2)}
+                                        </span>{" "}
+                                        per month
+                                      </CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                      {plan.description && (
+                                        <p className="text-sm text-gray-300 mb-2">
+                                          {plan.description}
+                                        </p>
+                                      )}
+                                      <ul className="space-y-1">
+                                        {plan.features.map((feature, idx) => (
+                                          <li
+                                            key={idx}
+                                            className="flex items-center"
+                                          >
+                                            <Check className="h-4 w-4 text-green-500 mr-2" />
+                                            <span className="text-sm">
+                                              {feature}
+                                            </span>
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    </CardContent>
+                                    <CardFooter>
+                                      <div
+                                        className={`w-full text-center py-2 rounded ${isSelected ? "bg-blue-500 text-white" : "bg-gray-800 text-gray-300"}`}
+                                      >
+                                        {isSelected
+                                          ? "Selected"
+                                          : "Select Plan"}
+                                      </div>
+                                    </CardFooter>
+                                  </Card>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
 
                         <Button
                           type="submit"
