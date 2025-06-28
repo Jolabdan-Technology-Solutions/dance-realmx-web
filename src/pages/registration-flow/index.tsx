@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { StepFeatureSelection } from "./step-feature-selection";
 import { StepPlanRecommendation } from "./step-plan-recommendation";
-import { StepAccountCreation } from "./step-account-creation";
+// import { StepAccountCreation } from "./step-account-creation";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";

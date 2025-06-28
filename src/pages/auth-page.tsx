@@ -1064,7 +1064,7 @@ function AuthPageWithAuth() {
     setIsRegistering(true);
 
     try {
-      // Step 1: Create user with simplified payload matching your backend
+      // Step 1: Create user with exact payload structure that works
       const registrationPayload = {
         first_name: form.first_name.trim(),
         last_name: form.last_name.trim(),
@@ -1084,7 +1084,7 @@ function AuthPageWithAuth() {
           "Content-Type": "application/json",
         },
         data: registrationPayload,
-        requireAuth: false, // Registration doesn't require auth
+        requireAuth: false,
       });
 
       console.log("User created successfully:", {
@@ -1092,45 +1092,77 @@ function AuthPageWithAuth() {
         hasToken: !!registrationResponse.access_token
       });
 
-      // Extract access token for subsequent calls
+      // Step 2: Extract access token for subsequent calls
       const accessToken = registrationResponse.access_token;
       
       if (!accessToken) {
         throw new Error("No access token received from registration");
       }
 
-      // Step 2: Check if we need to handle payment
+      // Step 3: Check if we need to handle payment - DYNAMIC for any plan
       const selectedPlanData = plans.find(p => p.slug === selectedPlan);
-      const needsPayment = selectedPlan && 
-                          selectedPlan !== "free" && 
-                          selectedPlanData && 
-                          Number(selectedPlanData.priceMonthly) > 0;
+      
+      if (!selectedPlanData) {
+        throw new Error(`Selected plan not found: ${selectedPlan}`);
+      }
+      
+      const planPrice = Number(selectedPlanData.priceMonthly);
+      const isFreeplan = planPrice === 0 || selectedPlan === "free";
+      
+      console.log("Plan analysis:", {
+        planSlug: selectedPlan,
+        planName: selectedPlanData.name,
+        tier: selectedPlanData.tier,
+        priceMonthly: selectedPlanData.priceMonthly,
+        parsedPrice: planPrice,
+        isFreeplan: isFreeplan
+      });
 
-      if (needsPayment) {
+      if (!isFreeplan) {
         console.log("Creating checkout session for plan:", selectedPlan);
         
-        // Step 3: Create checkout session using the access token
+        // Step 4: Create checkout session - works for ANY selected plan
+        const selectedPlanData = plans.find(p => p.slug === selectedPlan);
+        
+        if (!selectedPlanData) {
+          throw new Error(`Selected plan not found: ${selectedPlan}`);
+        }
+        
         const checkoutRequest = {
-          planSlug: selectedPlan,
+          planSlug: selectedPlan,           // e.g., "free", "nobility", "royal", "imperial"
+          tier: selectedPlanData.tier,      // e.g., "FREE", "NOBILITY", "ROYAL", "IMPERIAL"
           frequency: "MONTHLY" as const,
           email: form.email.trim()
         };
 
+        console.log("Dynamic checkout request for plan:", {
+          selectedPlan,
+          planName: selectedPlanData.name,
+          tier: selectedPlanData.tier,
+          price: selectedPlanData.priceMonthly
+        });
+
         console.log("Checkout request payload:", checkoutRequest);
 
-        const checkoutUrl = await createCheckoutSessionWithToken(checkoutRequest, accessToken);
-        console.log("Checkout URL received:", checkoutUrl);
-        
-        // Redirect to payment
-        window.location.href = checkoutUrl;
+        try {
+          const checkoutUrl = await createCheckoutSessionWithToken(checkoutRequest, accessToken);
+          console.log("Checkout URL received:", checkoutUrl);
+          
+          // Redirect to payment
+          window.location.href = checkoutUrl;
+        } catch (checkoutError) {
+          console.error("Checkout failed:", checkoutError);
+          // If checkout fails, show error but user is still created
+          setAuthError(`Payment setup failed: ${checkoutError.message}. Account created successfully. You can upgrade later.`);
+        }
       } else {
         console.log("Free plan selected, registration complete");
-        // For free plan, could update auth context or redirect to dashboard
+        // For free plan, redirect to dashboard
         window.location.href = "/dashboard";
       }
 
     } catch (err) {
-      console.error("Registration or checkout error:", err);
+      console.error("Registration error:", err);
       setAuthError(err?.response?.data?.message || err?.message || 'Registration failed');
     } finally {
       setIsRegistering(false);
@@ -1140,12 +1172,19 @@ function AuthPageWithAuth() {
   const createCheckoutSessionWithToken = async (
     request: {
       planSlug: string;
+      tier?: string;
       frequency: "MONTHLY" | "YEARLY";
       email: string;
     },
     accessToken: string
   ) => {
     try {
+      console.log("Making checkout request with token:", {
+        endpoint: "/api/subscriptions/checkout",
+        payload: request,
+        hasToken: !!accessToken
+      });
+
       const response = await apiRequest("/api/subscriptions/checkout", {
         method: "POST",
         headers: {
@@ -1156,16 +1195,29 @@ function AuthPageWithAuth() {
         requireAuth: false, // We're manually adding the auth header
       });
       
+      console.log("Checkout response:", response);
+      
       if (!response?.url) {
         throw new Error(
-          response?.message || "Failed to create checkout session"
+          response?.message || "Failed to create checkout session - no URL returned"
         );
       }
       
       return response.url;
     } catch (error) {
-      console.error('Checkout error:', error);
-      throw new Error(error?.response?.data?.message || "Checkout service unavailable. Please try again later.");
+      console.error('Detailed checkout error:', {
+        error: error,
+        response: error?.response,
+        data: error?.response?.data,
+        status: error?.response?.status
+      });
+      
+      const errorMessage = error?.response?.data?.message || 
+                          error?.response?.data?.error || 
+                          error?.message || 
+                          "Checkout service unavailable. Please try again later.";
+      
+      throw new Error(errorMessage);
     }
   };
 
