@@ -15,9 +15,9 @@ import { ResourcesService } from './resources.service';
 import { CreateResourceDto } from './dto/create-resource.dto';
 import { UpdateResourceDto } from './dto/update-resource.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
-import { UserRole } from '@prisma/client';
+import { FeatureGuard } from '../auth/guards/feature.guard';
+import { RequireFeature } from '../auth/decorators/feature.decorator';
+import { Feature } from '../auth/enums/feature.enum';
 import {
   ApiTags,
   ApiOperation,
@@ -36,8 +36,8 @@ export class ResourcesController {
   constructor(private readonly resourcesService: ResourcesService) {}
 
   @Post()
-  @UseGuards(RolesGuard, JwtAuthGuard)
-  @Roles(UserRole.CURRICULUM_SELLER, UserRole.INSTRUCTOR_ADMIN, UserRole.ADMIN)
+  @UseGuards(FeatureGuard, JwtAuthGuard)
+  @RequireFeature(Feature.MANAGE_RESOURCES)
   @ApiOperation({ summary: 'Create a new resource' })
   @ApiBody({ type: CreateResourceDto })
   @ApiResponse({
@@ -142,8 +142,8 @@ export class ResourcesController {
   }
 
   @Get('stats/resource/:id')
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.CURRICULUM_SELLER, UserRole.INSTRUCTOR, UserRole.ADMIN)
+  @UseGuards(FeatureGuard)
+  @RequireFeature(Feature.MANAGE_RESOURCES)
   @ApiOperation({ summary: 'Get resource statistics' })
   @ApiParam({ name: 'id', type: Number, description: 'Resource ID' })
   @ApiResponse({
@@ -165,8 +165,8 @@ export class ResourcesController {
   }
 
   @Get('stats/seller/:id')
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.CURRICULUM_SELLER, UserRole.INSTRUCTOR, UserRole.ADMIN)
+  @UseGuards(FeatureGuard)
+  @RequireFeature(Feature.MANAGE_RESOURCES)
   @ApiOperation({ summary: 'Get seller statistics' })
   @ApiParam({ name: 'id', type: Number, description: 'Seller ID' })
   @ApiResponse({
@@ -252,8 +252,8 @@ export class ResourcesController {
   }
 
   @Patch(':id')
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.CURRICULUM_SELLER, UserRole.INSTRUCTOR, UserRole.ADMIN)
+  @UseGuards(FeatureGuard)
+  @RequireFeature(Feature.MANAGE_RESOURCES)
   @ApiOperation({ summary: 'Update a resource' })
   @ApiParam({ name: 'id', type: Number, description: 'Resource ID' })
   @ApiBody({ type: UpdateResourceDto })
@@ -274,8 +274,8 @@ export class ResourcesController {
   }
 
   @Delete(':id')
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.CURRICULUM_SELLER, UserRole.INSTRUCTOR, UserRole.ADMIN)
+  @UseGuards(FeatureGuard)
+  @RequireFeature(Feature.MANAGE_RESOURCES)
   @ApiOperation({ summary: 'Delete a resource' })
   @ApiParam({ name: 'id', type: Number, description: 'Resource ID' })
   @ApiResponse({
@@ -291,8 +291,8 @@ export class ResourcesController {
   }
 
   @Post(':id/purchase')
-  @UseGuards(RolesGuard, JwtAuthGuard)
-  @Roles(UserRole.STUDENT, UserRole.INSTRUCTOR, UserRole.ADMIN)
+  @UseGuards(FeatureGuard, JwtAuthGuard)
+  @RequireFeature(Feature.MANAGE_RESOURCES)
   @ApiOperation({ summary: 'Purchase a resource' })
   @ApiParam({ name: 'id', type: Number, description: 'Resource ID' })
   @ApiResponse({

@@ -18,12 +18,12 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Request } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
-import { RequireSubscription } from '../auth/decorators/require-subscription.decorator';
 import { User } from '@prisma/client';
 import { UpdateProfileDto } from './update-profile.dto';
-import { RolesGuard, Roles } from '../auth/guards/roles.guard';
-import { Role } from '../auth/enums/role.enum';
 import { SearchProfessionalsDto } from './dto/search-professionals.dto';
+import { Feature } from '../auth/enums/feature.enum';
+import { FeatureGuard } from '../auth/guards/feature.guard';
+import { RequireFeature } from '../auth/decorators/feature.decorator';
 
 interface RequestWithUser extends Request {
   user: {
@@ -83,9 +83,8 @@ export class ProfilesController {
   }
 
   @Post('become-professional')
-  @RequireSubscription('BOOKING_PROFESSIONAL')
-  @UseGuards(RolesGuard)
-  @Roles(Role.BOOKING_PROFESSIONAL)
+  @UseGuards(FeatureGuard)
+  @RequireFeature(Feature.BE_BOOKED)
   async becomeProfessional(
     @Req() req: { user: User },
     @Body() profileData: UpdateProfileDto,
@@ -94,13 +93,15 @@ export class ProfilesController {
   }
 
   @Post(':id/book')
-  @RequireSubscription('BOOKING_USER')
+  @UseGuards(FeatureGuard)
+  @RequireFeature(Feature.CONTACT_BOOK)
   async bookProfessional(@Param('id') id: string, @Req() req: { user: User }) {
     return this.profilesService.bookProfessional(id, req.user.id);
   }
 
   @Get('professionals')
-  @RequireSubscription('BOOKING_USER')
+  @UseGuards(FeatureGuard)
+  @RequireFeature(Feature.SEARCH_PROFESSIONALS)
   async getProfessionals() {
     return this.profilesService.getProfessionals();
   }
@@ -131,8 +132,14 @@ export class ProfilesController {
   }
 
   @Get('professionals/by-date')
-  async findByDate(@Query('date') date: string) {
-    return this.profilesService.findProfessionalsByDate(date);
+  async findByDateRange(
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+  ) {
+    return this.profilesService.findProfessionalsByDateRange(
+      startDate,
+      endDate,
+    );
   }
 
   @Get('professionals/by-pricing')

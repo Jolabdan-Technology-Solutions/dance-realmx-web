@@ -43,8 +43,7 @@ export class CreateUserDto {
   @IsOptional()
   auth_provider?: string;
 
-  @IsArray()
+  @IsString()
   @IsOptional()
-  @IsEnum(UserRole, { each: true })
-  role?: string[];
+  planSlug?: string;
 }

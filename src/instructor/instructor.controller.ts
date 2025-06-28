@@ -21,6 +21,9 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/guards/roles.decorator';
 import { UserRole } from '@prisma/client';
+import { FeatureGuard } from '../auth/guards/feature.guard';
+import { RequireFeature } from '../auth/decorators/feature.decorator';
+import { Feature } from '../auth/enums/feature.enum';
 
 import { InstructorService } from './instructor.service';
 import {
@@ -34,14 +37,15 @@ import { CreateInstructorDto } from './dto/create-instructor.dto';
 import { UpdateInstructorDto } from './dto/update-instructor.dto';
 
 @Controller('instructors')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, FeatureGuard)
 export class InstructorController {
   private readonly logger = new Logger(InstructorController.name);
 
   constructor(private readonly instructorService: InstructorService) {}
 
   @Post()
-  @Roles(UserRole.ADMIN)
+  @UseGuards(FeatureGuard)
+  @RequireFeature(Feature.MANAGE_INSTRUCTORS)
   async create(@Body() createInstructorDto: CreateInstructorDto) {
     try {
       const instructor =
@@ -63,7 +67,8 @@ export class InstructorController {
   }
 
   @Get()
-  @Roles(UserRole.ADMIN, UserRole.INSTRUCTOR_ADMIN)
+  @UseGuards(FeatureGuard)
+  @RequireFeature(Feature.MANAGE_INSTRUCTORS)
   async findAll() {
     try {
       const instructors = await this.instructorService.findAll();
@@ -84,7 +89,8 @@ export class InstructorController {
   }
 
   @Get(':id')
-  @Roles(UserRole.ADMIN, UserRole.INSTRUCTOR_ADMIN)
+  @UseGuards(FeatureGuard)
+  @RequireFeature(Feature.MANAGE_INSTRUCTORS)
   async findOne(
     @Param(
       'id',
@@ -115,7 +121,8 @@ export class InstructorController {
   }
 
   @Patch(':id')
-  @Roles(UserRole.ADMIN)
+  @UseGuards(FeatureGuard)
+  @RequireFeature(Feature.MANAGE_INSTRUCTORS)
   async update(
     @Param(
       'id',
@@ -150,7 +157,8 @@ export class InstructorController {
   }
 
   @Delete(':id')
-  @Roles(UserRole.ADMIN)
+  @UseGuards(FeatureGuard)
+  @RequireFeature(Feature.MANAGE_INSTRUCTORS)
   async remove(
     @Param(
       'id',
@@ -211,7 +219,8 @@ export class InstructorController {
   }
 
   @Get('analytics/overview')
-  @Roles(UserRole.INSTRUCTOR_ADMIN)
+  @UseGuards(FeatureGuard)
+  @RequireFeature(Feature.INSTRUCTOR_ANALYTICS)
   async getOverview(
     @Query(new ValidationPipe({ transform: true, whitelist: true }))
     query: AnalyticsQueryDto,
@@ -251,7 +260,8 @@ export class InstructorController {
   }
 
   @Get('analytics/metrics')
-  @Roles(UserRole.INSTRUCTOR_ADMIN)
+  @UseGuards(FeatureGuard)
+  @RequireFeature(Feature.INSTRUCTOR_ANALYTICS)
   async getMetrics(
     @Query(new ValidationPipe({ transform: true, whitelist: true }))
     query: MetricsQueryDto,
@@ -288,7 +298,8 @@ export class InstructorController {
   }
 
   @Get('analytics/revenue')
-  @Roles(UserRole.INSTRUCTOR_ADMIN)
+  @UseGuards(FeatureGuard)
+  @RequireFeature(Feature.INSTRUCTOR_ANALYTICS)
   async getRevenueAnalytics(
     @Query(new ValidationPipe({ transform: true, whitelist: true }))
     query: AnalyticsQueryDto,
@@ -329,7 +340,8 @@ export class InstructorController {
   }
 
   @Get('analytics/users')
-  @Roles(UserRole.INSTRUCTOR_ADMIN)
+  @UseGuards(FeatureGuard)
+  @RequireFeature(Feature.INSTRUCTOR_ANALYTICS)
   async getUserAnalytics(
     @Query(new ValidationPipe({ transform: true, whitelist: true }))
     query: AnalyticsQueryDto,
@@ -370,7 +382,8 @@ export class InstructorController {
   }
 
   @Get('analytics/courses')
-  @Roles(UserRole.INSTRUCTOR_ADMIN)
+  @UseGuards(FeatureGuard)
+  @RequireFeature(Feature.INSTRUCTOR_ANALYTICS)
   async getCoursePerformance(
     @Query(new ValidationPipe({ transform: true, whitelist: true }))
     query: AnalyticsQueryDto,
@@ -411,7 +424,8 @@ export class InstructorController {
   }
 
   @Get('analytics/instructor/:id')
-  @Roles(UserRole.ADMIN, UserRole.INSTRUCTOR_ADMIN)
+  @UseGuards(FeatureGuard)
+  @RequireFeature(Feature.INSTRUCTOR_ANALYTICS)
   async getInstructorAnalytics(
     @Param(
       'id',
@@ -462,7 +476,8 @@ export class InstructorController {
   }
 
   @Get('analytics/course/:id')
-  @Roles(UserRole.ADMIN, UserRole.INSTRUCTOR_ADMIN)
+  @UseGuards(FeatureGuard)
+  @RequireFeature(Feature.INSTRUCTOR_ANALYTICS)
   async getCourseAnalytics(
     @Param(
       'id',
@@ -513,7 +528,8 @@ export class InstructorController {
   }
 
   @Get('analytics/export')
-  @Roles(UserRole.ADMIN, UserRole.INSTRUCTOR_ADMIN)
+  @UseGuards(FeatureGuard)
+  @RequireFeature(Feature.INSTRUCTOR_ANALYTICS)
   async exportAnalytics(
     @Query(new ValidationPipe({ transform: true, whitelist: true }))
     query: AnalyticsQueryDto,

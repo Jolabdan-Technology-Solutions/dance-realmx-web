@@ -17,11 +17,12 @@ import { Payment, Prisma, UserRole } from '@prisma/client';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { QueryPaymentDto } from './dto/query-payment.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
 import { ResourceOwnerGuard } from '../auth/guards/resource-owner.guard';
-import { Roles } from '../auth/guards/roles.guard';
 import { ResourceOwner } from '../auth/guards/resource-owner.guard';
 import { Request } from 'express';
+import { FeatureGuard } from '../auth/guards/feature.guard';
+import { RequireFeature } from '../auth/decorators/feature.decorator';
+import { Feature } from '../auth/enums/feature.enum';
 
 enum PaymentStatus {
   PENDING = 'PENDING',
@@ -41,31 +42,31 @@ interface RequestWithUser extends Request {
 }
 
 @Controller('payments')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, FeatureGuard)
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
   @Get()
-  @Roles(UserRole.STUDENT, UserRole.ADMIN)
+  @RequireFeature(Feature.VIEW_PAYMENT_HISTORY)
   findAll(@Query() query: QueryPaymentDto, @Req() req: RequestWithUser) {
     return this.paymentsService.findAll(query, req.user.id);
   }
 
   @Get('revenue')
-  @Roles(UserRole.ADMIN)
+  @RequireFeature(Feature.MANAGE_PAYMENTS)
   async getTotalRevenue() {
     return this.paymentsService.getTotalRevenue();
   }
 
   @Get(':id')
-  @Roles(UserRole.STUDENT, UserRole.ADMIN)
+  @RequireFeature(Feature.VIEW_PAYMENT_HISTORY)
   @ResourceOwner('payment')
   findOne(@Param('id') id: string, @Req() req: RequestWithUser) {
     return this.paymentsService.findOne(+id, req.user.id);
   }
 
   @Post()
-  @Roles(UserRole.STUDENT, UserRole.ADMIN)
+  @RequireFeature(Feature.MAKE_PAYMENTS)
   create(
     @Body() createPaymentDto: CreatePaymentDto,
     @Req() req: RequestWithUser,
@@ -74,7 +75,7 @@ export class PaymentsController {
   }
 
   @Patch(':id')
-  @Roles(UserRole.ADMIN)
+  @RequireFeature(Feature.MANAGE_PAYMENTS)
   async update(
     @Param('id') id: string,
     @Body() updatePaymentDto: Prisma.PaymentUpdateInput,
@@ -83,7 +84,7 @@ export class PaymentsController {
   }
 
   @Patch(':id/status')
-  @Roles(UserRole.ADMIN)
+  @RequireFeature(Feature.MANAGE_PAYMENTS)
   async updateStatus(
     @Param('id') id: string,
     @Body('status') status: PaymentStatus,
@@ -92,7 +93,7 @@ export class PaymentsController {
   }
 
   @Delete(':id')
-  @Roles(UserRole.ADMIN)
+  @RequireFeature(Feature.MANAGE_PAYMENTS)
   async remove(@Param('id') id: string) {
     return this.paymentsService.remove(+id);
   }
@@ -110,7 +111,7 @@ export class PaymentsController {
 
   @Post('checkout')
   async createOneTimeCheckout(
-    @Body() dto: { itemId: number; type: 'COURSE' | 'RESOURCE'; email: string }
+    @Body() dto: { itemId: number; type: 'COURSE' | 'RESOURCE'; email: string },
   ) {
     return this.paymentsService.createOneTimeCheckoutSession(dto);
   }

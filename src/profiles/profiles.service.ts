@@ -129,12 +129,15 @@ export class ProfilesService {
     });
   }
 
-  async findProfessionalsByDate(date: string) {
-    // Assumes availability is stored as array of ISO strings in JSON
+  async findProfessionalsByDateRange(startDate: string, endDate: string) {
+    // Find professionals available within the specified date range
     return this.prisma.profile.findMany({
       where: {
         is_professional: true,
-        availability: { array_contains: [date] },
+        availability: {
+          path: ['$[*].start_date', '$[*].end_date'],
+          array_contains: [{ $gte: startDate, $lte: endDate }],
+        },
       },
       include: { user: true },
     });
@@ -147,6 +150,36 @@ export class ProfilesService {
         pricing: { gte: min, lte: max },
       },
       include: { user: true },
+    });
+  }
+
+  // Helper function to check if a date range overlaps with availability
+  private checkDateRangeOverlap(
+    availability: any[],
+    startDate: string,
+    endDate: string,
+    timeSlot?: string,
+  ): boolean {
+    if (!availability || !Array.isArray(availability)) return false;
+
+    const searchStart = new Date(startDate);
+    const searchEnd = new Date(endDate);
+
+    return availability.some((range: any) => {
+      const rangeStart = new Date(range.start_date);
+      const rangeEnd = new Date(range.end_date);
+
+      // Check if date ranges overlap
+      const dateOverlap = searchStart <= rangeEnd && searchEnd >= rangeStart;
+
+      if (!dateOverlap) return false;
+
+      // If time slot is specified, check if it's available
+      if (timeSlot && range.time_slots) {
+        return range.time_slots.includes(timeSlot);
+      }
+
+      return true;
     });
   }
 
@@ -172,7 +205,9 @@ export class ProfilesService {
       years_experience,
       services,
       portfolio,
-      date,
+      date_start,
+      date_end,
+      time_slot,
       page = 1,
       pageSize = 10,
       sortBy = 'id',
@@ -218,19 +253,46 @@ export class ProfilesService {
       ...(portfolio && {
         portfolio: { contains: portfolio, mode: 'insensitive' },
       }),
-      ...(date && { availability: { array_contains: [date] } }),
     };
 
-    const [results, total] = await Promise.all([
-      this.prisma.profile.findMany({
-        where,
-        include: { user: true },
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-        orderBy: { [sortBy]: sortOrder },
-      }),
-      this.prisma.profile.count({ where }),
-    ]);
+    // Get all profiles first, then filter by availability in memory
+    // This is because Prisma doesn't have great support for complex JSON queries
+    let results = await this.prisma.profile.findMany({
+      where,
+      include: { user: true },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      orderBy: { [sortBy]: sortOrder },
+    });
+
+    // Filter by availability if date range is specified
+    if (date_start && date_end) {
+      results = results.filter((profile) => {
+        if (!profile.availability) return false;
+        return this.checkDateRangeOverlap(
+          profile.availability as any[],
+          date_start,
+          date_end,
+          time_slot,
+        );
+      });
+    }
+
+    // Get total count for pagination
+    const totalProfiles = await this.prisma.profile.findMany({ where });
+    let total = totalProfiles.length;
+
+    if (date_start && date_end) {
+      total = totalProfiles.filter((profile) => {
+        if (!profile.availability) return false;
+        return this.checkDateRangeOverlap(
+          profile.availability as any[],
+          date_start,
+          date_end,
+          time_slot,
+        );
+      }).length;
+    }
 
     return {
       results,

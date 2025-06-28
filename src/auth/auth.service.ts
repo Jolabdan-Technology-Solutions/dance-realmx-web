@@ -116,13 +116,38 @@ export class AuthService {
         );
       }
 
+      // Determine subscription plan
+      const planSlug =
+        (createUserDto as any).planSlug ||
+        createUserDto.subscription_tier ||
+        'FREE';
+      const plan = await this.prisma.subscriptionPlan.findFirst({
+        where: {
+          OR: [{ slug: planSlug }, { tier: planSlug }],
+        },
+      });
+      if (!plan) {
+        throw new BadRequestException('Invalid subscription plan');
+      }
+      const roles =
+        plan.unlockedRoles && plan.unlockedRoles.length > 0
+          ? plan.unlockedRoles
+          : ['GUEST_USER'];
+
       const hashedPassword = await bcrypt.hash(createUserDto.password, 12);
 
       const user = await this.prisma.user.create({
         data: {
-          ...createUserDto,
           email: createUserDto.email.toLowerCase().trim(),
+          username: createUserDto.username,
           password: hashedPassword,
+          first_name: createUserDto.first_name,
+          last_name: createUserDto.last_name,
+          frequency: createUserDto.frequency,
+          subscription_tier: plan.tier,
+          role: roles,
+          profile_image_url: createUserDto.profile_image_url,
+          auth_provider: createUserDto.auth_provider,
           is_active: false, // Require email verification
           created_at: new Date(),
           updated_at: new Date(),

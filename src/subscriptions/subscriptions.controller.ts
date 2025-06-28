@@ -23,6 +23,9 @@ import { Request } from 'express';
 import { Prisma, Subscription, SubscriptionTier } from '@prisma/client';
 import { SubscriptionStatus } from './enums/subscription-status.enum';
 import { PrismaService } from '../prisma/prisma.service';
+import { FeatureGuard } from '../auth/guards/feature.guard';
+import { RequireFeature } from '../auth/decorators/feature.decorator';
+import { Feature } from '../auth/enums/feature.enum';
 
 interface RequestWithUser extends Request {
   user: {
@@ -60,8 +63,8 @@ export class SubscriptionsController {
   }
 
   @Get('course-stats')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
+  @UseGuards(FeatureGuard)
+  @RequireFeature(Feature.MANAGE_SUBSCRIPTIONS)
   @ApiOperation({ summary: 'Get course and enrollment statistics' })
   @ApiResponse({
     status: 200,
@@ -91,8 +94,8 @@ export class SubscriptionsController {
   }
 
   @Get('analytics')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
+  @UseGuards(FeatureGuard)
+  @RequireFeature(Feature.MANAGE_SUBSCRIPTIONS)
   @ApiOperation({ summary: 'Get subscription analytics' })
   @ApiResponse({
     status: 200,

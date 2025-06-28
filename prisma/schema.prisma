@@ -106,7 +106,7 @@ model Profile {
   session_duration   Int?       // in minutes
   years_experience   Int?
   services           String[]   // Array of services offered
-  availability       Json?      // Array of available dates/times
+  availability       Json?      // Array of date ranges with time slots: [{start_date, end_date, time_slots}]
   portfolio          String?
   pricing            Int?
 }

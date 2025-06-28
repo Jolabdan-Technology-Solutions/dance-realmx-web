@@ -12,6 +12,9 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/guards/roles.guard';
 import { UserRole } from '@prisma/client';
+import { FeatureGuard } from '../auth/guards/feature.guard';
+import { RequireFeature } from '../auth/decorators/feature.decorator';
+import { Feature } from '../auth/enums/feature.enum';
 
 @Controller('feature-flags')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -19,13 +22,15 @@ export class FeatureFlagsController {
   constructor(private readonly featureFlagsService: FeatureFlagsService) {}
 
   @Get('user/:userId')
-  @Roles(UserRole.ADMIN)
+  @UseGuards(FeatureGuard)
+  @RequireFeature(Feature.MANAGE_FEATURE_FLAGS)
   async getUserFeatures(@Param('userId') userId: string) {
     return this.featureFlagsService.getEnabledFeatures(+userId);
   }
 
   @Post('role/:role')
-  @Roles(UserRole.ADMIN)
+  @UseGuards(FeatureGuard)
+  @RequireFeature(Feature.MANAGE_FEATURE_FLAGS)
   async updateRoleFeatures(
     @Param('role') role: UserRole,
     @Body('features') features: string[],
@@ -35,7 +40,8 @@ export class FeatureFlagsController {
   }
 
   @Get('role/:role')
-  @Roles(UserRole.ADMIN)
+  @UseGuards(FeatureGuard)
+  @RequireFeature(Feature.MANAGE_FEATURE_FLAGS)
   async getRoleFeatures(@Param('role') role: UserRole) {
     const isEnabled = await this.featureFlagsService.isFeatureEnabledForRole(
       role,

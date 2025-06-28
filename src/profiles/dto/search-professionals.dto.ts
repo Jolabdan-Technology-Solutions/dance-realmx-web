@@ -100,7 +100,15 @@ export class SearchProfessionalsDto {
 
   @IsOptional()
   @IsDateString()
-  date?: string;
+  date_start?: string;
+
+  @IsOptional()
+  @IsDateString()
+  date_end?: string;
+
+  @IsOptional()
+  @IsString()
+  time_slot?: string; // e.g., "09:00-10:00"
 
   @IsOptional()
   @IsNumber()

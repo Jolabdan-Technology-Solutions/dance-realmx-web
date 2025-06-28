@@ -12,10 +12,10 @@ import {
 import { CartService } from './cart.service';
 import { AddToCartDto } from './dto/add-to-cart.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/guards/roles.guard';
-import { UserRole } from '@prisma/client';
 import { Request as ExpressRequest } from 'express';
+import { FeatureGuard } from '../auth/guards/feature.guard';
+import { RequireFeature } from '../auth/decorators/feature.decorator';
+import { Feature } from '../auth/enums/feature.enum';
 
 interface CartItem {
   id: number;
@@ -35,18 +35,12 @@ interface RequestWithUser extends ExpressRequest {
 }
 
 @Controller('cart')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, FeatureGuard)
 export class CartController {
   constructor(private readonly cartService: CartService) {}
 
   @Post()
-  @Roles(
-    UserRole.STUDENT,
-    UserRole.BOOKING_USER,
-    UserRole.ADMIN,
-    UserRole.INSTRUCTOR_ADMIN,
-    UserRole.INSTRUCTOR,
-  )
+  @RequireFeature(Feature.USE_CART)
   addToCart(
     @Request() req: RequestWithUser,
     @Body() addToCartDto: AddToCartDto,
@@ -56,19 +50,7 @@ export class CartController {
   }
 
   @Get()
-  @Roles(
-    UserRole.STUDENT,
-    UserRole.BOOKING_USER,
-    UserRole.ADMIN,
-    UserRole.INSTRUCTOR_ADMIN,
-    UserRole.INSTRUCTOR,
-    UserRole.CURRICULUM_SELLER,
-    UserRole.BOOKING_PROFESSIONAL,
-    UserRole.COURSE_CREATOR_ADMIN,
-    UserRole.CURRICULUM_ADMIN,
-    UserRole.DIRECTORY_MEMBER,
-    UserRole.CERTIFICATION_MANAGER,
-  )
+  @RequireFeature(Feature.USE_CART)
   getCart(
     @Request() req: RequestWithUser,
   ): Promise<{ items: CartItem[]; total: number }> {
@@ -77,13 +59,7 @@ export class CartController {
   }
 
   @Delete(':id')
-  @Roles(
-    UserRole.STUDENT,
-    UserRole.BOOKING_USER,
-    UserRole.ADMIN,
-    UserRole.INSTRUCTOR_ADMIN,
-    UserRole.INSTRUCTOR,
-  )
+  @RequireFeature(Feature.USE_CART)
   removeFromCart(
     @Request() req: RequestWithUser,
     @Param('id') id: string,
@@ -93,14 +69,14 @@ export class CartController {
   }
 
   @Delete()
-  @Roles(UserRole.STUDENT, UserRole.BOOKING_USER)
+  @RequireFeature(Feature.USE_CART)
   clearCart(@Request() req: RequestWithUser): Promise<void> {
     if (!req.user?.sub) throw new Error('User not found');
     return this.cartService.clearCart(+req.user.sub);
   }
 
   @Patch(':id/quantity')
-  @Roles(UserRole.STUDENT, UserRole.BOOKING_USER)
+  @RequireFeature(Feature.USE_CART)
   updateQuantity(
     @Request() req: RequestWithUser,
     @Param('id') id: string,
@@ -115,7 +91,7 @@ export class CartController {
   }
 
   @Post('checkout')
-  @Roles(UserRole.STUDENT, UserRole.BOOKING_USER)
+  @RequireFeature(Feature.MAKE_PAYMENTS)
   checkout(
     @Request() req: RequestWithUser,
   ): Promise<{ order: any; clientSecret: string | null }> {

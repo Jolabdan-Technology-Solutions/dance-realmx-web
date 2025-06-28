@@ -12,33 +12,33 @@ import {
 } from '@nestjs/common';
 import { BookingsService } from './bookings.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
 import { ResourceOwnerGuard } from '../auth/guards/resource-owner.guard';
-import { Roles } from '../auth/guards/roles.guard';
 import { ResourceOwner } from '../auth/guards/resource-owner.guard';
-import { Role } from '../auth/enums/role.enum';
 import { BookingStatus } from './enums/booking-status.enum';
+import { FeatureGuard } from '../auth/guards/feature.guard';
+import { RequireFeature } from '../auth/decorators/feature.decorator';
+import { Feature } from '../auth/enums/feature.enum';
 
 @Controller('bookings')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, FeatureGuard)
 export class BookingsController {
   constructor(private readonly bookingsService: BookingsService) {}
 
   @Get()
-  @Roles(Role.STUDENT, Role.ADMIN)
+  @RequireFeature(Feature.MANAGE_BOOKINGS)
   findAll(@Query('userId') userId: string) {
     return this.bookingsService.findByUserId(+userId);
   }
 
   @Get(':id')
-  @Roles(Role.STUDENT, Role.ADMIN)
+  @RequireFeature(Feature.MANAGE_BOOKINGS)
   @ResourceOwner('booking')
   findOne(@Param('id') id: string) {
     return this.bookingsService.findOne(+id);
   }
 
   @Post()
-  @Roles(Role.STUDENT, Role.ADMIN)
+  @RequireFeature(Feature.CREATE_BOOKINGS)
   create(
     @Body()
     createBookingDto: {
@@ -55,14 +55,14 @@ export class BookingsController {
   }
 
   @Patch(':id/status')
-  @Roles(Role.STUDENT, Role.ADMIN)
+  @RequireFeature(Feature.MANAGE_BOOKINGS)
   @ResourceOwner('booking')
   updateStatus(@Param('id') id: string, @Body('status') status: BookingStatus) {
     return this.bookingsService.updateStatus(+id, status);
   }
 
   @Delete(':id')
-  @Roles(Role.STUDENT, Role.ADMIN)
+  @RequireFeature(Feature.MANAGE_BOOKINGS)
   @ResourceOwner('booking')
   remove(@Param('id') id: string) {
     return this.bookingsService.delete(+id);

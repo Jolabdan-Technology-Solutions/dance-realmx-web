@@ -14,38 +14,41 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/guards/roles.guard';
 import { Role } from '../auth/enums/role.enum';
 import { UserRole } from '@prisma/client';
+import { FeatureGuard } from '../auth/guards/feature.guard';
+import { RequireFeature } from '../auth/decorators/feature.decorator';
+import { Feature } from '../auth/enums/feature.enum';
 
 @Controller('tenants')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, FeatureGuard)
 export class TenantsController {
   constructor(private readonly tenantsService: TenantsService) {}
 
   @Post()
-  @Roles(Role.ADMIN)
+  @RequireFeature(Feature.MANAGE_TENANTS)
   create(@Body('name') name: string) {
     return this.tenantsService.create(name);
   }
 
   @Get(':id')
-  @Roles(Role.ADMIN)
+  @RequireFeature(Feature.MANAGE_TENANTS)
   findOne(@Param('id') id: string) {
     return this.tenantsService.getTenantById(+id);
   }
 
   @Patch(':id')
-  @Roles(Role.ADMIN)
+  @RequireFeature(Feature.MANAGE_TENANTS)
   update(@Param('id') id: string, @Body() data: { name?: string }) {
     return this.tenantsService.updateTenant(+id, data);
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN)
+  @RequireFeature(Feature.MANAGE_TENANTS)
   remove(@Param('id') id: string) {
     return this.tenantsService.deleteTenant(+id);
   }
 
   @Post(':tenantId/users/:userId')
-  @Roles(Role.ADMIN)
+  @RequireFeature(Feature.MANAGE_TENANTS)
   assignUserToTenant(
     @Param('tenantId') tenantId: string,
     @Param('userId') userId: string,
@@ -54,7 +57,7 @@ export class TenantsController {
   }
 
   @Post(':tenantId/users/:userId/roles')
-  @Roles(Role.ADMIN)
+  @RequireFeature(Feature.MANAGE_TENANTS)
   assignRoleToUser(
     @Param('tenantId') tenantId: string,
     @Param('userId') userId: string,
@@ -68,7 +71,7 @@ export class TenantsController {
   }
 
   @Get(':tenantId/users')
-  @Roles(Role.ADMIN)
+  @RequireFeature(Feature.MANAGE_TENANTS)
   getTenantUsers(@Param('tenantId') tenantId: string) {
     return this.tenantsService.getTenantUsers(+tenantId);
   }

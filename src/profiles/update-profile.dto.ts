@@ -8,7 +8,22 @@ import {
   IsJSON,
   Min,
   Max,
+  ValidateNested,
+  IsDateString,
 } from 'class-validator';
+import { Type } from 'class-transformer';
+
+export class DateRangeDto {
+  @IsDateString()
+  start_date: string;
+
+  @IsDateString()
+  end_date: string;
+
+  @IsOptional()
+  @IsString({ each: true })
+  time_slots?: string[]; // e.g., ["09:00-10:00", "14:00-15:00"]
+}
 
 export class UpdateProfileDto {
   @IsOptional()
@@ -89,8 +104,9 @@ export class UpdateProfileDto {
 
   @IsOptional()
   @IsArray()
-  @IsDate({ each: true })
-  availability?: Date[];
+  @ValidateNested({ each: true })
+  @Type(() => DateRangeDto)
+  availability?: DateRangeDto[];
 
   @IsOptional()
   @IsString()
