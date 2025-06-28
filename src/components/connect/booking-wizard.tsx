@@ -1189,7 +1189,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
       {/* Hero Section */}
       <div className="relative z-10">
         <div className="container mx-auto px-4 py-12">
-          <div className="text-center mb-12">
+          {/* <div className="text-center mb-12">
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight">
               Book Professional
               <br />
