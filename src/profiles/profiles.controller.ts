@@ -24,6 +24,8 @@ import { SearchProfessionalsDto } from './dto/search-professionals.dto';
 import { Feature } from '../auth/enums/feature.enum';
 import { FeatureGuard } from '../auth/guards/feature.guard';
 import { RequireFeature } from '../auth/decorators/feature.decorator';
+import { Roles, RolesGuard } from '@/auth/guards/roles.guard';
+import { Role } from '@/auth/enums/role.enum';
 
 interface RequestWithUser extends Request {
   user: {
@@ -83,8 +85,9 @@ export class ProfilesController {
   }
 
   @Post('become-professional')
-  @UseGuards(FeatureGuard)
-  @RequireFeature(Feature.BE_BOOKED)
+  // @RequireSubscription('R')
+  @UseGuards(RolesGuard)
+  @Roles(Role.BOOKING_PROFESSIONAL)
   async becomeProfessional(
     @Req() req: { user: User },
     @Body() profileData: UpdateProfileDto,
@@ -152,6 +155,12 @@ export class ProfilesController {
     @Query(new ValidationPipe({ transform: true }))
     query: SearchProfessionalsDto,
   ) {
+    console.log('Received query:', query);
+    console.log('Types:', {
+      travel_distance: typeof query.travel_distance,
+      pricing: typeof query.pricing,
+      session_duration: typeof query.session_duration,
+    });
     return this.profilesService.searchProfessionals(query);
   }
 

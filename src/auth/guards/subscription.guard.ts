@@ -41,6 +41,8 @@ export class SubscriptionGuard implements CanActivate {
     if (user.role === Role.ADMIN) {
       return true;
     }
+    
+    console.log("user ", user)
 
     // Allow if user.is_active is true and subscription_tier is not 'FREE'
     if (
@@ -50,6 +52,7 @@ export class SubscriptionGuard implements CanActivate {
     ) {
       return true;
     }
+
 
     // Check if user has an active subscription in the subscription table
     const activeSubscription = await this.subscriptionsService.findActive(
