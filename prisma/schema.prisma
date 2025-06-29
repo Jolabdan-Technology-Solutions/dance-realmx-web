@@ -159,6 +159,7 @@ model Lesson {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
   module     Module   @relation(fields: [module_id], references: [id])
+  quizzes    Quiz[]
 }
 
 model Enrollment {
@@ -443,6 +444,57 @@ model CartItem {
   @@index([user_id])
   @@index([course_id])
   @@index([resource_id])
+}
+
+model Quiz {
+  id         Int           @id @default(autoincrement())
+  title      String
+  lesson_id  Int
+  lesson     Lesson        @relation(fields: [lesson_id], references: [id])
+  questions  QuizQuestion[]
+  created_at DateTime      @default(now())
+  updated_at DateTime      @updatedAt
+}
+
+model QuizQuestion {
+  id        Int          @id @default(autoincrement())
+  quiz_id   Int
+  quiz      Quiz         @relation(fields: [quiz_id], references: [id])
+  text      String
+  options   QuizOption[]
+  answer    Int?         // Option index (0-based) or null if not set
+  order     Int?
+}
+
+model QuizOption {
+  id            Int            @id @default(autoincrement())
+  question_id   Int
+  question      QuizQuestion   @relation(fields: [question_id], references: [id])
+  text          String
+  is_correct    Boolean        @default(false)
+}
+
+model QuizAttempt {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  user       User     @relation(fields: [user_id], references: [id])
+  quiz_id    Int
+  quiz       Quiz     @relation(fields: [quiz_id], references: [id])
+  score      Float
+  correct    Int
+  total      Int
+  created_at DateTime @default(now())
+  answers    QuizAttemptAnswer[]
+}
+
+model QuizAttemptAnswer {
+  id           Int      @id @default(autoincrement())
+  attempt_id   Int
+  attempt      QuizAttempt @relation(fields: [attempt_id], references: [id])
+  question_id  Int
+  question     QuizQuestion @relation(fields: [question_id], references: [id])
+  selected     Int
+  is_correct   Boolean
 }
 
 enum UserRole {

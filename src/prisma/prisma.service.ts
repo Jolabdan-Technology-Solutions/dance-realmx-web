@@ -126,4 +126,16 @@ export class PrismaService
   get UserRole() {
     return this.UserRole;
   }
+
+  get quiz() {
+    return this.quiz;
+  }
+
+  get quizQuestion() {
+    return this.quizQuestion;
+  }
+
+  get quizAttempt() {
+    return this.quizAttempt;
+  }
 }

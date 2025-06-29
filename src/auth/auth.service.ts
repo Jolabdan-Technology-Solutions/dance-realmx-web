@@ -123,7 +123,7 @@ export class AuthService {
         'FREE';
       const plan = await this.prisma.subscriptionPlan.findFirst({
         where: {
-          OR: [{ slug: planSlug }, { tier: planSlug }],
+          OR: [{ slug: planSlug.toLowerCase() }, { tier: planSlug }],
         },
       });
       if (!plan) {
