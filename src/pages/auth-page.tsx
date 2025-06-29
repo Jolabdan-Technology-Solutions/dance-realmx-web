@@ -89,8 +89,6 @@ function AuthPageWithAuth() {
     if (modeParam) {
       setConnectMode(modeParam);
     }
-
-    console.log("Auth returnTo:", returnToParam, "mode:", modeParam);
   }, []);
 
   const [activeTab, setActiveTab] = useState<string>("login");
@@ -266,7 +264,7 @@ function AuthPageWithAuth() {
       // Step 2: Extract access token for subsequent calls
       const accessToken = registrationResponse.access_token;
 
-      localStorage.setItem("token", accessToken);
+      localStorage.setItem("access_token", accessToken);
 
       if (!accessToken) {
         throw new Error("No access token received from registration");

@@ -74,6 +74,9 @@ export function StepAccountCreation({
         requireAuth: false,
         headers: { "Content-Type": "application/json" },
       });
+
+      localStorage.setItem("access_token", registrationResponse.access_token);
+
       const accessToken = registrationResponse.access_token;
       if (!accessToken)
         throw new Error("No access token received from registration");
