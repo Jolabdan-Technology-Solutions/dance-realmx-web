@@ -277,8 +277,8 @@ export function StepPlanRecommendation({
           Recommended Membership Plans
         </h2>
         <p className="text-gray-400">
-          Based on the features you selected, we've recommended the best plan
-          for you. You can also choose a different plan if you prefer.
+          We've recommended the best plan for you. You can also choose a
+          different plan if you prefer.
         </p>
       </div>
 
@@ -322,18 +322,18 @@ export function StepPlanRecommendation({
               />
               <Label htmlFor={`plan-${plan.id}`} className="cursor-pointer">
                 <Card
-                  className={`h-full border-2 transition-all hover:border-[#00d4ff] ${
+                  className={`h-full flex flex-col justify-between border-2 transition-all hover:border-[#00d4ff] ${
                     registrationData.recommendedPlan?.id === plan.id
                       ? "border-[#00d4ff] bg-[#00d4ff]/10"
                       : "border-gray-800"
                   }`}
                 >
-                  {plan.isRecommended && (
+                  {plan.isPopular && (
                     <Badge
                       variant="secondary"
-                      className="absolute -top-2 right-4 bg-[#00d4ff] text-black"
+                      className="absolute -top-2 right-[40%] bg-[#00d4ff] text-black"
                     >
-                      Recommended
+                      Popular
                     </Badge>
                   )}
                   <CardHeader>
@@ -362,15 +362,6 @@ export function StepPlanRecommendation({
                         </li>
                       ))}
                     </ul>
-                    {plan.matchedFeatures !== undefined && (
-                      <div className="mt-4 text-sm">
-                        <span className="text-[#00d4ff] font-medium">
-                          {plan.matchedFeatures} of{" "}
-                          {registrationData.selectedFeatures.length}
-                        </span>{" "}
-                        selected features covered
-                      </div>
-                    )}
                   </CardContent>
                   <CardFooter>
                     <Button
@@ -387,7 +378,7 @@ export function StepPlanRecommendation({
                       onClick={() => handlePlanSelection(plan)}
                     >
                       {registrationData.recommendedPlan?.id === plan.id
-                        ? "Selected"
+                        ? "Recommended"
                         : "Select Plan"}
                     </Button>
                   </CardFooter>
