@@ -57,11 +57,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
           method: "GET",
           requireAuth: true,
         });
-        if (!response.ok) {
+        if (!response) {
           console.error("Failed to fetch cart:", response.statusText);
           return [];
         }
-        const data = await response.json();
+        const data = await response.items;
         return data;
       } catch (error) {
         console.error("Error fetching cart:", error);
@@ -74,10 +74,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
   });
   // Mutations for authenticated cart actions
   const addItemMutation = useMutation({
-    mutationFn: async (item: Omit<CartItem, "id">) => {
+    mutationFn: async (payload: { type: string; itemId: number }) => {
       const response = await apiRequest("/api/cart", {
         method: "POST",
-        data: item,
+        data: payload,
         requireAuth: true,
       });
       if (!response.ok) throw new Error("Failed to add item to cart");
@@ -139,12 +139,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         try {
           for (const item of guestCart.items) {
             await addItemMutation.mutateAsync({
-              title: item.title,
-              price: item.price,
-              itemType: item.itemType,
+              type: "RESOURCE",
               itemId: item.itemId,
-              quantity: item.quantity,
-              imageUrl: item.imageUrl ?? undefined,
             });
           }
           // Clear guest cart after successful merge
@@ -210,64 +206,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
   // Cart actions that work with either guest or authenticated cart
   const addItem = (item: Omit<CartItem, "id"> & { id?: number }) => {
     if (isAuthenticated) {
-      // For authenticated users, use the mutation
-      addItemMutation.mutate(
-        {
-          title: item.title,
-          price: item.price,
-          itemType: item.itemType,
-          itemId: item.itemId,
-          quantity: item.quantity,
-          imageUrl: item.imageUrl,
-        },
-        {
-          // Optimistic update - immediately update UI without waiting for server
-          onMutate: async (newItem) => {
-            // Cancel any outgoing refetches to avoid overwriting optimistic update
-            await queryClient.cancelQueries({ queryKey: ["/api/cart"] });
-
-            // Snapshot the previous cart items
-            const previousItems = queryClient.getQueryData(["/api/cart"]) || [];
-
-            // Optimistically update to the new cart items
-            queryClient.setQueryData(["/api/cart"], (old: any[]) => {
-              const optimisticItem = {
-                ...newItem,
-                id: Date.now(), // Temporary ID until server responds
-              };
-              return [...(old || []), optimisticItem];
-            });
-
-            // Return a context with the previous cart items
-            return { previousItems };
-          },
-          // If the mutation fails, roll back to the previous cart items
-          onError: (err, newItem, context) => {
-            if (context) {
-              queryClient.setQueryData(["/api/cart"], context.previousItems);
-            }
-            toast({
-              title: "Error",
-              description: "Failed to add item to cart",
-              variant: "destructive",
-            });
-          },
-          // Always refetch after mutation to get accurate data
-          onSettled: () => {
-            queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
-          },
-        }
-      );
-
-      // Show success toast
+      addItemMutation.mutate({
+        type: "RESOURCE",
+        itemId: item.itemId,
+      });
       toast({
         title: "Item Added",
         description: `${item.title} has been added to your cart`,
       });
     } else {
-      // For guests, use the guest cart
       guestCart.addItem({
-        id: item.id || Date.now(), // Use provided ID or generate a temporary one
+        id: item.id || Date.now(),
         title: item.title,
         price: item.price,
         itemType: item.itemType,

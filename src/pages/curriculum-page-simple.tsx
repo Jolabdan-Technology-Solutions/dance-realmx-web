@@ -1,28 +1,14 @@
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
-import {
-  Loader2,
-  Plus,
-  Search,
-  ThumbsUp,
-  Filter,
-  User,
-  BadgeCheck,
-  Award,
-} from "lucide-react";
+import { Filter } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import { CachedImage } from "../components/ui/cached-image";
-import { CachedResourceImage } from "../components/ui/cached-resource-image";
-import { DEFAULT_RESOURCE_IMAGE, DEFAULT_USER_IMAGE } from "../lib/constants";
 import {
   Card,
   CardContent,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "../components/ui/card";
-import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
 import {
   ResourcePlaceholderGrid,
   ResourceErrorCard,
@@ -33,12 +19,6 @@ import { useCart } from "../hooks/use-cart";
 import { useGuestCart } from "../hooks/use-guest-cart";
 import { api } from "../lib/api";
 import { Checkbox } from "../components/ui/checkbox";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "../components/ui/tooltip";
 import { ResourceDetailsModal } from "../components/curriculum/resource-details-modal";
 
 // Define filter types
@@ -46,7 +26,7 @@ type FilterState = {
   priceRange: string[];
   danceStyles: string[];
   ageRanges: string[];
-  difficultyLevels: string[];
+  difficultyLevel: string[];
   sellers: string[];
   resourceFormat: string[];
   showFilters: boolean;
@@ -158,7 +138,7 @@ export default function CurriculumPageSimple() {
       priceRange: [],
       danceStyles: [],
       ageRanges: [],
-      difficultyLevels: [],
+      difficultyLevel: [],
       sellers: [],
       resourceFormat: [],
       showFilters: false,
@@ -215,8 +195,8 @@ export default function CurriculumPageSimple() {
 
     // Difficulty level filter
     const matchesDifficulty =
-      filters.difficultyLevels.length === 0 ||
-      filters.difficultyLevels.includes(resource.difficultyLevel);
+      filters.difficultyLevel.length === 0 ||
+      filters.difficultyLevel.includes(resource.difficultyLevel);
 
     // Seller filter
     const matchesSeller =
@@ -263,7 +243,7 @@ export default function CurriculumPageSimple() {
 
         {/* Filter Options */}
         {filters.showFilters && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg text-black">
             {/* Price Range */}
             <div>
               <h3 className="font-semibold mb-2">Price Range</h3>
@@ -361,7 +341,10 @@ export default function CurriculumPageSimple() {
                 </p>
                 <div className="flex items-center justify-between">
                   <span className="text-lg font-bold">${resource.price}</span>
-                  <Button onClick={() => addToCart(resource)} className="ml-2">
+                  <Button
+                    onClick={() => addToCart("RESOURCE")}
+                    className="ml-2"
+                  >
                     Add to Cart
                   </Button>
                 </div>
@@ -377,7 +360,6 @@ export default function CurriculumPageSimple() {
           resource={selectedResource}
           open={detailsModalOpen}
           onOpenChange={setDetailsModalOpen}
-          onAddToCart={addToCart}
         />
       )}
     </div>
