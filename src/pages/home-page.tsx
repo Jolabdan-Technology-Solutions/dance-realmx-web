@@ -463,68 +463,72 @@ export default function HomePage() {
           </section>
 
           {/* Welcome Section for logged in users */}
-          <section className="py-16 bg-white text-black">
-            <div className="container mx-auto px-4 max-w-[95%]">
-              <div className="text-center max-w-3xl mx-auto">
-                <h2 className="text-3xl font-bold mb-6 text-black">
-                  Welcome to DanceRealmX
-                </h2>
-                <p className="text-lg mb-8 text-gray-700">
-                  We're dedicated to providing the highest quality resources for
-                  dance educators and students. Explore our platform to discover
-                  certification courses, connect with instructors, and access
-                  premium curriculum resources.
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                  <div className="p-6 bg-gray-50 rounded-lg flex flex-col h-full">
-                    <Award className="h-12 w-12 text-[#00d4ff] mx-auto mb-4" />
-                    <h3 className="font-bold text-xl mb-2 text-black">
-                      Get Certified
-                    </h3>
-                    <p className="text-gray-700 mb-4 flex-grow">
-                      Earn professional certifications recognized throughout the
-                      dance community.
-                    </p>
-                    <Link href="/courses" className="mt-auto">
-                      <Button className="bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90 rounded-full px-5 py-2 font-medium w-full">
-                        Explore Courses
-                      </Button>
-                    </Link>
-                  </div>
-                  <div className="p-6 bg-gray-50 rounded-lg flex flex-col h-full">
-                    <Users className="h-12 w-12 text-[#00d4ff] mx-auto mb-4" />
-                    <h3 className="font-bold text-xl mb-2 text-black">
-                      Connect
-                    </h3>
-                    <p className="text-gray-700 mb-4 flex-grow">
-                      Find qualified instructors or offer your services to
-                      students looking for expertise.
-                    </p>
-                    <Link href="/connect" className="mt-auto">
-                      <Button className="bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90 rounded-full px-5 py-2 font-medium w-full">
-                        Connect Now
-                      </Button>
-                    </Link>
-                  </div>
-                  <div className="p-6 bg-gray-50 rounded-lg flex flex-col h-full">
-                    <BookOpen className="h-12 w-12 text-[#00d4ff] mx-auto mb-4" />
-                    <h3 className="font-bold text-xl mb-2 text-black">
-                      Curriculum
-                    </h3>
-                    <p className="text-gray-700 mb-4 flex-grow">
-                      Access professionally designed curriculum resources for
-                      all dance styles and levels.
-                    </p>
-                    <Link href="/curriculum" className="mt-auto">
-                      <Button className="bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90 rounded-full px-5 py-2 font-medium w-full">
-                        Browse Resources
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              </div>
+           <section
+      className="py-16 relative overflow-hidden"
+      style={{
+        backgroundImage: `url('/images/instructor.png')`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+        backgroundAttachment: "fixed",
+      }}
+    >
+      {/* Background overlay for better text readability */}
+      <div className="absolute inset-0 bg-black/60"></div>
+
+      <div className="container mx-auto px-4 max-w-[95%] relative z-10">
+        <div className="text-center max-w-3xl mx-auto">
+          <h2 className="text-3xl font-bold mb-6 text-white">Welcome to DanceRealmX</h2>
+
+          <p className="text-lg mb-8 text-gray-200">
+            We're dedicated to providing the highest quality resources for dance educators and students. Explore our
+            platform to discover certification courses, connect with instructors, and access premium curriculum
+            resources.
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="p-6 bg-white/98 backdrop-blur-md rounded-lg flex flex-col h-full shadow-xl border border-white/50 hover:shadow-2xl transition-all duration-300">
+              <Award className="h-12 w-12 text-[#00d4ff] mx-auto mb-4" />
+              <h3 className="font-bold text-xl mb-2 text-gray-300">Get Certified</h3>
+              <p className="text-gray-300 mb-4 flex-grow">
+                Earn professional certifications recognized throughout the dance community.
+              </p>
+              <Link href="/courses" className="mt-auto">
+                <Button className="bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90 rounded-full px-5 py-2 font-medium w-full">
+                  Explore Courses
+                </Button>
+              </Link>
             </div>
-          </section>
+
+            <div className="p-6 bg-white/98 backdrop-blur-md rounded-lg flex flex-col h-full shadow-xl border border-white/50 hover:shadow-2xl transition-all duration-300">
+              <Users className="h-12 w-12 text-[#00d4ff] mx-auto mb-4" />
+              <h3 className="font-bold text-xl mb-2 text-gray-300">Connect</h3>
+              <p className="text-gray-300 mb-4 flex-grow">
+                Find qualified instructors or offer your services to students looking for expertise.
+              </p>
+              <Link href="/connect" className="mt-auto">
+                <Button className="bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90 rounded-full px-5 py-2 font-medium w-full">
+                  Connect Now
+                </Button>
+              </Link>
+            </div>
+
+            <div className="p-6 bg-white/98 backdrop-blur-md rounded-lg flex flex-col h-full shadow-xl border border-white/50 hover:shadow-2xl transition-all duration-300">
+              <BookOpen className="h-12 w-12 text-[#00d4ff] mx-auto mb-4" />
+              <h3 className="font-bold text-xl mb-2 text-gray-300">Curriculum</h3>
+              <p className="text-gray-300 mb-4 flex-grow">
+                Access professionally designed curriculum resources for all dance styles and levels.
+              </p>
+              <Link href="/curriculum" className="mt-auto">
+                <Button className="bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90 rounded-full px-5 py-2 font-medium w-full">
+                  Browse Resources
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
 
           {/* Call to Action for logged in users */}
           <section className="py-16 bg-[#00d4ff]">
