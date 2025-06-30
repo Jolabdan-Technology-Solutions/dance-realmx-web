@@ -38,6 +38,8 @@ export function CartDropdown() {
     }
   };
 
+ 
+
   // Handle checkout
   const handleCheckout = () => {
     setIsOpen(false);
@@ -86,15 +88,15 @@ export function CartDropdown() {
               {cartItems.map((item) => (
                 <div key={item.id} className="flex space-x-3">
                   <div className="flex-1">
-                    <h4 className="font-medium leading-tight">{item.title}</h4>
-                    <div className="text-sm text-muted-foreground">
-                      {item.itemType === "course" ? "Course" : "Resource"}
+                    <h4 className="font-medium leading-tight">{item.resource?.title}</h4>
+                    <div className="text-sm text-muted-foreground py-2">
+                      {item.resource?.type}
                     </div>
-                    <div className="flex items-center mt-1 space-x-1">
+                    <div className="flex items-center mt-1 space-x-3">
                       <Button
                         variant="outline"
                         size="icon"
-                        className="h-6 w-6"
+                        className="h-6 w-6 p-2"
                         onClick={() => {
                           if (item.quantity <= 1) {
                             removeItem(item.id);
@@ -110,7 +112,7 @@ export function CartDropdown() {
                       <Button
                         variant="outline"
                         size="icon"
-                        className="h-6 w-6"
+                        className="h-6 w-6 p-2"
                         onClick={() => {
                           updateQuantity(item.id, item.quantity + 1);
                           // No manual refresh needed - optimistic updates handle this
@@ -123,7 +125,7 @@ export function CartDropdown() {
                   <div className="flex flex-col items-end justify-between">
                     <div className="font-medium">
                       {formatCurrency(
-                        parseFloat(item.details?.price || item.price) *
+                        parseFloat(item.itemDetails?.price || item.price) *
                           item.quantity
                       )}
                     </div>
