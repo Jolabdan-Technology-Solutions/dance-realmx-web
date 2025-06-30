@@ -1,4 +1,4 @@
-export type Step = "features" | "planRecommendation" | "accountCreation";
+export type Step = "planRecommendation" | "accountCreation" | "login";
 
 export type FeatureCategory = "instructor" | "student" | "seller" | "connect";
 
