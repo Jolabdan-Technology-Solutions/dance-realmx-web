@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { convertToYouTubeEmbedUrl } from "@/lib/utils";
+import { apiRequest } from "@/lib/queryClient";
 
 interface ResourceDetailsModalProps {
   resource: any;
@@ -111,24 +112,23 @@ export const ResourceDetailsModal: React.FC<ResourceDetailsModalProps> = ({
 
     try {
       setIsAddingToCart(true);
-      const response = await fetch("/api/cart", {
+      const response = await apiRequest("/api/cart", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          itemType: "resource",
+        data: JSON.stringify({
+          type: "RESOURCE",
           itemId: resource.id,
-          quantity: 1,
         }),
       });
 
-      if (!response.ok) throw new Error("Failed to add to cart");
-
-      toast({
-        title: "Added to cart",
-        description: `${resource.title} has been added to your cart.`,
-      });
+      if (response) {
+        toast({
+          title: "Added to cart",
+          description: `${resource.title} has been added to your cart.`,
+        });
+      }
 
       // Call parent handler if provided
       if (onAddToCart) {
@@ -161,11 +161,11 @@ export const ResourceDetailsModal: React.FC<ResourceDetailsModalProps> = ({
                 />
                 <AvatarFallback>{sellerName.charAt(0)}</AvatarFallback>
               </Avatar>
-              <div className="flex flex-col">
+              <div className="flex flex-col py-5">
                 <span className="text-foreground">{sellerName}</span>
                 <span className="text-xs text-muted-foreground">
                   Published{" "}
-                  {formatDate(resource.createdAt || new Date().toISOString())}
+                  {formatDate(resource.created_at || new Date().toISOString())}
                 </span>
               </div>
             </DialogDescription>
@@ -175,8 +175,8 @@ export const ResourceDetailsModal: React.FC<ResourceDetailsModalProps> = ({
             {/* Left column - Image and price */}
             <div className="md:col-span-2">
               <div className="relative rounded-lg overflow-hidden shadow-md mb-4">
-                <CachedImage
-                  src={resource.imageUrl || DEFAULT_RESOURCE_IMAGE}
+                <img
+                  src={resource.thumbnailUrl || DEFAULT_RESOURCE_IMAGE}
                   alt={resource.title}
                   className="w-full h-64 object-cover"
                 />
@@ -196,7 +196,7 @@ export const ResourceDetailsModal: React.FC<ResourceDetailsModalProps> = ({
                 )}
               </div>
 
-              <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 mb-4">
+              <div className="bg-gray-100 text-black dark:bg-gray-800 rounded-lg p-4 mb-4">
                 <div className="flex justify-between items-center mb-3">
                   <div className="text-xl font-bold">
                     {parseFloat(resource.price) > 0
@@ -213,7 +213,7 @@ export const ResourceDetailsModal: React.FC<ResourceDetailsModalProps> = ({
                 <div className="space-y-3">
                   {user ? (
                     <Button
-                      className="w-full"
+                      className="w-full bg-black text-white"
                       onClick={handleAddToCart}
                       disabled={isAddingToCart}
                     >
