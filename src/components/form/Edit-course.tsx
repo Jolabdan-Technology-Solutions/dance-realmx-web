@@ -2337,13 +2337,13 @@ function ModuleDialog({
       z.object({
         title: z.string().min(3, "Title must be at least 3 characters"),
         description: z.string().nullable(),
-        orderIndex: z.number().int().min(0),
+        order: z.number().int().min(0),
       })
     ),
     defaultValues: {
       title: existingModule?.title || "",
       description: existingModule?.description || "",
-      orderIndex: existingModule?.orderIndex || 0,
+      order: existingModule?.orderIndex || 0,
     },
   });
   

@@ -197,7 +197,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         session_duration: formData.session_duration,
         years_experience: formData.years_experience,
         services: formData.services,
-        availability: formData.availability,
+        // availability: formData.availability,
         portfolio: formData.portfolio,
         pricing: formData.pricing,
         profile_image_url: formData.profile_image_url,
@@ -312,14 +312,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
             "session_duration",
             formData.session_duration.toString()
           );
-        if (formData.availability && formData.availability.length > 0) {
-          params.append(
-            "availability",
-            formData.availability[0] instanceof Date
-              ? formData.availability[0].toISOString()
-              : formData.availability[0]
-          );
-        }
+
         result = await apiRequest(
           `https://api.livetestdomain.com/api/profiles/professionals/search?${params.toString()}`,
           {
@@ -703,87 +696,89 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
           </h3>
 
           {mode === "get-booked" && (
-    <div className="mt-4 pt-4 border-t border-white/20">
-      <Label className="mb-2 block text-white">
-        Select multiple dates you're available
-      </Label>
-      
-      {/* Multi-date picker for availability */}
-      <div className="flex justify-center mb-4">
-        <DatePicker
-          selected={null}
-          onChange={(date) => {
-            if (date && !formData.availability.some(
-              (d) => d.toDateString() === date.toDateString()
-            )) {
-              updateFormData("availability", [
-                ...formData.availability,
-                date,
-              ]);
-            }
-          }}
-          minDate={new Date()}
-          inline
-          showMonthDropdown
-          showYearDropdown
-          dropdownMode="select"
-          highlightDates={formData.availability}
-          className="w-full"
-          calendarClassName="w-full"
-        />
-      </div>
+            <div className="mt-4 pt-4 border-t border-white/20">
+              <Label className="mb-2 block text-white">
+                Select multiple dates you're available
+              </Label>
 
-      {/* Display selected availability dates */}
-      <div className="flex flex-wrap gap-2 mt-2">
-        {formData.availability.map((date, index) => (
-          <div
-            key={index}
-            className="px-3 py-1 bg-blue-500/20 backdrop-blur-sm rounded-full text-sm flex items-center gap-1 text-white border border-blue-400/30"
-          >
-            {date.toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-            })}
-            <button
-              className="h-4 w-4 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30"
-              onClick={() =>
-                updateFormData(
-                  "availability",
-                  formData.availability.filter((_, i) => i !== index)
-                )
-              }
-            >
-              ×
-            </button>
-          </div>
-        ))}
-      </div>
+              {/* Multi-date picker for availability */}
+              <div className="flex justify-center mb-4">
+                <DatePicker
+                  selected={null}
+                  onChange={(date) => {
+                    if (
+                      date &&
+                      !formData.availability.some(
+                        (d) => d.toDateString() === date.toDateString()
+                      )
+                    ) {
+                      updateFormData("availability", [
+                        ...formData.availability,
+                        date,
+                      ]);
+                    }
+                  }}
+                  minDate={new Date()}
+                  inline
+                  showMonthDropdown
+                  showYearDropdown
+                  dropdownMode="select"
+                  highlightDates={formData.availability}
+                  className="w-full"
+                  calendarClassName="w-full"
+                />
+              </div>
 
-      {/* Quick add current selected date */}
-      {formData.date && (
-        <Button
-          variant="outline"
-          size="sm"
-          className="mt-3 bg-black/40 border-white/20 text-white hover:bg-black/60"
-          onClick={() => {
-            if (
-              !formData.availability.some(
-                (d) => d.toDateString() === formData.date.toDateString()
-              )
-            ) {
-              updateFormData("availability", [
-                ...formData.availability,
-                formData.date,
-              ]);
-            }
-          }}
-        >
-          Add Selected Date to Availability
-        </Button>
-      )}
-    </div>
-  )}
+              {/* Display selected availability dates */}
+              <div className="flex flex-wrap gap-2 mt-2">
+                {formData.availability.map((date, index) => (
+                  <div
+                    key={index}
+                    className="px-3 py-1 bg-blue-500/20 backdrop-blur-sm rounded-full text-sm flex items-center gap-1 text-white border border-blue-400/30"
+                  >
+                    {date.toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                    })}
+                    <button
+                      className="h-4 w-4 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30"
+                      onClick={() =>
+                        updateFormData(
+                          "availability",
+                          formData.availability.filter((_, i) => i !== index)
+                        )
+                      }
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
 
+              {/* Quick add current selected date */}
+              {formData.date && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-3 bg-black/40 border-white/20 text-white hover:bg-black/60"
+                  onClick={() => {
+                    if (
+                      !formData.availability.some(
+                        (d) => d.toDateString() === formData.date.toDateString()
+                      )
+                    ) {
+                      updateFormData("availability", [
+                        ...formData.availability,
+                        formData.date,
+                      ]);
+                    }
+                  }}
+                >
+                  Add Selected Date to Availability
+                </Button>
+              )}
+            </div>
+          )}
 
           <div className="flex items-center justify-center text-center text-sm pt-2 text-gray-300">
             <CalendarIcon className="h-4 w-4 mr-2" />
@@ -840,7 +835,6 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                   />
                 )}
               </div>
-             
             </div>
 
             {mode === "book" && (
@@ -904,264 +898,266 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
             </Alert>
           )}
 
-         {submitSuccess ? (
-  mode === "book" ? (
-    data.length > 0 ? (
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-6">
-        {data.map((d: any, idx: number) => {
-          const isFav = favorites.includes(d.id);
-          return (
-            <div
-              key={idx}
-              className="relative bg-gradient-to-br from-blue-900/80 to-purple-900/80 border border-white/10 rounded-2xl shadow-xl p-6 flex flex-col items-center group hover:scale-105 transition-transform duration-300"
-            >
-              {/* Favorite Button */}
-              <button
-                className="absolute top-4 right-4 z-10 text-white hover:text-pink-400 transition-colors"
-                onClick={() => {
-                  handleFavorite(d?.user?.id, isFav);
-                  setFavorites((prev) =>
-                    isFav
-                      ? prev.filter((id) => id !== d.id)
-                      : [...prev, d.id]
-                  );
-                }}
-                aria-label={
-                  isFav ? "Remove from favorites" : "Add to favorites"
-                }
-              >
-                <Heart
-                  className={`h-7 w-7 drop-shadow-lg ${isFav ? "fill-pink-500 text-pink-500" : "fill-none text-white"}`}
-                  strokeWidth={2}
-                />
-              </button>
-              {/* Profile Image */}
-              <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-blue-400 to-purple-400 flex items-center justify-center mb-4 overflow-hidden border-4 border-white/20 shadow-lg">
-                {d.user?.profile_image_url ? (
-                  <img
-                    src={d.user.profile_image_url}
-                    alt={d.user.first_name + " " + d.user.last_name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span className="text-3xl font-bold text-white">
-                    {d.user?.first_name?.[0] || "?"}
+          {submitSuccess ? (
+            mode === "book" ? (
+              data.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-6">
+                  {data.map((d: any, idx: number) => {
+                    const isFav = favorites.includes(d.id);
+                    return (
+                      <div
+                        key={idx}
+                        className="relative bg-gradient-to-br from-blue-900/80 to-purple-900/80 border border-white/10 rounded-2xl shadow-xl p-6 flex flex-col items-center group hover:scale-105 transition-transform duration-300"
+                      >
+                        {/* Favorite Button */}
+                        <button
+                          className="absolute top-4 right-4 z-10 text-white hover:text-pink-400 transition-colors"
+                          onClick={() => {
+                            handleFavorite(d?.user?.id, isFav);
+                            setFavorites((prev) =>
+                              isFav
+                                ? prev.filter((id) => id !== d.id)
+                                : [...prev, d.id]
+                            );
+                          }}
+                          aria-label={
+                            isFav ? "Remove from favorites" : "Add to favorites"
+                          }
+                        >
+                          <Heart
+                            className={`h-7 w-7 drop-shadow-lg ${isFav ? "fill-pink-500 text-pink-500" : "fill-none text-white"}`}
+                            strokeWidth={2}
+                          />
+                        </button>
+                        {/* Profile Image */}
+                        <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-blue-400 to-purple-400 flex items-center justify-center mb-4 overflow-hidden border-4 border-white/20 shadow-lg">
+                          {d.user?.profile_image_url ? (
+                            <img
+                              src={d.user.profile_image_url}
+                              alt={d.user.first_name + " " + d.user.last_name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-3xl font-bold text-white">
+                              {d.user?.first_name?.[0] || "?"}
+                            </span>
+                          )}
+                        </div>
+                        {/* Name & Bio */}
+                        <h3 className="text-xl font-semibold text-white text-center mb-1">
+                          {d.user?.first_name} {d.user?.last_name}
+                        </h3>
+                        <p className="text-gray-200 text-center mb-2 line-clamp-3 min-h-[48px] line-clamp-2">
+                          {d.bio}
+                        </p>
+                        {/* Location & Experience */}
+                        <div className="flex flex-col items-center mb-2">
+                          <span className="text-sm text-blue-200 font-medium">
+                            {d.location || `${d.city}, ${d.state}`}
+                          </span>
+                          <span className="text-xs text-gray-300">
+                            {d.years_experience} yrs experience
+                          </span>
+                        </div>
+                        {/* Dance Styles & Categories */}
+                        <div className="flex flex-wrap justify-center gap-2 mb-2">
+                          {d.dance_style?.map((style: string, i: number) => (
+                            <span
+                              key={i}
+                              className="bg-blue-500/20 text-blue-200 px-2 py-1 rounded-full text-xs font-medium"
+                            >
+                              {style}
+                            </span>
+                          ))}
+                          {d.service_category?.map((cat: string, i: number) => (
+                            <span
+                              key={"cat-" + i}
+                              className="bg-purple-500/20 text-purple-200 px-2 py-1 rounded-full text-xs font-medium"
+                            >
+                              {cat}
+                            </span>
+                          ))}
+                        </div>
+                        {/* Pricing */}
+                        <div className="flex items-center gap-2 mt-2 mb-1">
+                          <span className="text-lg font-bold text-green-400">
+                            {d.pricing
+                              ? `$${d.pricing.toLocaleString()}`
+                              : "Contact for pricing"}
+                          </span>
+                          <span className="text-xs text-gray-300">
+                            /session
+                          </span>
+                        </div>
+                        {/* Portfolio Link */}
+                        {d.portfolio && (
+                          <a
+                            href={d.portfolio}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-300 underline text-xs mt-1 hover:text-blue-400"
+                          >
+                            View Portfolio
+                          </a>
+                        )}
+                        {/* Services */}
+                        {d.services && d.services.length > 0 && (
+                          <div className="mt-2 w-full">
+                            <div className="text-xs text-gray-400 mb-1">
+                              Services:
+                            </div>
+                            <ul className="flex flex-wrap gap-1 justify-center">
+                              {d.services.map((srv: string, i: number) => (
+                                <li
+                                  key={i}
+                                  className="bg-white/10 text-white px-2 py-0.5 rounded text-xs"
+                                >
+                                  {srv}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-center w-full">
+                  There is no Professional that matches your search criteria.
+                </p>
+              )
+            ) : (
+              <div className="text-center space-y-4">
+                <div className="h-16 w-16 bg-green-500 rounded-full flex items-center justify-center mx-auto">
+                  <CheckIcon className="h-8 w-8 text-white" />
+                </div>
+                <h4 className="text-lg font-medium text-white">
+                  Booking Request Submitted!
+                </h4>
+                <p className="text-gray-300">
+                  We'll connect you with matching professionals soon. You'll
+                  receive notifications when professionals respond to your
+                  request.
+                </p>
+              </div>
+            )
+          ) : (
+            <div className="space-y-6">
+              <h4 className="font-medium text-white">
+                Review Your Information
+              </h4>
+
+              <div className="bg-black/40 backdrop-blur-sm p-4 rounded-lg border border-white/20 space-y-3">
+                <div>
+                  <span className="font-medium text-white">Categories: </span>
+                  <span className="text-gray-300">
+                    {formData.service_category
+                      .map(
+                        (cat) =>
+                          serviceCategories.find((c) => c.id === cat)?.name
+                      )
+                      .join(", ")}
                   </span>
+                </div>
+
+                <div>
+                  <span className="font-medium text-white">Dance Styles: </span>
+                  <span className="text-gray-300">
+                    {formData.dance_style
+                      .map(
+                        (style) =>
+                          dance_styles.find((s) => s.id.toString() === style)
+                            ?.name
+                      )
+                      .join(", ")}
+                  </span>
+                </div>
+
+                <div>
+                  <span className="font-medium text-white">Location: </span>
+                  <span className="text-gray-300">
+                    {formData.location || `${formData.city}, ${formData.state}`}{" "}
+                    ({formData.travel_distance} miles)
+                  </span>
+                </div>
+
+                <div>
+                  <span className="font-medium text-white">Date: </span>
+                  <span className="text-gray-300">
+                    {formatDate(formData.date)}
+                  </span>
+                </div>
+
+                {mode === "book" ? (
+                  <>
+                    <div>
+                      <span className="font-medium text-white">Budget: </span>
+                      <span className="text-gray-300">
+                        ${formData.pricing} per hour
+                      </span>
+                    </div>
+                    <div>
+                      <span className="font-medium text-white">
+                        Session Duration:{" "}
+                      </span>
+                      <span className="text-gray-300">
+                        {formData.session_duration} minutes
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <span className="font-medium text-white">
+                        Hourly Rate:{" "}
+                      </span>
+                      <span className="text-gray-300">${formData.pricing}</span>
+                    </div>
+                    <div>
+                      <span className="font-medium text-white">
+                        Experience:{" "}
+                      </span>
+                      <span className="text-gray-300">
+                        {formData.years_experience} years
+                      </span>
+                    </div>
+                    <div>
+                      <span className="font-medium text-white">Services: </span>
+                      <span className="text-gray-300">
+                        {formData.services.join(", ")}
+                      </span>
+                    </div>
+                    {formData.availability.length > 0 && (
+                      <div>
+                        <span className="font-medium text-white">
+                          Availability:{" "}
+                        </span>
+                        <span className="text-gray-300">
+                          {formData.availability[0] instanceof Date
+                            ? formData.availability[0].toLocaleDateString(
+                                "en-US",
+                                {
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric",
+                                }
+                              )
+                            : formData.availability[0]}
+                        </span>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
-              {/* Name & Bio */}
-              <h3 className="text-xl font-semibold text-white text-center mb-1">
-                {d.user?.first_name} {d.user?.last_name}
-              </h3>
-              <p className="text-gray-200 text-center mb-2 line-clamp-3 min-h-[48px] line-clamp-2">
-                {d.bio}
+
+              <p className="text-sm text-gray-300">
+                {mode === "book"
+                  ? "Your booking request will be sent to matching professionals in your area."
+                  : "Your professional profile will be visible to clients looking for your services."}
               </p>
-              {/* Location & Experience */}
-              <div className="flex flex-col items-center mb-2">
-                <span className="text-sm text-blue-200 font-medium">
-                  {d.location || `${d.city}, ${d.state}`}
-                </span>
-                <span className="text-xs text-gray-300">
-                  {d.years_experience} yrs experience
-                </span>
-              </div>
-              {/* Dance Styles & Categories */}
-              <div className="flex flex-wrap justify-center gap-2 mb-2">
-                {d.dance_style?.map((style: string, i: number) => (
-                  <span
-                    key={i}
-                    className="bg-blue-500/20 text-blue-200 px-2 py-1 rounded-full text-xs font-medium"
-                  >
-                    {style}
-                  </span>
-                ))}
-                {d.service_category?.map((cat: string, i: number) => (
-                  <span
-                    key={"cat-" + i}
-                    className="bg-purple-500/20 text-purple-200 px-2 py-1 rounded-full text-xs font-medium"
-                  >
-                    {cat}
-                  </span>
-                ))}
-              </div>
-              {/* Pricing */}
-              <div className="flex items-center gap-2 mt-2 mb-1">
-                <span className="text-lg font-bold text-green-400">
-                  {d.pricing
-                    ? `₦${d.pricing.toLocaleString()}`
-                    : "Contact for pricing"}
-                </span>
-                <span className="text-xs text-gray-300">/session</span>
-              </div>
-              {/* Portfolio Link */}
-              {d.portfolio && (
-                <a
-                  href={d.portfolio}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-300 underline text-xs mt-1 hover:text-blue-400"
-                >
-                  View Portfolio
-                </a>
-              )}
-              {/* Services */}
-              {d.services && d.services.length > 0 && (
-                <div className="mt-2 w-full">
-                  <div className="text-xs text-gray-400 mb-1">
-                    Services:
-                  </div>
-                  <ul className="flex flex-wrap gap-1 justify-center">
-                    {d.services.map((srv: string, i: number) => (
-                      <li
-                        key={i}
-                        className="bg-white/10 text-white px-2 py-0.5 rounded text-xs"
-                      >
-                        {srv}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    ) : (
-      <p className="text-center w-full">
-        There is no Professional that matches your search criteria.
-      </p>
-    )
-  ) : (
-    <div className="text-center space-y-4">
-      <div className="h-16 w-16 bg-green-500 rounded-full flex items-center justify-center mx-auto">
-        <CheckIcon className="h-8 w-8 text-white" />
-      </div>
-      <h4 className="text-lg font-medium text-white">
-        Booking Request Submitted!
-      </h4>
-      <p className="text-gray-300">
-        We'll connect you with matching professionals soon. You'll
-        receive notifications when professionals respond to your
-        request.
-      </p>
-    </div>
-  )
-) : (
-  <div className="space-y-6">
-    <h4 className="font-medium text-white">
-      Review Your Information
-    </h4>
-
-    <div className="bg-black/40 backdrop-blur-sm p-4 rounded-lg border border-white/20 space-y-3">
-      <div>
-        <span className="font-medium text-white">Categories: </span>
-        <span className="text-gray-300">
-          {formData.service_category
-            .map(
-              (cat) =>
-                serviceCategories.find((c) => c.id === cat)?.name
-            )
-            .join(", ")}
-        </span>
-      </div>
-
-      <div>
-        <span className="font-medium text-white">Dance Styles: </span>
-        <span className="text-gray-300">
-          {formData.dance_style
-            .map(
-              (style) =>
-                dance_styles.find((s) => s.id.toString() === style)
-                  ?.name
-            )
-            .join(", ")}
-        </span>
-      </div>
-
-      <div>
-        <span className="font-medium text-white">Location: </span>
-        <span className="text-gray-300">
-          {formData.location || `${formData.city}, ${formData.state}`}{" "}
-          ({formData.travel_distance} miles)
-        </span>
-      </div>
-
-      <div>
-        <span className="font-medium text-white">Date: </span>
-        <span className="text-gray-300">
-          {formatDate(formData.date)}
-        </span>
-      </div>
-
-      {mode === "book" ? (
-        <>
-          <div>
-            <span className="font-medium text-white">Budget: </span>
-            <span className="text-gray-300">
-              ${formData.pricing} per hour
-            </span>
-          </div>
-          <div>
-            <span className="font-medium text-white">
-              Session Duration:{" "}
-            </span>
-            <span className="text-gray-300">
-              {formData.session_duration} minutes
-            </span>
-          </div>
-        </>
-      ) : (
-        <>
-          <div>
-            <span className="font-medium text-white">
-              Hourly Rate:{" "}
-            </span>
-            <span className="text-gray-300">${formData.pricing}</span>
-          </div>
-          <div>
-            <span className="font-medium text-white">
-              Experience:{" "}
-            </span>
-            <span className="text-gray-300">
-              {formData.years_experience} years
-            </span>
-          </div>
-          <div>
-            <span className="font-medium text-white">Services: </span>
-            <span className="text-gray-300">
-              {formData.services.join(", ")}
-            </span>
-          </div>
-          {formData.availability.length > 0 && (
-            <div>
-              <span className="font-medium text-white">
-                Availability:{" "}
-              </span>
-              <span className="text-gray-300">
-                {formData.availability[0] instanceof Date
-                  ? formData.availability[0].toLocaleDateString(
-                      "en-US",
-                      {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      }
-                    )
-                  : formData.availability[0]}
-              </span>
             </div>
           )}
-        </>
-      )}
-    </div>
-
-    <p className="text-sm text-gray-300">
-      {mode === "book"
-        ? "Your booking request will be sent to matching professionals in your area."
-        : "Your professional profile will be visible to clients looking for your services."}
-    </p>
-  </div>
-)}
         </div>
       );
     }
@@ -1198,7 +1194,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
             </p>
 
             {/* Stats */}
-            {/* <div className="flex flex-wrap justify-center gap-8 mb-12">
+          {/* <div className="flex flex-wrap justify-center gap-8 mb-12">
               <div className="flex items-center gap-2 text-white">
                 <Users className="h-5 w-5 text-blue-400" />
                 <span className="text-sm font-medium">1000+ Professionals</span>
@@ -1212,107 +1208,106 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                 <span className="text-sm font-medium">24/7 Support</span>
               </div>
             </div> */}
-          </div>
+        </div>
 
-          {/* Booking Wizard Container */}
-          <div className="max-w-4xl mx-auto">
-            <div className="bg-black/20 backdrop-blur-lg rounded-2xl border border-white/10 shadow-2xl p-6 md:p-8">
-              {/* Progress indicator */}
-              <div className="mb-8">
-                <div className="flex justify-between items-center">
-                  {[
-                    "Account",
-                    "Category",
-                    "Location",
-                    "Date",
-                    "Pricing",
-                    "Submit",
-                  ].map((step, index) => (
-                    <div
-                      key={index}
-                      className={`flex flex-col items-center ${index > currentStep ? "text-gray-500" : ""}`}
-                    >
-                      <div
-                        className={`w-8 h-8 rounded-full flex items-center justify-center mb-2 text-sm font-medium transition-all ${
-                          index < currentStep
-                            ? "bg-blue-500 text-white shadow-lg shadow-blue-500/50"
-                            : index === currentStep
-                              ? "border-2 border-blue-400 text-white bg-blue-400/20 backdrop-blur-sm"
-                              : "bg-white/10 text-gray-400 backdrop-blur-sm"
-                        }`}
-                      >
-                        {index < currentStep ? (
-                          <CheckIcon className="h-4 w-4" />
-                        ) : (
-                          index + 1
-                        )}
-                      </div>
-                      <span className="text-xs hidden sm:block text-white font-medium">
-                        {step}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-4 h-2 bg-white/10 rounded-full overflow-hidden backdrop-blur-sm">
+        {/* Booking Wizard Container */}
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-black/20 backdrop-blur-lg rounded-2xl border border-white/10 shadow-2xl p-6 md:p-8">
+            {/* Progress indicator */}
+            <div className="mb-8">
+              <div className="flex justify-between items-center">
+                {[
+                  "Account",
+                  "Category",
+                  "Location",
+                  "Date",
+                  "Pricing",
+                  "Submit",
+                ].map((step, index) => (
                   <div
-                    className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500 ease-out shadow-lg"
-                    style={{ width: `${(currentStep / 5) * 100}%` }}
-                  ></div>
-                </div>
+                    key={index}
+                    className={`flex flex-col items-center ${index > currentStep ? "text-gray-500" : ""}`}
+                  >
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center mb-2 text-sm font-medium transition-all ${
+                        index < currentStep
+                          ? "bg-blue-500 text-white shadow-lg shadow-blue-500/50"
+                          : index === currentStep
+                            ? "border-2 border-blue-400 text-white bg-blue-400/20 backdrop-blur-sm"
+                            : "bg-white/10 text-gray-400 backdrop-blur-sm"
+                      }`}
+                    >
+                      {index < currentStep ? (
+                        <CheckIcon className="h-4 w-4" />
+                      ) : (
+                        index + 1
+                      )}
+                    </div>
+                    <span className="text-xs hidden sm:block text-white font-medium">
+                      {step}
+                    </span>
+                  </div>
+                ))}
               </div>
+              <div className="mt-4 h-2 bg-white/10 rounded-full overflow-hidden backdrop-blur-sm">
+                <div
+                  className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500 ease-out shadow-lg"
+                  style={{ width: `${(currentStep / 5) * 100}%` }}
+                ></div>
+              </div>
+            </div>
 
-              {/* Step content */}
-              <div className="min-h-[500px] mb-8 w-full">{renderStep()}</div>
+            {/* Step content */}
+            <div className="min-h-[500px] mb-8 w-full">{renderStep()}</div>
 
-              {/* Navigation buttons */}
-              <div className="flex flex-col sm:flex-row justify-between gap-4 pt-6 border-t border-white/10">
+            {/* Navigation buttons */}
+            <div className="flex flex-col sm:flex-row justify-between gap-4 pt-6 border-t border-white/10">
+              <Button
+                variant="outline"
+                onClick={handlePrevious}
+                disabled={currentStep === 0 || isSubmitting}
+                className="bg-black/40 border-white/20 text-white hover:bg-black/60 backdrop-blur-sm"
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Previous
+              </Button>
+
+              {currentStep < 5 ? (
                 <Button
-                  variant="outline"
-                  onClick={handlePrevious}
-                  disabled={currentStep === 0 || isSubmitting}
-                  className="bg-black/40 border-white/20 text-white hover:bg-black/60 backdrop-blur-sm"
+                  onClick={handleNext}
+                  className="bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600 shadow-lg shadow-blue-500/25"
+                  disabled={isSubmitting}
                 >
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Previous
+                  Next
+                  <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
-
-                {currentStep < 5 ? (
-                  <Button
-                    onClick={handleNext}
-                    className="bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600 shadow-lg shadow-blue-500/25"
-                    disabled={isSubmitting}
-                  >
-                    Next
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                ) : (
-                  // !submitSuccess && (
-                  <Button
-                    onClick={handleComplete}
-                    disabled={isSubmitting}
-                    className="bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600 shadow-lg shadow-blue-500/25"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        {mode === "book"
-                          ? "Submitting..."
-                          : "Creating Profile..."}
-                      </>
-                    ) : mode === "book" ? (
-                      "Submit Booking Request"
-                    ) : (
-                      "Create Professional Profile"
-                    )}
-                  </Button>
-                )}
-              </div>
+              ) : (
+                // !submitSuccess && (
+                <Button
+                  onClick={handleComplete}
+                  disabled={isSubmitting}
+                  className="bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600 shadow-lg shadow-blue-500/25"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {mode === "book"
+                        ? "Submitting..."
+                        : "Creating Profile..."}
+                    </>
+                  ) : mode === "book" ? (
+                    "Submit Booking Request"
+                  ) : (
+                    "Create Professional Profile"
+                  )}
+                </Button>
+              )}
             </div>
           </div>
         </div>
       </div>
+    </div>
   );
 };
 
 export default BookingWizard;
-
