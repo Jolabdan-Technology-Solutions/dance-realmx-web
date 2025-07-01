@@ -356,24 +356,24 @@ export function CourseDetailPage() {
   }
 
   // Unauthorized check
-  if (
-    course &&
-    user &&
-    course.instructorId !== user.id &&
-    user.role !== "ADMIN"
-  ) {
-    return (
-      <div className="container mx-auto py-8 text-center">
-        <h1 className="text-3xl font-bold mb-4">Unauthorized</h1>
-        <p className="mb-6">
-          You do not have permission to manage this course.
-        </p>
-        <Link to="/instructor/dashboard">
-          <Button>Return to Dashboard</Button>
-        </Link>
-      </div>
-    );
-  }
+  // if (
+  //   course &&
+  //   user &&
+  //   course.instructorId !== user.id &&
+  //   user.role !== "ADMIN"
+  // ) {
+  //   return (
+  //     <div className="container mx-auto py-8 text-center">
+  //       <h1 className="text-3xl font-bold mb-4">Unauthorized</h1>
+  //       <p className="mb-6">
+  //         You do not have permission to manage this course.
+  //       </p>
+  //       <Link to="/instructor/dashboard">
+  //         <Button>Return to Dashboard</Button>
+  //       </Link>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="container mx-auto py-8">
