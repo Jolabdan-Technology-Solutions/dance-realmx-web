@@ -2348,10 +2348,14 @@ function ModuleDialog({
   });
   
   // Create module mutation
-  const createModuleMutation = useMutation({
+   const createModuleMutation = useMutation({
     mutationFn: async (values: ModuleFormValues) => {
-      const data = { ...values, courseId };
-      const res = await apiRequest("POST", "/api/modules", data);
+      const data = { 
+        title: values.title,
+        description: values.description,
+        order: values.orderIndex
+      };
+      const res = await apiRequest("POST", `/api/courses/${courseId}/modules`, data);
       return res.json();
     },
     onSuccess: () => {
@@ -3017,3 +3021,4 @@ function LessonCard({ lesson, moduleId }: { lesson: Lesson; moduleId: number }) 
     </Card>
   );
 }
+
