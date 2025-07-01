@@ -7,7 +7,7 @@ import {
   Loader2, ArrowLeft, Save, Plus, Trash2, Eye, FileDown, FileUp, 
   BookOpen, CheckCircle, User, UserPlus, Award, Search, UserMinus, 
   FileText, Edit, Download, Gift, Mail, PenTool, Server,
-  ChevronDown, ChevronRight, MoreVertical, Clock, Video, Users
+  ChevronDown, ChevronRight, MoreVertical, Clock, Video, Users, Play
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -64,7 +64,7 @@ type ModuleFormValues = {
 
 type LessonFormValues = {
   title: string;
-  content: string | null;
+  content: string;
   videoUrl: string | null;
   orderIndex: number;
 };
@@ -691,7 +691,7 @@ function ModuleDialog({
         title: values.title.trim(),
         description: values.description?.trim() || null,
         course_id: courseId,
-        order_index: values.orderIndex
+        order: Number(values.orderIndex)  // Ensure it's an integer
       };
       
       const res = await apiRequest(`/api/courses/${courseId}/modules`, {
@@ -873,7 +873,7 @@ function ModuleCard({ module, courseId }: { module: Module; courseId: number }) 
     queryKey: ["/api/lessons", { moduleId: module.id }],
     queryFn: async () => {
       try {
-        const res = await apiRequest(`/api/modules/${module.id}/lessons`, { 
+        const res = await apiRequest(`/api/courses/modules/${module.id}/lessons`, { 
           method: "GET",
           requireAuth: true 
         });
@@ -981,7 +981,7 @@ function ModuleCard({ module, courseId }: { module: Module; courseId: number }) 
           </div>
 
           <div className="flex items-center gap-2 ml-4">
-            <LessonDialog moduleId={module.id}>
+            <LessonDialog moduleId={module.id} onLessonCreated={() => setIsExpanded(true)}>
               <Button
                 size="sm"
                 className="text-xs px-3 py-1.5"
@@ -1024,32 +1024,59 @@ function ModuleCard({ module, courseId }: { module: Module; courseId: number }) 
         </div>
       </div>
 
-      {/* Expanded Content - Lessons */}
+      {/* Expanded Content - Enhanced Lessons Display */}
       {isExpanded && (
-        <div className="p-0">
+        <div className="bg-gray-50/30">
           {lessonsLoading ? (
             <div className="p-8 text-center">
-              <Loader2 className="w-6 h-6 animate-spin mx-auto text-gray-400" />
+              <Loader2 className="w-6 h-6 animate-spin mx-auto text-gray-400 mb-2" />
+              <p className="text-sm text-gray-500">Loading lessons...</p>
             </div>
           ) : totalLessons > 0 ? (
-            <div className="divide-y divide-gray-100">
-              {lessons?.map((lesson, index) => (
-                <LessonCard key={lesson.id} lesson={lesson} index={index} moduleId={module.id} />
-              ))}
+            <div className="p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-sm font-medium text-gray-700">
+                  {totalLessons} Lesson{totalLessons !== 1 ? 's' : ''} 
+                  {totalDuration > 0 && ` • ${totalDuration} min total`}
+                </h4>
+                <LessonDialog moduleId={module.id} onLessonCreated={() => setIsExpanded(true)}>
+                  <Button size="sm" variant="outline" className="text-xs">
+                    <Plus className="w-3 h-3 mr-1" />
+                    Add Lesson
+                  </Button>
+                </LessonDialog>
+              </div>
+              
+              <div className="space-y-3">
+                {lessons
+                  ?.sort((a, b) => (a.orderIndex || a.order || 0) - (b.orderIndex || b.order || 0))
+                  .map((lesson, index) => (
+                    <LessonCard 
+                      key={lesson.id} 
+                      lesson={lesson} 
+                      index={index} 
+                      moduleId={module.id} 
+                    />
+                  ))}
+              </div>
             </div>
           ) : (
             <div className="p-8 text-center">
-              <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <h4 className="text-lg font-medium text-gray-900 mb-2">No lessons yet</h4>
-              <p className="text-gray-500 mb-4">
-                Start building your module by adding lessons.
-              </p>
-              <LessonDialog moduleId={module.id}>
-                <Button>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add First Lesson
-                </Button>
-              </LessonDialog>
+              <div className="flex flex-col items-center">
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                  <BookOpen className="w-8 h-8 text-blue-500" />
+                </div>
+                <h4 className="text-lg font-medium text-gray-900 mb-2">No lessons yet</h4>
+                <p className="text-gray-500 mb-6 max-w-sm">
+                  Start building your module by adding lessons. Each lesson can include text content, videos, and other learning materials.
+                </p>
+                <LessonDialog moduleId={module.id} onLessonCreated={() => setIsExpanded(true)}>
+                  <Button className="flex items-center">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add First Lesson
+                  </Button>
+                </LessonDialog>
+              </div>
             </div>
           )}
         </div>
@@ -1058,7 +1085,7 @@ function ModuleCard({ module, courseId }: { module: Module; courseId: number }) 
   );
 }
 
-// Lesson Card Component
+// Simplified Lesson Card Component - only name and description
 function LessonCard({ lesson, index, moduleId }: { lesson: Lesson; index: number; moduleId: number }) {
   const [showActions, setShowActions] = useState(false);
   const { toast } = useToast();
@@ -1094,66 +1121,63 @@ function LessonCard({ lesson, index, moduleId }: { lesson: Lesson; index: number
     }
   };
 
+  // Handle different content field names from backend
+  const lessonContent = lesson.content || lesson.description || '';
+  const orderIndex = lesson.orderIndex ?? lesson.order ?? index;
+
   return (
-    <div className="p-4 hover:bg-gray-50/50 transition-colors">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center flex-1 min-w-0">
-          <div className="flex items-center gap-3">
-            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 text-gray-600 text-xs font-medium">
-              {index + 1}
+    <div className="border-l-4 border-blue-200 bg-white hover:bg-gray-50/50 transition-colors">
+      <div className="p-4">
+        <div className="flex items-start justify-between">
+          <div className="flex items-start flex-1 min-w-0">
+            <span className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600 text-sm font-medium mr-4 mt-1">
+              {orderIndex + 1}
             </span>
             
-            <div className="min-w-0 flex-1">
-              <h4 className="text-sm font-medium text-gray-900 truncate">
+            <div className="flex-1 min-w-0">
+              <h4 className="text-base font-semibold text-gray-900 mb-2">
                 {lesson.title}
               </h4>
-              {lesson.content && (
-                <p className="text-xs text-gray-500 mt-1 line-clamp-1">
-                  {lesson.content}
+              
+              {lessonContent && (
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  {lessonContent}
                 </p>
               )}
             </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-3 ml-4">
-          <div className="flex items-center gap-2">
-            {lesson.videoUrl ? (
-              <Video className="w-4 h-4 text-blue-500" />
-            ) : (
-              <FileText className="w-4 h-4 text-gray-400" />
-            )}
-            {lesson.duration && (
-              <span className="text-xs text-gray-500">
-                {lesson.duration}
-              </span>
-            )}
-          </div>
-
-          <div className="relative">
+          <div className="relative ml-4">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setShowActions(!showActions)}
-              className="p-1"
+              className="p-1.5 h-auto"
             >
-              <MoreVertical className="w-3 h-3 text-gray-400" />
+              <MoreVertical className="w-4 h-4 text-gray-400" />
             </Button>
             
             {showActions && (
-              <div className="absolute right-0 top-6 w-40 bg-white border border-gray-200 rounded-md shadow-lg z-20">
+              <div className="absolute right-0 top-8 w-40 bg-white border border-gray-200 rounded-md shadow-lg z-20">
                 <LessonDialog moduleId={moduleId} lessonId={lesson.id} existingLesson={lesson}>
-                  <button className="flex items-center w-full px-3 py-2 text-xs text-gray-700 hover:bg-gray-50">
-                    <Edit className="w-3 h-3 mr-2" />
+                  <button 
+                    className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    onClick={() => setShowActions(false)}
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
                     Edit Lesson
                   </button>
                 </LessonDialog>
+                
                 <button
-                  onClick={handleDelete}
+                  onClick={() => {
+                    handleDelete();
+                    setShowActions(false);
+                  }}
                   disabled={deleteLessonMutation.isPending}
-                  className="flex items-center w-full px-3 py-2 text-xs text-red-600 hover:bg-red-50"
+                  className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50"
                 >
-                  <Trash2 className="w-3 h-3 mr-2" />
+                  <Trash2 className="w-4 h-4 mr-2" />
                   Delete Lesson
                 </button>
               </div>
@@ -1170,12 +1194,14 @@ function LessonDialog({
   moduleId, 
   lessonId, 
   existingLesson, 
-  children 
+  children,
+  onLessonCreated
 }: { 
   moduleId: number; 
   lessonId?: number; 
   existingLesson?: Lesson; 
   children?: React.ReactNode;
+  onLessonCreated?: () => void;
 }) {
   const { toast } = useToast();
   const isEditing = !!lessonId;
@@ -1185,7 +1211,7 @@ function LessonDialog({
     resolver: zodResolver(
       z.object({
         title: z.string().min(3, "Title must be at least 3 characters"),
-        content: z.string().nullable(),
+        content: z.string().min(1, "Content is required"),
         videoUrl: z.string().nullable(),
         orderIndex: z.number().int().min(0),
       })
@@ -1197,33 +1223,55 @@ function LessonDialog({
       orderIndex: existingLesson?.orderIndex || 0,
     },
   });
+
+  // Update form defaults when dialog opens for new lessons
+  useEffect(() => {
+    if (open && !isEditing) {
+      // Auto-set order index for new lessons
+      form.setValue('orderIndex', 0); // You can make this dynamic based on existing lessons
+    }
+  }, [open, isEditing, form]);
   
   const createLessonMutation = useMutation({
     mutationFn: async (values: LessonFormValues) => {
+      // Map to match your CreateLessonDto
       const data = { 
         title: values.title.trim(),
-        content: values.content?.trim() || null,
-        video_url: values.videoUrl?.trim() || null,
-        module_id: moduleId,
-        order_index: values.orderIndex
+        content: values.content?.trim() || "",
+        videoUrl: values.videoUrl?.trim() || undefined,
+        module_id: Number(moduleId),  // Fixed: use "module_id" not "moduleId"
+        order: Number(values.orderIndex)
       };
       
-      const res = await apiRequest(`/api/modules/${moduleId}/lessons`, {
+      const res = await apiRequest(`/api/courses/modules/${moduleId}/lessons`, {
         method: "POST",
         data: data,
         requireAuth: true,
       });
       return res;
     },
-    onSuccess: () => {
+    onSuccess: (newLesson) => {
+      // Invalidate lessons query to refresh the list
       queryClient.invalidateQueries({ queryKey: ["/api/lessons", { moduleId }] });
       
-      form.reset({ title: "", content: "", videoUrl: "", orderIndex: 0 });
+      // Also invalidate modules query to update lesson counts
+      queryClient.invalidateQueries({ queryKey: ["/api/modules"] });
+      
+      // Reset form and close dialog
+      form.reset({ 
+        title: "", 
+        content: "", 
+        videoUrl: "", 
+        orderIndex: 0
+      });
       setOpen(false);
       
+      // Expand module to show the new lesson
+      onLessonCreated?.();
+      
       toast({
-        title: "Success",
-        description: "Lesson created successfully",
+        title: "Success! 🎉",
+        description: `"${newLesson?.title || 'Lesson'}" has been created successfully.`,
       });
     },
     onError: (error: any) => {
@@ -1313,7 +1361,7 @@ function LessonDialog({
               name="content"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Content (Optional)</FormLabel>
+                  <FormLabel>Content</FormLabel>
                   <FormControl>
                     <Textarea 
                       placeholder="Lesson content or description" 
