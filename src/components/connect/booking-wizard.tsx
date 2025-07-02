@@ -26,6 +26,11 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { apiRequest } from "@/lib/queryClient";
+import {
+  professionalService,
+  ProfessionalSearchParams,
+} from "@/lib/professional-service";
+import { ComprehensiveRecommendations } from "./comprehensive-recommendations";
 
 // Define service categories
 const serviceCategories = [
@@ -287,39 +292,27 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
           }
         );
       } else {
-        // GET professionals search
-        const params = new URLSearchParams();
+        // Use the new professional service for searching
+        const searchParams: ProfessionalSearchParams = {};
+
         if (formData.service_category?.length > 0) {
-          formData.service_category.forEach((cat: string) => {
-            params.append("service_category", cat);
-          });
+          searchParams.service_category = formData.service_category;
         }
         if (formData.dance_style?.length > 0) {
-          formData.dance_style.forEach((style: string) => {
-            params.append("dance_style", style);
-          });
+          searchParams.dance_style = formData.dance_style;
         }
-        if (formData.zip_code) params.append("zip_code", formData.zip_code);
-        if (formData.city) params.append("city", formData.city);
-        if (formData.state) params.append("state", formData.state);
-        if (formData.location) params.append("location", formData.location);
+        if (formData.zip_code) searchParams.zip_code = formData.zip_code;
+        if (formData.city) searchParams.city = formData.city;
+        if (formData.state) searchParams.state = formData.state;
+        if (formData.location) searchParams.location = formData.location;
         if (formData.travel_distance)
-          params.append("travel_distance", formData.travel_distance.toString());
-        if (formData.pricing)
-          params.append("pricing", formData.pricing.toString());
+          searchParams.travel_distance = formData.travel_distance;
+        if (formData.pricing) searchParams.pricing = formData.pricing;
         if (formData.session_duration)
-          params.append(
-            "session_duration",
-            formData.session_duration.toString()
-          );
+          searchParams.session_duration = formData.session_duration;
+        if (formData.date) searchParams.date = formData.date.toISOString();
 
-        result = await apiRequest(
-          `https://api.livetestdomain.com/api/profiles/professionals/search?${params.toString()}`,
-          {
-            method: "GET",
-            requireAuth: true,
-          }
-        );
+        result = await professionalService.search(searchParams);
       }
       setData(result.results);
       console.log("data:", data);
@@ -368,10 +361,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
   // Add a function to handle favorite API call
   const handleFavorite = async (profileId: number, isFav: boolean) => {
     try {
-      await apiRequest(
-        `https://api.livetestdomain.com/api/profiles/${profileId}/book`,
-        { method: "POST", requireAuth: true }
-      );
+      await professionalService.toggleFavorite(profileId);
       setFavorites((prev) =>
         isFav ? prev.filter((id) => id !== profileId) : [...prev, profileId]
       );
@@ -1157,6 +1147,10 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                   : "Your professional profile will be visible to clients looking for your services."}
               </p>
             </div>
+          )}
+
+          {submitSuccess && mode === "book" && (
+            <ComprehensiveRecommendations bookingData={formData} />
           )}
         </div>
       );

@@ -13,8 +13,7 @@ import { GuestModeProvider } from "./hooks/use-guest-mode";
 import { GuestCartProvider } from "./hooks/use-guest-cart";
 import { CartProvider } from "./hooks/use-cart";
 import instructorModulePage from "./pages/instructor/instructor-module-page";
-// import 
-
+// import
 
 // Loading fallback component
 function LoadingFallback() {
@@ -65,7 +64,6 @@ const AuthPage = lazy(() => import("@/pages/auth-page"));
 const RegistrationFlowPage = lazy(() => import("@/pages/registration-flow"));
 const ProfileImageDebugPage = lazy(() => import("@/pages/profile-image-debug"));
 const NotFound = createLazyComponent(() => import("./pages/not-found"));
-
 
 // Course Certification Module
 const CoursesPage = lazy(() => import("@/pages/courses/courses-page"));
@@ -194,7 +192,7 @@ const getBooked = createLazyComponent(
 
 const bookProfessional = createLazyComponent(
   () => import("./pages/instructor/book-professional-page")
-)
+);
 
 // Admin Pages
 const AdminDashboardPage = createLazyComponent(
@@ -400,6 +398,7 @@ function Router() {
           path="/courses/:courseId/modules/:moduleId/lessons/:lessonId"
           component={Pages.Lesson}
         />
+        <ProtectedRoute path="/lesson/:courseId" component={Pages.Lesson} />
         <ProtectedRoute
           path="/courses/:courseId/modules/:moduleId/quizzes/:quizId"
           component={Pages.Quiz}
@@ -580,16 +579,6 @@ function Router() {
         />
 
         <ProtectedRoute
-        path="/connect/get-booked"
-        component={Pages.getBooked}
-        />
-
-        <ProtectedRoute
-        path="/connect/book"
-        component={Pages.bookProfessional}
-        />
-
-        <ProtectedRoute
           path="/instructor/courses/:id/edit"
           component={Pages.CourseEdit}
         />
@@ -609,9 +598,9 @@ function Router() {
           path="/instructor/certificates/issue"
           component={Pages.IssueCertificate}
         />
-        <ProtectedRoute 
-        path="/instructor/instructor-module-page"
-        component={Pages.instructorModulePage}
+        <ProtectedRoute
+          path="/instructor/instructor-module-page"
+          component={Pages.instructorModulePage}
         />
 
         {/* Admin Routes */}
