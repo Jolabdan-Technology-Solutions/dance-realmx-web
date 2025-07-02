@@ -26,6 +26,99 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { apiRequest } from "@/lib/queryClient";
+import { ProfessionalRecommendations } from "./professional-recommendations";
+
+// Custom styles for full-width date picker
+const datePickerStyles = `
+  .react-datepicker-wrapper {
+    width: 100% !important;
+  }
+  .react-datepicker {
+    width: 100% !important;
+    font-size: 1rem;
+  }
+  .react-datepicker__month-container {
+    width: 100% !important;
+  }
+  .react-datepicker__month {
+    width: 100% !important;
+  }
+  .react-datepicker__month .react-datepicker__month-text {
+    width: 100% !important;
+    text-align: center;
+  }
+  .react-datepicker__day-names {
+    width: 100% !important;
+  }
+  .react-datepicker__week {
+    width: 100% !important;
+  }
+  .react-datepicker__day {
+    width: calc(100% / 7) !important;
+    height: 2.5rem !important;
+    line-height: 2.5rem !important;
+    margin: 0 !important;
+  }
+  .react-datepicker__header {
+    width: 100% !important;
+  }
+  .react-datepicker__current-month {
+    width: 100% !important;
+    text-align: center;
+  }
+  .react-datepicker__navigation {
+    top: 1rem;
+  }
+`;
+
+// Import availability examples - using relative path from web project
+const availabilityExamples = {
+  // Example 1: Weekly availability for a month
+  weeklyAvailability: [
+    {
+      start_date: "2024-01-01",
+      end_date: "2024-01-31",
+      time_slots: ["09:00-10:00", "10:00-11:00", "14:00-15:00", "15:00-16:00"],
+    },
+  ],
+
+  // Example 2: Specific date ranges with different time slots
+  specificRanges: [
+    {
+      start_date: "2024-01-15",
+      end_date: "2024-01-20",
+      time_slots: ["09:00-10:00", "14:00-15:00"],
+    },
+    {
+      start_date: "2024-01-25",
+      end_date: "2024-01-30",
+      time_slots: ["10:00-11:00", "15:00-16:00", "16:00-17:00"],
+    },
+  ],
+
+  // Example 3: Weekend availability
+  weekendAvailability: [
+    {
+      start_date: "2024-01-06",
+      end_date: "2024-01-07",
+      time_slots: ["10:00-11:00", "11:00-12:00", "14:00-15:00"],
+    },
+    {
+      start_date: "2024-01-13",
+      end_date: "2024-01-14",
+      time_slots: ["10:00-11:00", "11:00-12:00", "14:00-15:00"],
+    },
+  ],
+
+  // Example 4: Evening availability
+  eveningAvailability: [
+    {
+      start_date: "2024-01-01",
+      end_date: "2024-01-31",
+      time_slots: ["18:00-19:00", "19:00-20:00", "20:00-21:00"],
+    },
+  ],
+};
 
 // Define service categories
 const serviceCategories = [
@@ -76,6 +169,8 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     years_experience: 0,
     services: [] as string[],
     availability: [] as Date[],
+    // Availability with dates and time slots (used for both modes)
+    availabilityDates: [] as Array<{ date: Date; timeSlots: string[] }>,
     bio: "",
     portfolio: "",
     pricing: 50,
@@ -83,11 +178,13 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
   });
 
   const [isZipLookupLoading, setIsZipLookupLoading] = useState(false);
-  const [data, setData] = useState([]);
+  const [data, setData] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [favorites, setFavorites] = useState<number[]>([]);
+  const [showRecommendations, setShowRecommendations] = useState(false);
+  const [selectedProfessional, setSelectedProfessional] = useState<any>(null);
 
   // Mock toast function - replace with your actual toast implementation
   const toast = (options: {
@@ -197,7 +294,14 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         session_duration: formData.session_duration,
         years_experience: formData.years_experience,
         services: formData.services,
-        // availability: formData.availability,
+        availability:
+          formData.availabilityDates.length > 0
+            ? formData.availabilityDates.map((avail: any) => ({
+                start_date: avail.date.toISOString().split("T")[0],
+                end_date: avail.date.toISOString().split("T")[0],
+                time_slots: avail.timeSlots,
+              }))
+            : availabilityExamples.weekendAvailability,
         portfolio: formData.portfolio,
         pricing: formData.pricing,
         profile_image_url: formData.profile_image_url,
@@ -254,6 +358,30 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         variant: "destructive",
       });
       return;
+    }
+    if (currentStep === 3) {
+      if (formData.availabilityDates.length === 0) {
+        toast({
+          title: "Availability required",
+          description: "Please select at least one available date to continue.",
+          variant: "destructive",
+        });
+        return;
+      }
+      // For book mode, ensure at least one time slot is selected
+      if (mode === "book") {
+        const hasTimeSlots = formData.availabilityDates.some(
+          (avail) => avail.timeSlots.length > 0
+        );
+        if (!hasTimeSlots) {
+          toast({
+            title: "Time slot required",
+            description: "Please select at least one time slot to continue.",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
     }
     // If we're at step 0 (user creation/authentication) and user is not logged in
     if (currentStep === 0 && !user) {
@@ -313,6 +441,41 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
             formData.session_duration.toString()
           );
 
+        // Add availability data if dates are selected
+        if (
+          formData.availabilityDates &&
+          formData.availabilityDates.length > 0
+        ) {
+          // Send availability data in the format the backend expects
+          const availabilityData = formData.availabilityDates.map(
+            (avail: any) => ({
+              date: avail.date.toISOString().split("T")[0],
+              time_slots: avail.timeSlots,
+            })
+          );
+
+          // Add availability_data as JSON string
+          params.append("availability_data", JSON.stringify(availabilityData));
+
+          // Also add individual dates and time slots for flexibility
+          formData.availabilityDates.forEach((avail: any) => {
+            params.append(
+              "availability_dates",
+              avail.date.toISOString().split("T")[0]
+            );
+            avail.timeSlots.forEach((slot: string) => {
+              params.append("availability_time_slots", slot);
+            });
+          });
+        }
+
+        // Log the complete submission data (including availability for reference)
+        console.log("Complete submission data:", {
+          searchParams: Object.fromEntries(params.entries()),
+          availabilityData: formData.availabilityDates,
+          formData: formData,
+        });
+
         result = await apiRequest(
           `https://api.livetestdomain.com/api/profiles/professionals/search?${params.toString()}`,
           {
@@ -323,7 +486,18 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
       }
       setData(result.results);
       console.log("data:", data);
-      setSubmitSuccess(true);
+      console.log("result.results.length:", result.results.length);
+      console.log("showRecommendations before:", showRecommendations);
+
+      // If no results found, show recommendations
+      if (result.results.length === 0) {
+        setShowRecommendations(true);
+        setSubmitSuccess(true); // Set success to true even with no results so we can show recommendations
+        console.log("No results found, setting showRecommendations to true");
+      } else {
+        setSubmitSuccess(true);
+        console.log("Results found, setting submitSuccess to true");
+      }
 
       toast({
         title:
@@ -388,6 +562,13 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         variant: "destructive",
       });
     }
+  };
+
+  // Handle professional selection from recommendations
+  const handleProfessionalSelect = (professional: any) => {
+    setSelectedProfessional(professional);
+    // Navigate to professional profile
+    navigate(`/professional/${professional.id}`);
   };
 
   // Render steps based on current step and mode
@@ -687,6 +868,61 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
 
     // Step 3: Date
     if (currentStep === 3) {
+      const timeSlots = [
+        "09:00-10:00",
+        "10:00-11:00",
+        "11:00-12:00",
+        "14:00-15:00",
+        "15:00-16:00",
+        "16:00-17:00",
+        "18:00-19:00",
+        "19:00-20:00",
+      ];
+
+      const addAvailabilityDate = (date: Date | null) => {
+        if (date) {
+          const dateStr = date.toISOString().split("T")[0];
+          const exists = formData.availabilityDates.some(
+            (avail) => avail.date.toISOString().split("T")[0] === dateStr
+          );
+          if (!exists) {
+            updateFormData("availabilityDates", [
+              ...formData.availabilityDates,
+              { date, timeSlots: [] },
+            ]);
+          }
+        }
+      };
+
+      const removeAvailabilityDate = (dateToRemove: Date) => {
+        updateFormData(
+          "availabilityDates",
+          formData.availabilityDates.filter(
+            (avail) =>
+              avail.date.toISOString().split("T")[0] !==
+              dateToRemove.toISOString().split("T")[0]
+          )
+        );
+      };
+
+      const toggleTimeSlot = (date: Date, slot: string) => {
+        updateFormData(
+          "availabilityDates",
+          formData.availabilityDates.map((avail) => {
+            if (
+              avail.date.toISOString().split("T")[0] ===
+              date.toISOString().split("T")[0]
+            ) {
+              const newTimeSlots = avail.timeSlots.includes(slot)
+                ? avail.timeSlots.filter((s) => s !== slot)
+                : [...avail.timeSlots, slot];
+              return { ...avail, timeSlots: newTimeSlots };
+            }
+            return avail;
+          })
+        );
+      };
+
       return (
         <div className="space-y-6">
           <h3 className="text-xl font-medium text-white">
@@ -696,94 +932,168 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
           </h3>
 
           {mode === "get-booked" && (
-            <div className="mt-4 pt-4 border-t border-white/20">
+            <div className="space-y-4">
               <Label className="mb-2 block text-white">
-                Select multiple dates you're available
+                Select dates you're available
               </Label>
 
-              {/* Multi-date picker for availability */}
-              <div className="flex justify-center mb-4">
+              <div className="w-full mb-4">
                 <DatePicker
                   selected={null}
-                  onChange={(date) => {
-                    if (
-                      date &&
-                      !formData.availability.some(
-                        (d) => d.toDateString() === date.toDateString()
-                      )
-                    ) {
-                      updateFormData("availability", [
-                        ...formData.availability,
-                        date,
-                      ]);
-                    }
-                  }}
+                  onChange={(date: Date | null) => addAvailabilityDate(date)}
                   minDate={new Date()}
                   inline
                   showMonthDropdown
                   showYearDropdown
                   dropdownMode="select"
-                  highlightDates={formData.availability}
+                  highlightDates={formData.availabilityDates.map(
+                    (avail) => avail.date
+                  )}
                   className="w-full"
                   calendarClassName="w-full"
+                  wrapperClassName="w-full"
                 />
               </div>
 
               {/* Display selected availability dates */}
-              <div className="flex flex-wrap gap-2 mt-2">
-                {formData.availability.map((date, index) => (
-                  <div
-                    key={index}
-                    className="px-3 py-1 bg-blue-500/20 backdrop-blur-sm rounded-full text-sm flex items-center gap-1 text-white border border-blue-400/30"
-                  >
-                    {date.toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                    })}
-                    <button
-                      className="h-4 w-4 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30"
-                      onClick={() =>
-                        updateFormData(
-                          "availability",
-                          formData.availability.filter((_, i) => i !== index)
-                        )
-                      }
+              {formData.availabilityDates.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="font-medium text-white">Selected Dates:</h4>
+                  {formData.availabilityDates.map((avail, index) => (
+                    <div
+                      key={index}
+                      className="bg-black/40 backdrop-blur-sm p-4 rounded-lg border border-white/20"
                     >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="font-medium text-white">
+                          {avail.date.toLocaleDateString("en-US", {
+                            weekday: "long",
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          })}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => removeAvailabilityDate(avail.date)}
+                          className="bg-red-500/20 border-red-400 text-red-300 hover:bg-red-500/30"
+                        >
+                          Remove
+                        </Button>
+                      </div>
 
-              {/* Quick add current selected date */}
-              {formData.date && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-3 bg-black/40 border-white/20 text-white hover:bg-black/60"
-                  onClick={() => {
-                    if (
-                      !formData.availability.some(
-                        (d) => d.toDateString() === formData.date.toDateString()
-                      )
-                    ) {
-                      updateFormData("availability", [
-                        ...formData.availability,
-                        formData.date,
-                      ]);
-                    }
-                  }}
-                >
-                  Add Selected Date to Availability
-                </Button>
+                      <div className="space-y-2">
+                        <Label className="text-sm text-gray-300">
+                          Select time slots:
+                        </Label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {timeSlots.map((slot) => (
+                            <div
+                              key={slot}
+                              className={`px-3 py-2 rounded-md cursor-pointer border text-sm flex items-center justify-between backdrop-blur-sm transition-all ${
+                                avail.timeSlots.includes(slot)
+                                  ? "border-blue-400 bg-blue-500/20 text-white shadow-lg shadow-blue-500/25"
+                                  : "border-white/20 bg-black/40 text-white hover:bg-black/60"
+                              }`}
+                              onClick={() => toggleTimeSlot(avail.date, slot)}
+                            >
+                              {slot}
+                              {avail.timeSlots.includes(slot) && (
+                                <CheckIcon className="h-3 w-3 text-blue-400" />
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           )}
 
-          <div className="flex items-center justify-center text-center text-sm pt-2 text-gray-300">
-            <CalendarIcon className="h-4 w-4 mr-2" />
-            {formatDate(formData.date)}
-          </div>
+          {mode === "book" && (
+            <div className="space-y-4">
+              <Label className="mb-2 block text-white">
+                Select your preferred dates and times
+              </Label>
+
+              <div className="w-full mb-4">
+                <DatePicker
+                  selected={null}
+                  onChange={(date: Date | null) => addAvailabilityDate(date)}
+                  minDate={new Date()}
+                  inline
+                  showMonthDropdown
+                  showYearDropdown
+                  dropdownMode="select"
+                  highlightDates={formData.availabilityDates.map(
+                    (avail) => avail.date
+                  )}
+                  className="w-full"
+                  calendarClassName="w-full"
+                  wrapperClassName="w-full"
+                />
+              </div>
+
+              {/* Display selected availability dates for booking mode */}
+              {formData.availabilityDates.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="font-medium text-white">Selected Dates:</h4>
+                  {formData.availabilityDates.map((avail, index) => (
+                    <div
+                      key={index}
+                      className="bg-black/40 backdrop-blur-sm p-4 rounded-lg border border-white/20"
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="font-medium text-white">
+                          {avail.date.toLocaleDateString("en-US", {
+                            weekday: "long",
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          })}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => removeAvailabilityDate(avail.date)}
+                          className="bg-red-500/20 border-red-400 text-red-300 hover:bg-red-500/30"
+                        >
+                          Remove
+                        </Button>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-sm text-gray-300">
+                          Select time slots:
+                        </Label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {timeSlots.map((slot) => (
+                            <div
+                              key={slot}
+                              className={`px-3 py-2 rounded-md cursor-pointer border text-sm flex items-center justify-between backdrop-blur-sm transition-all ${
+                                avail.timeSlots.includes(slot)
+                                  ? "border-blue-400 bg-blue-500/20 text-white shadow-lg shadow-blue-500/25"
+                                  : "border-white/20 bg-black/40 text-white hover:bg-black/60"
+                              }`}
+                              onClick={() => toggleTimeSlot(avail.date, slot)}
+                            >
+                              {slot}
+                              {avail.timeSlots.includes(slot) && (
+                                <CheckIcon className="h-3 w-3 text-blue-400" />
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       );
     }
@@ -811,7 +1121,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                     min={10}
                     max={100000}
                     step={5}
-                    value={[formData.pricing]}
+                    value={[Number(formData.pricing) || 50]}
                     onValueChange={([value]) =>
                       updateFormData("pricing", value)
                     }
@@ -819,19 +1129,13 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                   />
                 ) : (
                   <input
-                    type="number"
-                    min={10}
-                    max={100000}
-                    step={5}
+                    type="text"
+                    placeholder="Enter your budget"
                     value={formData.pricing}
                     onChange={(e) => {
-                      const value = Math.max(
-                        10,
-                        Math.min(300, Number(e.target.value))
-                      );
-                      updateFormData("pricing", value);
+                      updateFormData("pricing", e.target.value);
                     }}
-                    className="w-full py-2 px-3 rounded bg-black/60 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full py-2 px-3 rounded bg-black/60 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-primary placeholder:text-gray-400"
                   />
                 )}
               </div>
@@ -883,6 +1187,14 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
 
     // Step 5: Submit
     if (currentStep === 5) {
+      console.log(
+        "Step 5 render - submitSuccess:",
+        submitSuccess,
+        "data.length:",
+        data?.length,
+        "showRecommendations:",
+        showRecommendations
+      );
       return (
         <div className="space-y-6 w-full">
           <h3 className="text-xl font-medium text-white">
@@ -1023,9 +1335,18 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                   })}
                 </div>
               ) : (
-                <p className="text-center w-full">
-                  There is no Professional that matches your search criteria.
-                </p>
+                <>
+                  {(() => {
+                    console.log(
+                      "Rendering ProfessionalRecommendations component"
+                    );
+                    return null;
+                  })()}
+                  <ProfessionalRecommendations
+                    originalSearchCriteria={formData}
+                    onProfessionalSelect={handleProfessionalSelect}
+                  />
+                </>
               )
             ) : (
               <div className="text-center space-y-4">
@@ -1033,13 +1354,19 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                   <CheckIcon className="h-8 w-8 text-white" />
                 </div>
                 <h4 className="text-lg font-medium text-white">
-                  Booking Request Submitted!
+                  Profile Created!
                 </h4>
                 <p className="text-gray-300">
-                  We'll connect you with matching professionals soon. You'll
-                  receive notifications when professionals respond to your
-                  request.
+                  Your professional profile is now live.
                 </p>
+                {data && data?.id && (
+                  <Button
+                    className="mt-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600 shadow-lg shadow-blue-500/25"
+                    onClick={() => navigate(`/professional/${data.id}`)}
+                  >
+                    Go to Profile
+                  </Button>
+                )}
               </div>
             )
           ) : (
@@ -1083,9 +1410,11 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                 </div>
 
                 <div>
-                  <span className="font-medium text-white">Date: </span>
+                  <span className="font-medium text-white">Availability: </span>
                   <span className="text-gray-300">
-                    {formatDate(formData.date)}
+                    {formData.availabilityDates.length > 0
+                      ? `${formData.availabilityDates.length} date(s) selected`
+                      : "No dates selected"}
                   </span>
                 </div>
 
@@ -1128,22 +1457,13 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                         {formData.services.join(", ")}
                       </span>
                     </div>
-                    {formData.availability.length > 0 && (
+                    {formData.availabilityDates.length > 0 && (
                       <div>
                         <span className="font-medium text-white">
                           Availability:{" "}
                         </span>
                         <span className="text-gray-300">
-                          {formData.availability[0] instanceof Date
-                            ? formData.availability[0].toLocaleDateString(
-                                "en-US",
-                                {
-                                  month: "short",
-                                  day: "numeric",
-                                  year: "numeric",
-                                }
-                              )
-                            : formData.availability[0]}
+                          {formData.availabilityDates.length} date(s) selected
                         </span>
                       </div>
                     )}
@@ -1154,7 +1474,9 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
               <p className="text-sm text-gray-300">
                 {mode === "book"
                   ? "Your booking request will be sent to matching professionals in your area."
-                  : "Your professional profile will be visible to clients looking for your services."}
+                  : mode === "get-booked"
+                    ? "Your professional profile will be visible to clients looking for your services."
+                    : "Your request will be processed."}
               </p>
             </div>
           )}
@@ -1167,6 +1489,9 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
 
   return (
     <div className="min-h-screen relative">
+      {/* Custom DatePicker Styles */}
+      <style dangerouslySetInnerHTML={{ __html: datePickerStyles }} />
+
       {/* Hero Background */}
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
@@ -1281,8 +1606,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                   Next
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
-              ) : (
-                // !submitSuccess && (
+              ) : !submitSuccess ? (
                 <Button
                   onClick={handleComplete}
                   disabled={isSubmitting}
@@ -1300,6 +1624,13 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                   ) : (
                     "Create Professional Profile"
                   )}
+                </Button>
+              ) : (
+                <Button
+                  onClick={() => navigate("/connect/book")}
+                  className="bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600 shadow-lg shadow-blue-500/25"
+                >
+                  Start New Search
                 </Button>
               )}
             </div>
