@@ -83,7 +83,7 @@ class ProfessionalService {
     danceStyle: string
   ): Promise<ProfessionalSearchResponse> {
     return apiRequest(
-      `${this.baseUrl}/by-dance-style?dance_style=${encodeURIComponent(danceStyle)}`,
+      `${this.baseUrl}/by-dance-style?danceStyle=${encodeURIComponent(danceStyle)}`,
       {
         method: "GET",
         requireAuth: true,

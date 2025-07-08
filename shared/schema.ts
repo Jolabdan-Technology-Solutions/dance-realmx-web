@@ -137,15 +137,15 @@ export interface Course {
   title: string;
   shortName: string;
   description?: string;
-  imageUrl?: string;
+  image_url?: string;
   price: number;
-  instructorId: number;
+  instructor_id: number;
   visible: boolean;
-  categoryId?: number;
-  level?: string;
+  category_id?: number;
+  difficulty_level?: string;
   duration?: string;
-  createdAt?: string;
-  updatedAt?: string;
+  created_at?: string;
+  updated_at?: string;
   featured?: boolean;
 }
 
@@ -153,7 +153,7 @@ export interface Category {
   id: number;
   name: string;
   description?: string;
-  imageUrl?: string;
+  image_url?: string;
 }
 
 export interface Resource {
@@ -163,7 +163,7 @@ export interface Resource {
   price: number;
   resourceType: ResourceType;
   status: ResourceStatusType;
-  sellerId: number;
+  seller_id: number;
   isApproved: boolean;
 }
 
@@ -184,8 +184,8 @@ export interface SubscriptionPlan {
   featureDetails: any | null;
   unlockedRoles: string[];
   tier: string;
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
 }
 
 // Export USER_ROLES as an alias for UserRoles for backward compatibility

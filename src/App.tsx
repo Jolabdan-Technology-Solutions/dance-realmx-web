@@ -398,6 +398,7 @@ function Router() {
           path="/courses/:courseId/modules/:moduleId/lessons/:lessonId"
           component={Pages.Lesson}
         />
+        <ProtectedRoute path="/lesson/:courseId" component={Pages.Lesson} />
         <ProtectedRoute
           path="/courses/:courseId/modules/:moduleId/quizzes/:quizId"
           component={Pages.Quiz}
@@ -586,16 +587,6 @@ function Router() {
         <ProtectedRoute
           path="/instructor/courses/:id"
           component={Pages.CourseDetail}
-        />
-
-        <ProtectedRoute
-          path="/connect/get-booked"
-          component={Pages.getBooked}
-        />
-
-        <ProtectedRoute
-          path="/connect/book"
-          component={Pages.bookProfessional}
         />
 
         <ProtectedRoute

@@ -252,7 +252,7 @@ function GuestMenu() {
           Sign In
         </Button>
       </Link>
-      <Link href="/register">
+      <Link href="/auth">
         <Button className="rounded-full bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90 font-bold">
           Sign Up
         </Button>
@@ -273,7 +273,7 @@ function MobileGuestMenu() {
           Sign In
         </Button>
       </Link>
-      <Link href="/register">
+      <Link href="/auth">
         <Button className="w-full rounded-full bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90 font-bold">
           Get Started
         </Button>

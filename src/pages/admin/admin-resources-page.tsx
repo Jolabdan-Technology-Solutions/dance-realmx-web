@@ -1,4 +1,4 @@
-import { FileText, Search, Trash, Edit, Award, ThumbsUp, Package, Check, X, Plus, Upload } from "lucide-react";
+import { FileText, Search, Trash, Edit, Award, ThumbsUp, Package, Check, X, Plus, Upload, Image } from "lucide-react";
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
@@ -26,16 +26,60 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
-import { FileUpload } from "@/components/ui/file-upload";
+import { Separator } from "@/components/ui/separator";
+import { Label } from "@/components/ui/label";
+
+// API Configuration
+const API_BASE_URL = "https://api.livetestdomain.com";
+const UPLOAD_ENDPOINT = "https://api.livetestdomain.com/api/upload";
+const AUTH_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFkbWluIiwic3ViIjoxLCJlbWFpbCI6ImFkbWluQGV4YW1wbGUuY29tIiwicm9sZXMiOltdLCJpYXQiOjE3NTE0Mzc4OTAsImV4cCI6MTc1MTUyNDI5MH0.aErXDDsdvNrc4_BYpJaEmPquoI-yOZUXDSfL87DmFoo";
 
 // Helper for price formatting
-const formatPrice = (price: string | null) => {
+const formatPrice = (price: string | number | null) => {
   if (!price) return "$0.00";
-  return `$${parseFloat(price).toFixed(2)}`;
+  const numPrice = typeof price === 'string' ? parseFloat(price) : price;
+  return `$${numPrice.toFixed(2)}`;
+};
+
+// Helper for file type detection
+const getResourceType = (fileUrl: string, fileName: string = '') => {
+  const url = fileUrl.toLowerCase();
+  const name = fileName.toLowerCase();
+  
+  if (url.includes('.mp4') || url.includes('.mov') || url.includes('.avi') || name.includes('.mp4')) {
+    return 'VIDEO';
+  }
+  if (url.includes('.mp3') || url.includes('.wav') || url.includes('.m4a') || name.includes('.mp3')) {
+    return 'AUDIO';
+  }
+  if (url.includes('.pdf') || name.includes('.pdf')) {
+    return 'DOCUMENT';
+  }
+  if (url.includes('.jpg') || url.includes('.png') || url.includes('.jpeg') || name.includes('.jpg')) {
+    return 'IMAGE';
+  }
+  return 'DOCUMENT'; // Default fallback
 };
 
 // Placeholder seller image
 const DEFAULT_SELLER_IMAGE = "https://ui-avatars.com/api/?name=Unknown&background=random";
+
+// Dance styles options
+const DANCE_STYLES = [
+  "Ballet", "Hip-Hop", "Jazz", "Contemporary", "Salsa", "Bachata", 
+  "Ballroom", "Latin", "Tap", "Lyrical", "Commercial", "Breakdancing",
+  "Krump", "House", "Waacking", "Voguing", "Other"
+];
+
+// Difficulty levels
+const DIFFICULTY_LEVELS = [
+  "Beginner", "Intermediate", "Advanced", "Professional"
+];
+
+// Age ranges
+const AGE_RANGES = [
+  "3-5", "6-8", "9-12", "13-17", "18-25", "26-35", "36-45", "46+", "All Ages"
+];
 
 export default function AdminResourcesPage() {
   const { toast } = useToast();
@@ -46,20 +90,25 @@ export default function AdminResourcesPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
+  const [uploadedThumbnailUrl, setUploadedThumbnailUrl] = useState<string | null>(null);
+  const [resourceType, setResourceType] = useState<string>('VIDEO');
+  const [isMainFileUploading, setIsMainFileUploading] = useState(false);
+  const [isThumbnailUploading, setIsThumbnailUploading] = useState(false);
   
-  // Fetch resources
+  // Fetch resources from the new API
   const { data: resources = [], isLoading } = useQuery({
-    queryKey: ["/api/admin/resources"],
+    queryKey: ["/api/resources"],
     queryFn: async () => {
-      const res = await apiRequest("GET", "/api/admin/resources");
+      const res = await fetch(`${API_BASE_URL}/api/resources`, {
+        headers: {
+          'Authorization': `Bearer ${AUTH_TOKEN}`,
+        },
+      });
+      if (!res.ok) {
+        throw new Error('Failed to fetch resources');
+      }
       const data = await res.json();
       console.log("Resources from API:", data);
-      // Check for any pending resources (including pending and pending_approval)
-      const pendingResources = data.filter((r: any) => {
-        const status = (r.status || "").toLowerCase();
-        return status === "pending" || status === "pending_approval";
-      });
-      console.log("Pending approval resources:", pendingResources);
       return data;
     }
   });
@@ -73,14 +122,64 @@ export default function AdminResourcesPage() {
     }
   });
   
+  // Create resource mutation with new API
+  const createResourceMutation = useMutation({
+    mutationFn: async (resourceData: any) => {
+      const response = await fetch(`${API_BASE_URL}/api/resources`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${AUTH_TOKEN}`,
+        },
+        body: JSON.stringify(resourceData),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      }
+      
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/resources"] });
+      toast({
+        title: "Resource Created Successfully",
+        description: `"${data.title}" has been added to the curriculum.`,
+      });
+      setIsCreateDialogOpen(false);
+      resetCreateForm();
+    },
+    onError: (error) => {
+      toast({
+        title: "Creation Failed",
+        description: error instanceof Error ? error.message : "Failed to create resource",
+        variant: "destructive",
+      });
+    }
+  });
+
   // Update resource mutation
   const updateResourceMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number, data: any }) => {
-      const res = await apiRequest("PATCH", `/api/admin/resources/${id}`, data);
-      return await res.json();
+      const response = await fetch(`${API_BASE_URL}/api/resources/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${AUTH_TOKEN}`,
+        },
+        body: JSON.stringify(data),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      }
+      
+      return await response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/resources"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/resources"] });
       toast({
         title: "Resource Updated",
         description: "The resource has been updated successfully.",
@@ -99,11 +198,21 @@ export default function AdminResourcesPage() {
   // Delete resource mutation
   const deleteResourceMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await apiRequest("DELETE", `/api/admin/resources/${id}`);
-      return await res.json();
+      const response = await fetch(`${API_BASE_URL}/api/resources/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${AUTH_TOKEN}`,
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return response.status === 204 ? {} : await response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/resources"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/resources"] });
       toast({
         title: "Resource Deleted",
         description: "The resource has been deleted successfully.",
@@ -119,34 +228,18 @@ export default function AdminResourcesPage() {
     }
   });
   
-  // Create resource mutation
-  const createResourceMutation = useMutation({
-    mutationFn: async (formData: FormData) => {
-      const res = await apiRequest("POST", "/api/resources", formData, { isFormData: true });
-      return await res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/resources"] });
-      toast({
-        title: "Resource Created",
-        description: "The resource has been created successfully.",
-      });
-      setIsCreateDialogOpen(false);
-      setUploadedFileUrl(null);
-    },
-    onError: (error) => {
-      toast({
-        title: "Creation Failed",
-        description: error instanceof Error ? error.message : "Failed to create resource",
-        variant: "destructive",
-      });
-    }
-  });
+  // Reset create form
+  const resetCreateForm = () => {
+    setUploadedFileUrl(null);
+    setUploadedThumbnailUrl(null);
+    setResourceType('VIDEO');
+    setIsMainFileUploading(false);
+    setIsThumbnailUploading(false);
+  };
   
-  // Calculate counts for each category - this logic must match the isResourcePending logic in the filteredResources
+  // Calculate counts for each category
   const pendingCount = resources.filter((r: any) => {
     const status = (r.status || "").toLowerCase();
-    // This must match the isResourcePending criteria below
     return status === "pending" || status === "pending_approval" || r.isApproved === false;
   }).length;
   
@@ -163,46 +256,25 @@ export default function AdminResourcesPage() {
   const featuredCount = resources.filter((r: any) => r.isFeatured === true).length;
   
   // Filter resources based on search and tab
-  console.log("Current selected tab:", selectedTab);
-  console.log("Resources from API:", resources);
-  console.log("Pending count:", pendingCount);
-  
   const filteredResources = resources.filter((resource: any) => {
-    // Log all resource statuses to help debug
-    console.log(`Resource ID ${resource.id}, title: "${resource.title}", status: "${resource.status}", isFeatured: ${!!resource.isFeatured}`);
-    
     const matchesSearch = 
       !searchQuery || 
       resource.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       resource.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      resource.sellerName?.toLowerCase().includes(searchQuery.toLowerCase());
+      resource.danceStyle?.toLowerCase().includes(searchQuery.toLowerCase());
     
-    // Handle status value case sensitivity and nulls
     const resourceStatus = (resource.status || "").toLowerCase();
-    
-    // Group similar statuses together for filtering
-    // Make sure both logics use the same criteria
     const isResourcePending = resourceStatus === "pending" || 
                              resourceStatus === "pending_approval" || 
                              resource.isApproved === false;
     
-    // Consider both "approved" and "published"/"active" as approved statuses
     const isResourceApproved = resourceStatus === "approved" || 
                              resourceStatus === "published" || 
                              resourceStatus === "active" ||
                              resource.isApproved === true;
                              
     const isResourceRejected = resourceStatus === "rejected";
-    const isResourceFeatured = resource.isFeatured === true; // Ensure strict boolean check
-    
-    // Add extra logging for the current tab
-    console.log(`Tab: ${selectedTab}, Resource: ${resource.id}, Matches: ${
-      selectedTab === "all" ? "true" : 
-      selectedTab === "pending" && isResourcePending ? "true" : 
-      selectedTab === "approved" && isResourceApproved ? "true" : 
-      selectedTab === "rejected" && isResourceRejected ? "true" : 
-      selectedTab === "featured" && isResourceFeatured ? "true" : "false"
-    }`);
+    const isResourceFeatured = resource.isFeatured === true;
     
     if (selectedTab === "all") return matchesSearch;
     if (selectedTab === "pending") return matchesSearch && isResourcePending;
@@ -213,42 +285,96 @@ export default function AdminResourcesPage() {
     return matchesSearch;
   });
   
-  // Handle resource edit form submission
+  // Handle resource creation form submission
+  const handleCreateResource = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target as HTMLFormElement);
+    
+    // Enhanced validation with better error messages
+    if (!uploadedFileUrl) {
+      toast({
+        title: "Main File Required",
+        description: "Please upload the main resource file before creating the resource. Click 'Choose Main File' to upload.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (isMainFileUploading || isThumbnailUploading) {
+      toast({
+        title: "Upload In Progress",
+        description: "Please wait for the file upload to complete before submitting.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Check required form fields
+    const title = formData.get("title") as string;
+    const description = formData.get("description") as string;
+    const price = formData.get("price") as string;
+    const danceStyle = formData.get("danceStyle") as string;
+    const difficultyLevel = formData.get("difficultyLevel") as string;
+    const ageRange = formData.get("ageRange") as string;
+    
+    if (!title || !description || !danceStyle || !difficultyLevel || !ageRange) {
+      toast({
+        title: "Required Fields Missing",
+        description: "Please fill in all required fields (marked with *).",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Build the payload according to API specification
+    const resourcePayload = {
+      title,
+      description,
+      price: parseFloat(price || "0"),
+      ageRange,
+      categoryId: parseInt(formData.get("categoryId") as string) || null,
+      danceStyle,
+      difficultyLevel,
+      thumbnailUrl: uploadedThumbnailUrl || "",
+      type: resourceType,
+      url: uploadedFileUrl
+    };
+    
+    console.log("Sending resource payload:", resourcePayload);
+    
+    // Show a loading toast
+    toast({
+      title: "Creating Resource",
+      description: "Please wait while we create your resource...",
+    });
+    
+    createResourceMutation.mutate(resourcePayload);
+  };
+  
+  // Handle resource edit
   const handleUpdateResource = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedResource) return;
     
     const formData = new FormData(e.target as HTMLFormElement);
     
-    // Helper to safely format price values
-    const safeFormatPrice = (value: string | null): string | undefined => {
-      if (!value || value === '') return undefined;
-      const numValue = parseFloat(value);
-      return isNaN(numValue) ? undefined : numValue.toString();
-    };
-    
-    const price = safeFormatPrice(formData.get("price") as string);
-    const pricePremium = safeFormatPrice(formData.get("pricePremium") as string);
-    const priceRoyalty = safeFormatPrice(formData.get("priceRoyalty") as string);
-    
-    const data: any = {
+    const updateData = {
       title: formData.get("title") as string,
       description: formData.get("description") as string,
+      price: parseFloat(formData.get("price") as string || "0"),
+      ageRange: formData.get("ageRange") as string,
+      danceStyle: formData.get("danceStyle") as string,
+      difficultyLevel: formData.get("difficultyLevel") as string,
       status: formData.get("status") as string,
       isFeatured: formData.has("isFeatured"),
     };
     
-    // Only add price fields if they have valid values
-    if (price !== undefined) data.price = price;
-    if (pricePremium !== undefined) data.pricePremium = pricePremium;
-    if (priceRoyalty !== undefined) data.priceRoyalty = priceRoyalty;
-    
-    updateResourceMutation.mutate({ id: selectedResource.id, data });
+    updateResourceMutation.mutate({ id: selectedResource.id, data: updateData });
   };
   
   // Handle quick status change
   const handleQuickStatusChange = (id: number, status: string) => {
-    // Update both status and isApproved fields for consistency
     const isApproved = status === "approved" ? true : (status === "rejected" ? false : null);
     
     updateResourceMutation.mutate({ 
@@ -260,7 +386,7 @@ export default function AdminResourcesPage() {
     });
   };
   
-  // Handle quick featured toggle
+  // Handle featured toggle
   const handleFeaturedToggle = (id: number, isFeatured: boolean) => {
     updateResourceMutation.mutate({ 
       id, 
@@ -268,49 +394,20 @@ export default function AdminResourcesPage() {
     });
   };
   
-  // Open the edit dialog with a resource
+  // Dialog handlers
   const openEditDialog = (resource: any) => {
     setSelectedResource(resource);
     setIsEditDialogOpen(true);
   };
   
-  // Open the delete confirmation dialog
   const openDeleteDialog = (resource: any) => {
     setSelectedResource(resource);
     setIsDeleteDialogOpen(true);
   };
   
-  // Handle resource creation form submission
-  const handleCreateResource = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    const formData = new FormData(e.target as HTMLFormElement);
-    
-    // If no file URL is available, show an error
-    if (!uploadedFileUrl) {
-      toast({
-        title: "File Required",
-        description: "Please upload a file for this resource.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // Add the file URL to the form data
-    formData.append("fileUrl", uploadedFileUrl);
-    
-    // Set default values for fields that might be empty
-    if (!formData.get("status")) {
-      formData.append("status", "pending");
-    }
-    
-    createResourceMutation.mutate(formData);
-  };
-  
   const getStatusBadge = (status: string, isApproved?: boolean) => {
     const statusLower = (status || "").toLowerCase();
     
-    // Check both status value and isApproved flag
     if (statusLower === "approved") {
       return <Badge className="bg-green-600">Approved</Badge>;
     } else if (statusLower === "published" || statusLower === "active") {
@@ -324,12 +421,27 @@ export default function AdminResourcesPage() {
     }
   };
   
+  const getResourceTypeIcon = (type: string) => {
+    switch (type?.toUpperCase()) {
+      case 'VIDEO':
+        return <div className="w-2 h-2 rounded-full bg-red-500"></div>;
+      case 'AUDIO':
+        return <div className="w-2 h-2 rounded-full bg-blue-500"></div>;
+      case 'DOCUMENT':
+        return <div className="w-2 h-2 rounded-full bg-green-500"></div>;
+      case 'IMAGE':
+        return <div className="w-2 h-2 rounded-full bg-purple-500"></div>;
+      default:
+        return <div className="w-2 h-2 rounded-full bg-gray-500"></div>;
+    }
+  };
+  
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Resource Management</h1>
-          <p className="text-gray-400">Manage curriculum resources</p>
+          <p className="text-gray-400">Manage dance curriculum resources and content</p>
         </div>
         
         <Button 
@@ -344,7 +456,7 @@ export default function AdminResourcesPage() {
       <div className="flex items-center space-x-2">
         <Search className="h-4 w-4 text-gray-400" />
         <Input
-          placeholder="Search resources by title, description, or seller..."
+          placeholder="Search resources by title, description, or dance style..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="max-w-md"
@@ -411,6 +523,11 @@ export default function AdminResourcesPage() {
                 <div className="flex flex-col items-center justify-center p-8">
                   <FileText className="h-12 w-12 text-gray-400 mb-4" />
                   <p className="text-gray-400 text-center">No resources found</p>
+                  {searchQuery && (
+                    <p className="text-sm text-gray-500 mt-2">
+                      Try adjusting your search criteria
+                    </p>
+                  )}
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -418,10 +535,10 @@ export default function AdminResourcesPage() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Resource</TableHead>
-                        <TableHead>Seller</TableHead>
+                        <TableHead>Type & Style</TableHead>
+                        <TableHead>Details</TableHead>
+                        <TableHead>Price</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead>Pricing</TableHead>
-                        <TableHead>Featured</TableHead>
                         <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -430,10 +547,10 @@ export default function AdminResourcesPage() {
                         <TableRow key={resource.id}>
                           <TableCell>
                             <div className="flex items-center space-x-3">
-                              <div className="h-10 w-10 rounded bg-gray-800 flex items-center justify-center overflow-hidden">
-                                {resource.imageUrl ? (
+                              <div className="h-12 w-12 rounded bg-gray-800 flex items-center justify-center overflow-hidden">
+                                {resource.thumbnailUrl ? (
                                   <img 
-                                    src={resource.imageUrl} 
+                                    src={resource.thumbnailUrl} 
                                     alt={resource.title}
                                     className="h-full w-full object-cover"
                                   />
@@ -456,40 +573,24 @@ export default function AdminResourcesPage() {
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center space-x-2">
-                              <div className="h-6 w-6 rounded-full overflow-hidden">
-                                <img 
-                                  src={resource.seller.profile_image_url || DEFAULT_SELLER_IMAGE}
-                                  alt={resource.sellerName} 
-                                  className="h-full w-full object-cover"
-                                />
+                              {getResourceTypeIcon(resource.type)}
+                              <div className="flex flex-col">
+                                <span className="text-sm font-medium">{resource.type}</span>
+                                <span className="text-xs text-gray-400">{resource.danceStyle}</span>
                               </div>
-                              <span>{resource.sellerName}</span>
                             </div>
-                          </TableCell>
-                          <TableCell>
-                            {getStatusBadge(resource.status || "pending", resource.isApproved)}
                           </TableCell>
                           <TableCell>
                             <div className="space-y-1 text-sm">
-                              <div>Standard: {formatPrice(resource.price)}</div>
-                              <div className="text-blue-400">Premium: {formatPrice(resource.pricePremium)}</div>
-                              <div className="text-purple-400">Royalty: {formatPrice(resource.priceRoyalty)}</div>
+                              <div><span className="text-gray-400">Level:</span> {resource.difficultyLevel}</div>
+                              <div><span className="text-gray-400">Age:</span> {resource.ageRange}</div>
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Button
-                              variant={resource.isFeatured ? "default" : "ghost"}
-                              size="sm"
-                              onClick={() => handleFeaturedToggle(resource.id, resource.isFeatured)}
-                              className={resource.isFeatured ? "bg-blue-600 hover:bg-blue-700" : ""}
-                            >
-                              {resource.isFeatured ? (
-                                <Award className="h-4 w-4 text-white" />
-                              ) : (
-                                <Award className="h-4 w-4 text-gray-400" />
-                              )}
-                              <span className="ml-2">{resource.isFeatured ? "Featured" : "Not Featured"}</span>
-                            </Button>
+                            <div className="font-medium">{formatPrice(resource.price)}</div>
+                          </TableCell>
+                          <TableCell>
+                            {getStatusBadge(resource.status || "pending", resource.isApproved)}
                           </TableCell>
                           <TableCell>
                             <div className="flex space-x-2">
@@ -543,6 +644,614 @@ export default function AdminResourcesPage() {
         </TabsContent>
       </Tabs>
       
+      {/* Create Resource Dialog */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create New Dance Resource</DialogTitle>
+            <DialogDescription>
+              Upload a new dance curriculum resource to the platform.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={handleCreateResource}>
+            <div className="grid gap-6 py-4">
+              {/* File Upload Section */}
+              <div className="space-y-4">
+                <Label className="text-base font-semibold">Resource Files</Label>
+                
+                {/* Main Resource File */}
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
+                  <div className="text-center space-y-2">
+                    <Upload className="h-8 w-8 text-gray-400 mx-auto" />
+                    <div>
+                      <Label className="text-sm font-medium">Main Resource File *</Label>
+                      <p className="text-xs text-gray-500">Upload your dance instruction video, audio, or document</p>
+                    </div>
+                  </div>
+                  
+                  {/* Custom File Selection and Upload */}
+                  <div className="mt-4 space-y-4">
+                    {!uploadedFileUrl ? (
+                      <div className="text-center">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                          onClick={() => document.getElementById('main-file-input')?.click()}
+                          disabled={isMainFileUploading}
+                        >
+                          {isMainFileUploading ? (
+                            <>
+                              <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full mr-2"></div>
+                              Uploading...
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="h-4 w-4 mr-2" />
+                              Choose Main File
+                            </>
+                          )}
+                        </Button>
+                        
+                        {/* Hidden file input */}
+                        <input
+                          id="main-file-input"
+                          type="file"
+                          accept="video/*,audio/*,application/pdf,.doc,.docx,image/*"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            
+                            // Validate file size
+                            if (file.size > 50 * 1024 * 1024) {
+                              toast({
+                                title: "File Too Large",
+                                description: "Please select a file smaller than 50MB.",
+                                variant: "destructive",
+                              });
+                              return;
+                            }
+                            
+                            setIsMainFileUploading(true);
+                            
+                            try {
+                              console.log("Starting file upload to:", UPLOAD_ENDPOINT);
+                              console.log("Using authentication: Bearer token");
+                              console.log("File details:", {
+                                name: file.name,
+                                size: (file.size / 1024 / 1024).toFixed(2) + "MB",
+                                type: file.type
+                              });
+                              console.log("Sending only file data (no additional metadata)");
+                              
+                              // Create FormData
+                              const formData = new FormData();
+                              formData.append('file', file);
+                              // Remove type and entity_type fields as API doesn't expect them
+                              
+                              // Debug FormData contents
+                              console.log("Thumbnail FormData contents:");
+                              for (let [key, value] of formData.entries()) {
+                                if (value instanceof File) {
+                                  console.log(`- ${key}: File[${value.name}, ${value.size} bytes, ${value.type}]`);
+                                } else {
+                                  console.log(`- ${key}: ${value}`);
+                                }
+                              }
+                              
+                              // Debug FormData contents
+                              console.log("FormData contents:");
+                              for (let [key, value] of formData.entries()) {
+                                if (value instanceof File) {
+                                  console.log(`- ${key}: File[${value.name}, ${value.size} bytes, ${value.type}]`);
+                                } else {
+                                  console.log(`- ${key}: ${value}`);
+                                }
+                              }
+                              
+                              // Upload to server
+                              const response = await fetch(UPLOAD_ENDPOINT, {
+                                method: 'POST',
+                                body: formData,
+                                headers: {
+                                  'Authorization': `Bearer ${AUTH_TOKEN}`,
+                                  // Don't set Content-Type - let browser set it with boundary
+                                }
+                              });
+                              
+                              if (!response.ok) {
+                                let errorMessage = `Upload failed with status ${response.status}`;
+                                try {
+                                  const errorData = await response.json();
+                                  console.error("API Error Response:", errorData);
+                                  errorMessage = errorData.message || errorData.error || errorMessage;
+                                  if (Array.isArray(errorData.message)) {
+                                    errorMessage = errorData.message.join(', ');
+                                  }
+                                } catch (parseError) {
+                                  const errorText = await response.text();
+                                  console.error("Raw error response:", errorText);
+                                  errorMessage = errorText || errorMessage;
+                                }
+                                throw new Error(errorMessage);
+                              }
+                              
+                              const result = await response.json();
+                              console.log("Upload successful - Full response:", result);
+                              
+                              // Try multiple possible URL field names
+                              const fileUrl = result.url || 
+                                             result.file_url || 
+                                             result.fileUrl || 
+                                             result.downloadUrl ||
+                                             result.path ||
+                                             result.location ||
+                                             result.data?.url ||
+                                             result.data?.file_url;
+                              
+                              console.log("Extracted file URL:", fileUrl);
+                              console.log("Available response keys:", Object.keys(result));
+                              
+                              if (!fileUrl) {
+                                console.error("No file URL found in response. Available fields:", Object.keys(result));
+                                throw new Error(`No file URL returned from server. Response keys: ${Object.keys(result).join(', ')}`);
+                              }
+                              
+                              setUploadedFileUrl(fileUrl);
+                              
+                              // Detect resource type
+                              const detectedType = getResourceType(fileUrl, file.name);
+                              setResourceType(detectedType);
+                              
+                              console.log("File upload completed successfully:", {
+                                url: fileUrl,
+                                type: detectedType,
+                                uploadedFileUrl: fileUrl
+                              });
+                              
+                              toast({
+                                title: "File Uploaded Successfully",
+                                description: `${file.name} has been uploaded as a ${detectedType.toLowerCase()} resource.`,
+                              });
+                              
+                            } catch (error) {
+                              console.error("Upload error:", error);
+                              toast({
+                                title: "Upload Failed",
+                                description: error instanceof Error ? error.message : "Failed to upload file. Please try again.",
+                                variant: "destructive",
+                              });
+                            } finally {
+                              setIsMainFileUploading(false);
+                              // Reset the input
+                              e.target.value = '';
+                            }
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <div className="bg-green-50 border border-green-200 rounded-md p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            {getResourceTypeIcon(resourceType)}
+                            <div>
+                              <p className="text-sm font-medium text-green-800">
+                                ✓ File uploaded successfully
+                              </p>
+                              <p className="text-xs text-green-600">
+                                {uploadedFileUrl.split('/').pop()} ({resourceType})
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex space-x-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => document.getElementById('main-file-input')?.click()}
+                              className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                            >
+                              Change File
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setUploadedFileUrl(null);
+                                setResourceType('VIDEO');
+                              }}
+                              className="text-red-600 hover:text-red-800"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* File validation info */}
+                    <div className="text-xs text-gray-500 text-center">
+                      <p>Supported formats: MP4, MOV, MP3, WAV, PDF, DOC, DOCX, JPG, PNG</p>
+                      <p>Maximum file size: 50MB</p>
+                      
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Thumbnail Upload */}
+                <div className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <Image className="h-4 w-4 text-gray-500" />
+                    <Label className="text-sm font-medium">Thumbnail Image (Optional)</Label>
+                  </div>
+                  <p className="text-xs text-gray-500 mb-3">Upload a preview image for your resource</p>
+                  
+                  {/* Custom Thumbnail Selection and Upload */}
+                  <div className="space-y-3">
+                    {!uploadedThumbnailUrl ? (
+                      <div className="text-center">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100"
+                          onClick={() => document.getElementById('thumbnail-file-input')?.click()}
+                          disabled={isThumbnailUploading}
+                        >
+                          {isThumbnailUploading ? (
+                            <>
+                              <div className="animate-spin h-4 w-4 border-2 border-gray-600 border-t-transparent rounded-full mr-2"></div>
+                              Uploading...
+                            </>
+                          ) : (
+                            <>
+                              <Image className="h-4 w-4 mr-2" />
+                              Choose Thumbnail
+                            </>
+                          )}
+                        </Button>
+                        
+                        {/* Hidden thumbnail file input */}
+                        <input
+                          id="thumbnail-file-input"
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            
+                            // Validate file size
+                            if (file.size > 5 * 1024 * 1024) {
+                              toast({
+                                title: "Image Too Large",
+                                description: "Please select an image smaller than 5MB.",
+                                variant: "destructive",
+                              });
+                              return;
+                            }
+                            
+                            setIsThumbnailUploading(true);
+                            
+                            try {
+                              console.log("Starting thumbnail upload to:", UPLOAD_ENDPOINT);
+                              console.log("Using authentication: Bearer token");
+                              console.log("Thumbnail details:", {
+                                name: file.name,
+                                size: (file.size / 1024 / 1024).toFixed(2) + "MB",
+                                type: file.type
+                              });
+                              console.log("Sending only file data (no additional metadata)");
+                              
+                              // Create FormData
+                              const formData = new FormData();
+                              formData.append('file', file);
+                              // Remove type and entity_type fields as API doesn't expect them
+                              
+                              // Upload to server
+                              const response = await fetch(UPLOAD_ENDPOINT, {
+                                method: 'POST',
+                                body: formData,
+                                headers: {
+                                  'Authorization': `Bearer ${AUTH_TOKEN}`,
+                                  // Don't set Content-Type - let browser set it with boundary
+                                }
+                              });
+                              
+                              if (!response.ok) {
+                                let errorMessage = `Thumbnail upload failed with status ${response.status}`;
+                                try {
+                                  const errorData = await response.json();
+                                  console.error("Thumbnail API Error Response:", errorData);
+                                  errorMessage = errorData.message || errorData.error || errorMessage;
+                                  if (Array.isArray(errorData.message)) {
+                                    errorMessage = errorData.message.join(', ');
+                                  }
+                                } catch (parseError) {
+                                  const errorText = await response.text();
+                                  console.error("Raw thumbnail error response:", errorText);
+                                  errorMessage = errorText || errorMessage;
+                                }
+                                throw new Error(errorMessage);
+                              }
+                              
+                              const result = await response.json();
+                              console.log("Thumbnail upload successful - Full response:", result);
+                              
+                              // Try multiple possible URL field names
+                              const imageUrl = result.url || 
+                                              result.image_url || 
+                                              result.fileUrl || 
+                                              result.file_url ||
+                                              result.downloadUrl ||
+                                              result.path ||
+                                              result.location ||
+                                              result.data?.url ||
+                                              result.data?.image_url;
+                              
+                              console.log("Extracted thumbnail URL:", imageUrl);
+                              console.log("Available response keys:", Object.keys(result));
+                              
+                              if (!imageUrl) {
+                                console.error("No image URL found in response. Available fields:", Object.keys(result));
+                                throw new Error(`No image URL returned from server. Response keys: ${Object.keys(result).join(', ')}`);
+                              }
+                              
+                              setUploadedThumbnailUrl(imageUrl);
+                              
+                              console.log("Thumbnail upload completed successfully:", {
+                                url: imageUrl,
+                                uploadedThumbnailUrl: imageUrl
+                              });
+                              
+                              toast({
+                                title: "Thumbnail Uploaded",
+                                description: `${file.name} has been uploaded successfully.`,
+                              });
+                              
+                            } catch (error) {
+                              console.error("Thumbnail upload error:", error);
+                              toast({
+                                title: "Thumbnail Upload Failed",
+                                description: error instanceof Error ? error.message : "Failed to upload thumbnail. Please try again.",
+                                variant: "destructive",
+                              });
+                            } finally {
+                              setIsThumbnailUploading(false);
+                              // Reset the input
+                              e.target.value = '';
+                            }
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <div className="bg-green-50 border border-green-200 rounded-md p-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <img 
+                              src={uploadedThumbnailUrl} 
+                              alt="Thumbnail preview" 
+                              className="h-10 w-10 rounded object-cover border border-green-300"
+                            />
+                            <div>
+                              <p className="text-sm font-medium text-green-800">
+                                ✓ Thumbnail uploaded
+                              </p>
+                              <p className="text-xs text-green-600">
+                                {uploadedThumbnailUrl.split('/').pop()}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex space-x-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => document.getElementById('thumbnail-file-input')?.click()}
+                              className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                            >
+                              Change
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setUploadedThumbnailUrl(null)}
+                              className="text-red-600 hover:text-red-800"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="text-xs text-gray-500 text-center">
+                      <p>Supported formats: JPG, PNG, GIF, WebP</p>
+                      <p>Maximum file size: 5MB</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+              
+              {/* Basic Information */}
+              <div className="space-y-4">
+                <Label className="text-base font-semibold">Basic Information</Label>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="title">Title *</Label>
+                    <Input
+                      id="title"
+                      name="title"
+                      required
+                      placeholder="e.g., Beginner Salsa Routine"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="price">Price ($) *</Label>
+                    <Input
+                      id="price"
+                      name="price"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      required
+                      placeholder="29.99"
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <Label htmlFor="description">Description *</Label>
+                  <Textarea
+                    id="description"
+                    name="description"
+                    rows={3}
+                    required
+                    placeholder="Describe what students will learn from this resource..."
+                  />
+                </div>
+              </div>
+
+              <Separator />
+              
+              {/* Dance Specifics */}
+              <div className="space-y-4">
+                <Label className="text-base font-semibold">Dance Specifics</Label>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="danceStyle">Dance Style *</Label>
+                    <Select name="danceStyle" required>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select dance style" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DANCE_STYLES.map((style) => (
+                          <SelectItem key={style} value={style}>
+                            {style}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="difficultyLevel">Difficulty Level *</Label>
+                    <Select name="difficultyLevel" required>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select difficulty" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DIFFICULTY_LEVELS.map((level) => (
+                          <SelectItem key={level} value={level}>
+                            {level}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="ageRange">Age Range *</Label>
+                    <Select name="ageRange" required>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select age range" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {AGE_RANGES.map((range) => (
+                          <SelectItem key={range} value={range}>
+                            {range}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+              
+              {/* Category */}
+              <div className="space-y-4">
+                <Label className="text-base font-semibold">Organization</Label>
+                
+                <div>
+                  <Label htmlFor="categoryId">Category (Optional)</Label>
+                  <Select name="categoryId">
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((category: any) => (
+                        <SelectItem key={category.id} value={category.id.toString()}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+            
+            <DialogFooter className="mt-6">
+              {/* Status indicator for form completion */}
+              <div className="flex-1 text-left">
+                {!uploadedFileUrl && (
+                  <div className="text-sm text-amber-600 mb-2">
+                    {/* <span className="font-medium">⚠️ Upload a main file to enable resource creation</span> */}
+                  </div>
+                )}
+                {uploadedFileUrl && !createResourceMutation.isPending && (
+                  <div className="text-sm text-green-600 mb-2">
+                    <span className="font-medium">✅ Ready to create resource</span>
+                  </div>
+                )}
+                {(isMainFileUploading || isThumbnailUploading) && (
+                  <div className="text-sm text-blue-600 mb-2">
+                    <span className="font-medium">⏳ Upload in progress...</span>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex space-x-2">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => {
+                    setIsCreateDialogOpen(false);
+                    resetCreateForm();
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit"
+                  disabled={createResourceMutation.isPending || !uploadedFileUrl || isMainFileUploading || isThumbnailUploading}
+                  className="bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {createResourceMutation.isPending ? (
+                    <>
+                      <div className="animate-spin h-4 w-4 border-2 border-black border-t-transparent rounded-full mr-2"></div>
+                      Creating...
+                    </>
+                  ) : (
+                    "Create Resource"
+                  )}
+                </Button>
+              </div>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+      
       {/* Edit Resource Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-2xl">
@@ -558,9 +1267,7 @@ export default function AdminResourcesPage() {
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-1 gap-4">
                   <div>
-                    <label htmlFor="title" className="block text-sm font-medium mb-1">
-                      Title
-                    </label>
+                    <Label htmlFor="title">Title</Label>
                     <Input
                       id="title"
                       name="title"
@@ -570,9 +1277,7 @@ export default function AdminResourcesPage() {
                   </div>
                   
                   <div>
-                    <label htmlFor="description" className="block text-sm font-medium mb-1">
-                      Description
-                    </label>
+                    <Label htmlFor="description">Description</Label>
                     <Textarea
                       id="description"
                       name="description"
@@ -583,19 +1288,78 @@ export default function AdminResourcesPage() {
                   
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label htmlFor="status" className="block text-sm font-medium mb-1">
-                        Status
-                      </label>
+                      <Label htmlFor="danceStyle">Dance Style</Label>
+                      <Select name="danceStyle" defaultValue={selectedResource.danceStyle}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select dance style" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {DANCE_STYLES.map((style) => (
+                            <SelectItem key={style} value={style}>
+                              {style}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="difficultyLevel">Difficulty Level</Label>
+                      <Select name="difficultyLevel" defaultValue={selectedResource.difficultyLevel}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select difficulty" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {DIFFICULTY_LEVELS.map((level) => (
+                            <SelectItem key={level} value={level}>
+                              {level}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="ageRange">Age Range</Label>
+                      <Select name="ageRange" defaultValue={selectedResource.ageRange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select age range" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {AGE_RANGES.map((range) => (
+                            <SelectItem key={range} value={range}>
+                              {range}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="price">Price ($)</Label>
+                      <Input
+                        id="price"
+                        name="price"
+                        type="number"
+                        step="0.01"
+                        defaultValue={selectedResource.price || "0.00"}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="status">Status</Label>
                       <Select name="status" defaultValue={selectedResource.status || "pending"}>
                         <SelectTrigger>
                           <SelectValue placeholder="Select a status" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="pending">Pending</SelectItem>
-                          <SelectItem value="pending_approval">Pending Approval</SelectItem>
                           <SelectItem value="approved">Approved</SelectItem>
                           <SelectItem value="published">Published</SelectItem>
-                          <SelectItem value="active">Active</SelectItem>
                           <SelectItem value="rejected">Rejected</SelectItem>
                         </SelectContent>
                       </Select>
@@ -607,50 +1371,7 @@ export default function AdminResourcesPage() {
                         name="isFeatured"
                         defaultChecked={selectedResource.isFeatured}
                       />
-                      <label htmlFor="isFeatured" className="text-sm font-medium">
-                        Featured Resource
-                      </label>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <label htmlFor="price" className="block text-sm font-medium mb-1">
-                        Standard Price
-                      </label>
-                      <Input
-                        id="price"
-                        name="price"
-                        type="number"
-                        step="0.01"
-                        defaultValue={selectedResource.price || "0.00"}
-                      />
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="pricePremium" className="block text-sm font-medium mb-1">
-                        Premium Price
-                      </label>
-                      <Input
-                        id="pricePremium"
-                        name="pricePremium"
-                        type="number"
-                        step="0.01"
-                        defaultValue={selectedResource.pricePremium || "0.00"}
-                      />
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="priceRoyalty" className="block text-sm font-medium mb-1">
-                        Royalty Price
-                      </label>
-                      <Input
-                        id="priceRoyalty"
-                        name="priceRoyalty"
-                        type="number"
-                        step="0.01"
-                        defaultValue={selectedResource.priceRoyalty || "0.00"}
-                      />
+                      <Label htmlFor="isFeatured">Featured Resource</Label>
                     </div>
                   </div>
                 </div>
@@ -686,9 +1407,9 @@ export default function AdminResourcesPage() {
             <div className="py-4">
               <div className="flex items-center space-x-3 mb-4">
                 <div className="h-10 w-10 rounded bg-gray-800 flex items-center justify-center overflow-hidden">
-                  {selectedResource.imageUrl ? (
+                  {selectedResource.thumbnailUrl ? (
                     <img 
-                      src={selectedResource.imageUrl} 
+                      src={selectedResource.thumbnailUrl} 
                       alt={selectedResource.title}
                       className="h-full w-full object-cover"
                     />
@@ -698,7 +1419,9 @@ export default function AdminResourcesPage() {
                 </div>
                 <div>
                   <div className="font-medium">{selectedResource.title}</div>
-                  <div className="text-sm text-gray-400">By {selectedResource.sellerName}</div>
+                  <div className="text-sm text-gray-400">
+                    {selectedResource.danceStyle} • {selectedResource.difficultyLevel}
+                  </div>
                 </div>
               </div>
             </div>
@@ -716,205 +1439,6 @@ export default function AdminResourcesPage() {
               {deleteResourceMutation.isPending ? "Deleting..." : "Delete Resource"}
             </Button>
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Create Resource Dialog */}
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Create New Resource</DialogTitle>
-            <DialogDescription>
-              Upload a new curriculum resource to the platform.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <form onSubmit={handleCreateResource}>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-1 gap-4">
-                {/* File Upload */}
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                  <FileUpload
-                    onUploadComplete={(url) => {
-                      setUploadedFileUrl(url);
-                      
-                      // Extract file type from URL
-                      const fileType = url.includes('.pdf') ? 'pdf' 
-                        : url.includes('.mp3') ? 'audio'
-                        : url.includes('.mp4') ? 'video'
-                        : (url.includes('.jpg') || url.includes('.jpeg') || url.includes('.png')) ? 'image'
-                        : 'application';
-                    }}
-                    uploadEndpoint="/api/upload/curriculum-resource"
-                    acceptedTypes="application/pdf,image/*,audio/*,video/*,.doc,.docx"
-                    label="Resource File"
-                    buttonText="Browse Files"
-                    maxSizeMB={20}
-                  />
-                  
-                  {uploadedFileUrl && (
-                    <div className="mt-4 bg-gray-50 rounded-md p-3 flex items-center">
-                      <FileText className="h-5 w-5 text-gray-500 mr-2" />
-                      <span className="text-sm text-gray-500">
-                        {uploadedFileUrl.split('/').pop()}
-                      </span>
-                    </div>
-                  )}
-                  
-                  <p className="text-gray-500 text-sm mt-4">
-                    Supported file types: PDF, DOC, DOCX, MP3, MP4, JPG, PNG
-                  </p>
-                  <p className="text-gray-500 text-sm mt-2">
-                    Maximum file size: 20 MB
-                  </p>
-                </div>
-                
-                {/* Basic Info */}
-                <div>
-                  <label htmlFor="title" className="block text-sm font-medium mb-1">
-                    Title *
-                  </label>
-                  <Input
-                    id="title"
-                    name="title"
-                    required
-                    placeholder="Enter resource title"
-                  />
-                </div>
-                
-                <div>
-                  <label htmlFor="description" className="block text-sm font-medium mb-1">
-                    Description *
-                  </label>
-                  <Textarea
-                    id="description"
-                    name="description"
-                    rows={3}
-                    required
-                    placeholder="Enter a description of the resource"
-                  />
-                </div>
-                
-                <div>
-                  <label htmlFor="detailedDescription" className="block text-sm font-medium mb-1">
-                    Detailed Description (Optional)
-                  </label>
-                  <Textarea
-                    id="detailedDescription"
-                    name="detailedDescription"
-                    rows={5}
-                    placeholder="Enter a detailed description with formatting guidelines, usage instructions, etc."
-                  />
-                </div>
-                
-                {/* Categories */}
-                <div>
-                  <label htmlFor="categoryId" className="block text-sm font-medium mb-1">
-                    Category (Optional)
-                  </label>
-                  <Select name="categoryId">
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((category: any) => (
-                        <SelectItem key={category.id} value={category.id.toString()}>
-                          {category.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                {/* Pricing */}
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <label htmlFor="price" className="block text-sm font-medium mb-1">
-                      Standard Price ($)
-                    </label>
-                    <Input
-                      id="price"
-                      name="price"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      defaultValue="0"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label htmlFor="pricePremium" className="block text-sm font-medium mb-1">
-                      Premium Price ($)
-                    </label>
-                    <Input
-                      id="pricePremium"
-                      name="pricePremium"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      defaultValue="0"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label htmlFor="priceRoyalty" className="block text-sm font-medium mb-1">
-                      Royalty Price ($)
-                    </label>
-                    <Input
-                      id="priceRoyalty"
-                      name="priceRoyalty"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      defaultValue="0"
-                    />
-                  </div>
-                </div>
-                
-                {/* Status & Featured */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="status" className="block text-sm font-medium mb-1">
-                      Status
-                    </label>
-                    <Select name="status" defaultValue="pending">
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="approved">Approved</SelectItem>
-                        <SelectItem value="rejected">Rejected</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2 pt-6">
-                    <Checkbox 
-                      id="isFeatured" 
-                      name="isFeatured"
-                    />
-                    <label htmlFor="isFeatured" className="text-sm font-medium">
-                      Featured Resource
-                    </label>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button 
-                type="submit"
-                disabled={createResourceMutation.isPending || !uploadedFileUrl}
-                className="bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90"
-              >
-                {createResourceMutation.isPending ? "Creating..." : "Create Resource"}
-              </Button>
-            </DialogFooter>
-          </form>
         </DialogContent>
       </Dialog>
     </div>

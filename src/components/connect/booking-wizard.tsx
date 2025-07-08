@@ -27,6 +27,8 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { apiRequest } from "@/lib/queryClient";
 import { ProfessionalRecommendations } from "./professional-recommendations";
+import { ProfessionalSearchParams, professionalService } from "@/lib/professional-service";
+import { ComprehensiveRecommendations } from "./comprehensive-recommendations";
 
 // Custom styles for full-width date picker
 const datePickerStyles = `
@@ -163,7 +165,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     city: "",
     state: "",
     travel_distance: 20,
-    date: new Date(),
+    // date: new Date(),
     session_duration: 60,
     // Professional specific fields
     years_experience: 0,
@@ -173,7 +175,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     availabilityDates: [] as Array<{ date: Date; timeSlots: string[] }>,
     bio: "",
     portfolio: "",
-    pricing: 50,
+    pricing: 0,
     phone_number: "",
   });
 
@@ -329,9 +331,9 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     };
     return {
       ...basePayload,
-      timing: {
-        preferredDate: formData.date.toISOString(),
-      },
+      // timing: {
+      //   preferredDate: formData.date.toISOString(),
+      // },
       pricing: {
         budgetMin: formData.priceMin,
         budgetMax: formData.priceMax,
@@ -415,31 +417,54 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
           }
         );
       } else {
-        // GET professionals search
+        // Use the new professional service for searching
+        const searchParams: ProfessionalSearchParams = {};
         const params = new URLSearchParams();
+
         if (formData.service_category?.length > 0) {
-          formData.service_category.forEach((cat: string) => {
-            params.append("service_category", cat);
-          });
+          searchParams.service_category = formData.service_category;
+          formData.service_category.forEach((cat: string) =>
+            params.append("service_category", cat)
+          );
         }
         if (formData.dance_style?.length > 0) {
-          formData.dance_style.forEach((style: string) => {
-            params.append("dance_style", style);
-          });
-        }
-        if (formData.zip_code) params.append("zip_code", formData.zip_code);
-        if (formData.city) params.append("city", formData.city);
-        if (formData.state) params.append("state", formData.state);
-        if (formData.location) params.append("location", formData.location);
-        if (formData.travel_distance)
-          params.append("travel_distance", formData.travel_distance.toString());
-        if (formData.pricing)
-          params.append("pricing", formData.pricing.toString());
-        if (formData.session_duration)
-          params.append(
-            "session_duration",
-            formData.session_duration.toString()
+          searchParams.dance_style = formData.dance_style;
+          formData.dance_style.forEach((style: string) =>
+            params.append("dance_style", style)
           );
+        }
+        if (formData.zip_code) {
+          searchParams.zip_code = formData.zip_code;
+          params.append("zip_code", formData.zip_code);
+        }
+        if (formData.city) {
+          searchParams.city = formData.city;
+          params.append("city", formData.city);
+        }
+        if (formData.state) {
+          searchParams.state = formData.state;
+          params.append("state", formData.state);
+        }
+        if (formData.location) {
+          searchParams.location = formData.location;
+          params.append("location", formData.location);
+        }
+        if (formData.travel_distance) {
+          searchParams.travel_distance = formData.travel_distance;
+          params.append("travel_distance", String(formData.travel_distance));
+        }
+        if (formData.pricing) {
+          searchParams.pricing = formData.pricing;
+          params.append("pricing", String(formData.pricing));
+        }
+        if (formData.session_duration) {
+          searchParams.session_duration = formData.session_duration;
+          params.append("session_duration", String(formData.session_duration));
+        }
+        // if (formData.date) {
+        //   searchParams.date = formData.date.toISOString();
+        //   params.append("date", formData.date.toISOString());
+        // }
 
         // Add availability data if dates are selected
         if (
@@ -542,10 +567,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
   // Add a function to handle favorite API call
   const handleFavorite = async (profileId: number, isFav: boolean) => {
     try {
-      await apiRequest(
-        `https://api.livetestdomain.com/api/profiles/${profileId}/book`,
-        { method: "POST", requireAuth: true }
-      );
+      await professionalService.toggleFavorite(profileId);
       setFavorites((prev) =>
         isFav ? prev.filter((id) => id !== profileId) : [...prev, profileId]
       );
@@ -1479,6 +1501,10 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                     : "Your request will be processed."}
               </p>
             </div>
+          )}
+
+          {submitSuccess && mode === "book" && (
+            <ComprehensiveRecommendations bookingData={formData} />
           )}
         </div>
       );

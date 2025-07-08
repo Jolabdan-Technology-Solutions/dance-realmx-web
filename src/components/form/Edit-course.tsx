@@ -2,41 +2,156 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link, useLocation, useParams } from "wouter";
-import { 
-  Loader2, ArrowLeft, Save, Plus, Trash2, Eye, FileDown, FileUp, 
-  BookOpen, CheckCircle, User, UserPlus, Award, Search, UserMinus, 
-  FileText, Edit, Download, Gift, Mail, PenTool, Server
+import {
+  Loader2,
+  ArrowLeft,
+  Save,
+  Plus,
+  Trash2,
+  Eye,
+  FileDown,
+  FileUp,
+  BookOpen,
+  CheckCircle,
+  User,
+  UserPlus,
+  Award,
+  Search,
+  UserMinus,
+  FileText,
+  Edit,
+  Download,
+  Gift,
+  Mail,
+  PenTool,
+  Server,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { FileUpload } from "@/components/ui/file-upload";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogHeader, 
-  DialogTitle, 
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
   DialogTrigger,
-  DialogClose 
+  DialogClose,
 } from "@/components/ui/dialog";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Label } from "@/components/ui/label";
-import { Course, Module, Lesson, Category, User as UserType, Enrollment, Certificate, Quiz, QuizQuestion } from "@shared/schema";
+import { Course, Category, User as UserType } from "@shared/schema";
+
+// Define missing types based on the schema
+interface Module {
+  id: number;
+  title: string;
+  description?: string;
+  course_id: number;
+  order: number;
+  lessons?: Lesson[];
+  created_at?: string;
+  updated_at?: string;
+}
+
+interface Lesson {
+  id: number;
+  title: string;
+  content: string;
+  video_url?: string;
+  module_id: number;
+  order: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+interface Certificate {
+  id: number;
+  userId: number;
+  courseId: number;
+  issueDate: string;
+  status: string;
+  verificationCode: string;
+  recipient: string;
+}
+
+interface Quiz {
+  id: number;
+  title: string;
+  description?: string;
+  courseId: number;
+  moduleId?: number;
+  lessonId?: number;
+  passingScore: number;
+  questions?: QuizQuestion[];
+}
+
+interface QuizQuestion {
+  id: number;
+  quizId: number;
+  question: string;
+  options: string[];
+  correctAnswer: string;
+  order: number;
+}
+
+// Define missing types
+interface Enrollment {
+  id: number;
+  userId: number;
+  courseId: number;
+  enrolledAt: string;
+  progress: number;
+  certificateId?: number;
+}
 import { useToast } from "@/hooks/use-toast";
 
 // Type for course update form
@@ -55,19 +170,21 @@ type CourseFormValues = {
   previewVideoUrl: string | null;
 };
 
-// Type for module form
+// Type for module form - updated to match DTO
 type ModuleFormValues = {
   title: string;
-  description: string | null;
-  orderIndex: number;
+  description: string;
+  course_id: number;
+  order: number;
 };
 
-// Type for lesson form
+// Type for lesson form - updated to match DTO
 type LessonFormValues = {
   title: string;
-  content: string | null;
-  videoUrl: string | null;
-  orderIndex: number;
+  content: string;
+  video_url?: string;
+  module_id: number;
+  order: number;
 };
 
 export default function CourseDetailPage() {
@@ -76,32 +193,43 @@ export default function CourseDetailPage() {
   const courseId = parseInt(params.id);
   const [activeTab, setActiveTab] = useState("details");
   const { toast } = useToast();
-  
-// Fetch course data
-const { data: course, isLoading: courseLoading } = useQuery<Course>({
-  queryKey: ["/api/courses", courseId],
-  queryFn: () => apiRequest<Course>(`/api/courses/${courseId}`, { method: "GET" }),
-});
 
-// Fetch modules for this course
-const { data: modules, isLoading: modulesLoading } = useQuery<Module[]>({
-  queryKey: ["/api/modules", { courseId }],
-  queryFn: () => apiRequest<Module[]>(`/api/courses/${courseId}/modules`, { method: "GET" }),
-});
+  // Fetch course data
+  const { data: course, isLoading: courseLoading } = useQuery<Course>({
+    queryKey: ["/api/courses", courseId],
+    queryFn: () =>
+      apiRequest<Course>(`/api/courses/${courseId}`, { method: "GET" }),
+  });
 
-// Fetch categories for the dropdown
-const { data: categories, isLoading: categoriesLoading } = useQuery<Category[]>({
-  queryKey: ["/api/categories"],
-  queryFn: () => apiRequest<Category[]>("/api/categories", { method: "GET" }),
-});
+  // Fetch modules for this course
+  const { data: modules, isLoading: modulesLoading } = useQuery<Module[]>({
+    queryKey: ["/api/modules", { courseId }],
+    queryFn: () =>
+      apiRequest<Module[]>(`/api/courses/${courseId}/modules`, {
+        method: "GET",
+      }),
+  });
+
+  // Fetch categories for the dropdown
+  const { data: categories, isLoading: categoriesLoading } = useQuery<{
+    data: Category[];
+  }>({
+    queryKey: ["/api/categories"],
+    queryFn: () =>
+      apiRequest<{ data: Category[] }>("/api/categories", { method: "GET" }),
+  });
 
   // Create form for course editing
   const form = useForm<CourseFormValues>({
     resolver: zodResolver(
       z.object({
         title: z.string().min(5, "Title must be at least 5 characters"),
-        shortName: z.string().min(2, "Short name must be at least 2 characters"),
-        description: z.string().min(20, "Description must be at least 20 characters"),
+        shortName: z
+          .string()
+          .min(2, "Short name must be at least 2 characters"),
+        description: z
+          .string()
+          .min(20, "Description must be at least 20 characters"),
         detailedDescription: z.string().nullable(),
         imageUrl: z.string().nullable(),
         price: z.string().nullable(),
@@ -124,38 +252,41 @@ const { data: categories, isLoading: categoriesLoading } = useQuery<Category[]>(
       visible: false,
     },
   });
-  
+
   // Update form with course data when loaded
   useEffect(() => {
     if (course) {
       form.reset({
         title: course.title,
-        shortName: course.short_name,
+        shortName: course.shortName || "",
         description: course.description || "",
-        detailedDescription: course.detailed_description,
-        imageUrl: course.image_url,
-        price: course.price,
+        detailedDescription: "",
+        imageUrl: course.imageUrl || "",
+        price: course.price?.toString() || "",
         categoryId: course.categoryId,
-        difficultyLevel: course.difficulty_level,
-        estimatedDuration: course.duration,
+        difficultyLevel: course.level || "beginner",
+        estimatedDuration: course.duration || "",
         visible: course.visible,
-        fullVideoUrl: course.video_url || "",
-        previewVideoUrl: course.preview_video_url || "",
+        fullVideoUrl: "",
+        previewVideoUrl: "",
       });
     }
   }, [course, form]);
-  
-  // Update course mutation
+
+  // Update course mutation - fixed to use PUT instead of PATCH
   const updateCourseMutation = useMutation({
     mutationFn: async (values: CourseFormValues) => {
-      const res = await apiRequest("PATCH", `/api/courses/${courseId}`, values);
+      const res = await apiRequest(`/api/courses/${courseId}`, {
+        method: "PUT",
+        data: values,
+      });
       return res.json();
     },
     onSuccess: () => {
       // Invalidate course data
       queryClient.invalidateQueries({ queryKey: ["/api/courses", courseId] });
       queryClient.invalidateQueries({ queryKey: ["/api/courses"] });
-      
+
       toast({
         title: "Course Updated",
         description: "Your course changes have been saved.",
@@ -169,21 +300,23 @@ const { data: categories, isLoading: categoriesLoading } = useQuery<Category[]>(
       });
     },
   });
-  
+
   // Delete course mutation
   const deleteCourseMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("DELETE", `/api/courses/${courseId}`);
-      return res.json();
+      const res = await apiRequest(`/api/courses/${courseId}`, {
+        method: "DELETE",
+      });
+      return res;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/courses"] });
-      
+
       toast({
         title: "Course Deleted",
         description: "Your course has been permanently deleted.",
       });
-      
+
       // Navigate back to dashboard
       window.location.href = "/instructor/dashboard";
     },
@@ -195,12 +328,12 @@ const { data: categories, isLoading: categoriesLoading } = useQuery<Category[]>(
       });
     },
   });
-  
+
   // Form submission handler
   const onSubmit = (values: CourseFormValues) => {
     updateCourseMutation.mutate(values);
   };
-  
+
   // Handle loading states
   if (authLoading || courseLoading) {
     return (
@@ -209,20 +342,27 @@ const { data: categories, isLoading: categoriesLoading } = useQuery<Category[]>(
       </div>
     );
   }
-  
+
   // Unauthorized check
-  if (course && user && course.instructorId !== user.id && !user?.role.includes("ADMIN")) {
+  if (
+    course &&
+    user &&
+    course.instructorId !== user.id &&
+    !user?.role.includes("ADMIN")
+  ) {
     return (
       <div className="container mx-auto py-8 text-center">
         <h1 className="text-3xl font-bold mb-4">Unauthorized</h1>
-        <p className="mb-6">You do not have permission to manage this course.</p>
+        <p className="mb-6">
+          You do not have permission to manage this course.
+        </p>
         <Link to="/instructor/dashboard">
           <Button>Return to Dashboard</Button>
         </Link>
       </div>
     );
   }
-  
+
   return (
     <div className="container mx-auto py-8">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
@@ -233,9 +373,11 @@ const { data: categories, isLoading: categoriesLoading } = useQuery<Category[]>(
               Back
             </Button>
           </Link>
-          <h1 className="text-2xl md:text-3xl font-bold truncate">{course?.title || "Loading Course..."}</h1>
+          <h1 className="text-2xl md:text-3xl font-bold truncate">
+            {course?.title || "Loading Course..."}
+          </h1>
         </div>
-        
+
         <div className="flex items-center gap-2">
           <Link to={`/courses/${courseId}`} target="_blank">
             <Button variant="outline" size="sm">
@@ -243,7 +385,7 @@ const { data: categories, isLoading: categoriesLoading } = useQuery<Category[]>(
               Preview
             </Button>
           </Link>
-          
+
           <Dialog>
             <DialogTrigger asChild>
               <Button variant="destructive" size="sm">
@@ -255,15 +397,16 @@ const { data: categories, isLoading: categoriesLoading } = useQuery<Category[]>(
               <DialogHeader>
                 <DialogTitle>Delete Course</DialogTitle>
                 <DialogDescription>
-                  Are you sure you want to delete this course? This action cannot be undone.
+                  Are you sure you want to delete this course? This action
+                  cannot be undone.
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter>
                 <DialogClose asChild>
                   <Button variant="outline">Cancel</Button>
                 </DialogClose>
-                <Button 
-                  variant="destructive" 
+                <Button
+                  variant="destructive"
                   onClick={() => deleteCourseMutation.mutate()}
                   disabled={deleteCourseMutation.isPending}
                 >
@@ -281,21 +424,24 @@ const { data: categories, isLoading: categoriesLoading } = useQuery<Category[]>(
           </Dialog>
         </div>
       </div>
-      
+
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="details">Course Details</TabsTrigger>
-          <TabsTrigger value="curriculum">Curriculum</TabsTrigger>
-          <TabsTrigger value="students">Students</TabsTrigger>
-          <TabsTrigger value="exams">Exams</TabsTrigger>
-          <TabsTrigger value="certificates">Certificates</TabsTrigger>
+          <TabsTrigger value="curriculum">Modules & Lessons</TabsTrigger>
+          <TabsTrigger value="students">Student Management</TabsTrigger>
+          <TabsTrigger value="exams">Quiz Management</TabsTrigger>
+          <TabsTrigger value="certificates">Certificate Management</TabsTrigger>
         </TabsList>
-        
+
         {/* Course Details Tab */}
         <TabsContent value="details">
           <div className="bg-card p-6 rounded-lg shadow-sm">
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-6"
+              >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Course Title */}
                   <FormField
@@ -311,7 +457,7 @@ const { data: categories, isLoading: categoriesLoading } = useQuery<Category[]>(
                       </FormItem>
                     )}
                   />
-                  
+
                   {/* Course Short Name */}
                   <FormField
                     control={form.control}
@@ -327,7 +473,7 @@ const { data: categories, isLoading: categoriesLoading } = useQuery<Category[]>(
                     )}
                   />
                 </div>
-                
+
                 {/* Course Description */}
                 <FormField
                   control={form.control}
@@ -342,7 +488,7 @@ const { data: categories, isLoading: categoriesLoading } = useQuery<Category[]>(
                     </FormItem>
                   )}
                 />
-                
+
                 {/* Detailed Description */}
                 <FormField
                   control={form.control}
@@ -351,13 +497,18 @@ const { data: categories, isLoading: categoriesLoading } = useQuery<Category[]>(
                     <FormItem>
                       <FormLabel>Detailed Description</FormLabel>
                       <FormControl>
-                        <Textarea className="min-h-32" {...field} value={field.value || ""} onChange={field.onChange} />
+                        <Textarea
+                          className="min-h-32"
+                          {...field}
+                          value={field.value || ""}
+                          onChange={field.onChange}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Course Image Upload */}
                   <FormField
@@ -377,7 +528,7 @@ const { data: categories, isLoading: categoriesLoading } = useQuery<Category[]>(
                             maxSizeMB={5}
                           />
                         </FormControl>
-                        {field.value && !field.value.startsWith('data:') && (
+                        {field.value && !field.value.startsWith("data:") && (
                           // <div className="text-sm text-muted-foreground">
                           //   Current URL: {field.value}
                           // </div>
@@ -388,7 +539,7 @@ const { data: categories, isLoading: categoriesLoading } = useQuery<Category[]>(
                       </FormItem>
                     )}
                   />
-                  
+
                   {/* Course Price */}
                   <FormField
                     control={form.control}
@@ -397,19 +548,25 @@ const { data: categories, isLoading: categoriesLoading } = useQuery<Category[]>(
                       <FormItem>
                         <FormLabel>Price</FormLabel>
                         <FormControl>
-                          <Input {...field} value={field.value || ""} onChange={field.onChange} />
+                          <Input
+                            {...field}
+                            value={field.value || ""}
+                            onChange={field.onChange}
+                          />
                         </FormControl>
-                        <FormDescription>Leave empty if included with subscription</FormDescription>
+                        <FormDescription>
+                          Leave empty if included with subscription
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
-                
+
                 {/* Video URLs section */}
                 <div className="space-y-6 border-t pt-6 mt-4">
                   <h3 className="text-lg font-medium mb-4">Course Videos</h3>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Full Video URL */}
                     <FormField
@@ -419,16 +576,22 @@ const { data: categories, isLoading: categoriesLoading } = useQuery<Category[]>(
                         <FormItem>
                           <FormLabel>Full Video URL</FormLabel>
                           <FormControl>
-                            <Input 
-                              placeholder="https://www.youtube.com/watch?v=..." 
+                            <Input
+                              placeholder="https://www.youtube.com/watch?v=..."
                               value={field.value || ""}
                               onChange={(e) => {
                                 // Update fullVideoUrl
                                 field.onChange(e.target.value);
-                                
+
                                 // Auto-populate previewVideoUrl with the same value
-                                if (e.target.value && !form.getValues("previewVideoUrl")) {
-                                  form.setValue("previewVideoUrl", e.target.value);
+                                if (
+                                  e.target.value &&
+                                  !form.getValues("previewVideoUrl")
+                                ) {
+                                  form.setValue(
+                                    "previewVideoUrl",
+                                    e.target.value
+                                  );
                                 }
                               }}
                               onBlur={field.onBlur}
@@ -437,13 +600,14 @@ const { data: categories, isLoading: categoriesLoading } = useQuery<Category[]>(
                             />
                           </FormControl>
                           <FormDescription>
-                            Full course video URL (only visible to enrolled students)
+                            Full course video URL (only visible to enrolled
+                            students)
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                    
+
                     {/* Preview Video URL */}
                     <FormField
                       control={form.control}
@@ -452,8 +616,8 @@ const { data: categories, isLoading: categoriesLoading } = useQuery<Category[]>(
                         <FormItem>
                           <FormLabel>Preview Video URL</FormLabel>
                           <FormControl>
-                            <Input 
-                              placeholder="https://www.youtube.com/watch?v=..." 
+                            <Input
+                              placeholder="https://www.youtube.com/watch?v=..."
                               value={field.value || ""}
                               onChange={field.onChange}
                               onBlur={field.onBlur}
@@ -462,7 +626,8 @@ const { data: categories, isLoading: categoriesLoading } = useQuery<Category[]>(
                             />
                           </FormControl>
                           <FormDescription>
-                            Preview video URL (visible to all users, including guests)
+                            Preview video URL (visible to all users, including
+                            guests)
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
@@ -470,11 +635,12 @@ const { data: categories, isLoading: categoriesLoading } = useQuery<Category[]>(
                     />
                   </div>
                   <p className="text-sm text-muted-foreground italic">
-                    Note: The preview video URL is auto-populated from the full video URL. 
-                    A preview will be shown when users click the preview button.
+                    Note: The preview video URL is auto-populated from the full
+                    video URL. A preview will be shown when users click the
+                    preview button.
                   </p>
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {/* Category */}
                   <FormField
@@ -484,7 +650,9 @@ const { data: categories, isLoading: categoriesLoading } = useQuery<Category[]>(
                       <FormItem>
                         <FormLabel>Category</FormLabel>
                         <Select
-                          onValueChange={(value) => field.onChange(parseInt(value) || null)}
+                          onValueChange={(value) =>
+                            field.onChange(parseInt(value) || null)
+                          }
                           value={field.value?.toString() || "default"}
                         >
                           <FormControl>
@@ -497,18 +665,23 @@ const { data: categories, isLoading: categoriesLoading } = useQuery<Category[]>(
                               <div className="flex items-center justify-center p-2">
                                 <Loader2 className="h-4 w-4 animate-spin" />
                               </div>
-                            ) : categories?.data?.map((category) => (
-                              <SelectItem key={category.id} value={category.id.toString()}>
-                                {category.name}
-                              </SelectItem>
-                            ))}
+                            ) : (
+                              categories?.data?.map((category: Category) => (
+                                <SelectItem
+                                  key={category.id}
+                                  value={category.id.toString()}
+                                >
+                                  {category.name}
+                                </SelectItem>
+                              ))
+                            )}
                           </SelectContent>
                         </Select>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  
+
                   {/* Difficulty Level */}
                   <FormField
                     control={form.control}
@@ -527,16 +700,20 @@ const { data: categories, isLoading: categoriesLoading } = useQuery<Category[]>(
                           </FormControl>
                           <SelectContent>
                             <SelectItem value="beginner">Beginner</SelectItem>
-                            <SelectItem value="intermediate">Intermediate</SelectItem>
+                            <SelectItem value="intermediate">
+                              Intermediate
+                            </SelectItem>
                             <SelectItem value="advanced">Advanced</SelectItem>
-                            <SelectItem value="all-levels">All Levels</SelectItem>
+                            <SelectItem value="all-levels">
+                              All Levels
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  
+
                   {/* Estimated Duration */}
                   <FormField
                     control={form.control}
@@ -545,14 +722,18 @@ const { data: categories, isLoading: categoriesLoading } = useQuery<Category[]>(
                       <FormItem>
                         <FormLabel>Estimated Duration</FormLabel>
                         <FormControl>
-                          <Input {...field} value={field.value || ""} onChange={field.onChange} />
+                          <Input
+                            {...field}
+                            value={field.value || ""}
+                            onChange={field.onChange}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
-                
+
                 {/* Visibility Toggle */}
                 <FormField
                   control={form.control}
@@ -574,7 +755,7 @@ const { data: categories, isLoading: categoriesLoading } = useQuery<Category[]>(
                     </FormItem>
                   )}
                 />
-                
+
                 <div className="flex justify-end">
                   <Button
                     type="submit"
@@ -598,7 +779,7 @@ const { data: categories, isLoading: categoriesLoading } = useQuery<Category[]>(
             </Form>
           </div>
         </TabsContent>
-        
+
         {/* Curriculum Tab */}
         <TabsContent value="curriculum">
           <div className="bg-card p-6 rounded-lg shadow-sm">
@@ -606,7 +787,7 @@ const { data: categories, isLoading: categoriesLoading } = useQuery<Category[]>(
               <h2 className="text-xl font-semibold">Course Curriculum</h2>
               <ModuleDialog courseId={courseId} />
             </div>
-            
+
             {modulesLoading ? (
               <div className="flex justify-center py-8">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -614,10 +795,10 @@ const { data: categories, isLoading: categoriesLoading } = useQuery<Category[]>(
             ) : modules && modules.length > 0 ? (
               <Accordion type="multiple" className="w-full">
                 {modules.map((module) => (
-                  <ModuleAccordionItem 
-                    key={module.id} 
-                    module={module} 
-                    courseId={courseId} 
+                  <ModuleAccordionItem
+                    key={module.id}
+                    module={module}
+                    courseId={courseId}
                   />
                 ))}
               </Accordion>
@@ -638,7 +819,7 @@ const { data: categories, isLoading: categoriesLoading } = useQuery<Category[]>(
             )}
           </div>
         </TabsContent>
-        
+
         {/* Students Tab */}
         <TabsContent value="students">
           <div className="bg-card p-6 rounded-lg shadow-sm">
@@ -649,7 +830,7 @@ const { data: categories, isLoading: categoriesLoading } = useQuery<Category[]>(
             <StudentsList courseId={courseId} />
           </div>
         </TabsContent>
-        
+
         {/* Exams Tab */}
         <TabsContent value="exams">
           <div className="bg-card p-6 rounded-lg shadow-sm">
@@ -660,13 +841,17 @@ const { data: categories, isLoading: categoriesLoading } = useQuery<Category[]>(
             <QuizList courseId={courseId} />
           </div>
         </TabsContent>
-        
+
         {/* Certificates Tab */}
         <TabsContent value="certificates">
           <div className="bg-card p-6 rounded-lg shadow-sm">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-semibold">Certificate Management</h2>
-              <IssueCertificateDialog courseId={courseId} />
+              <IssueCertificateDialog
+                courseId={courseId}
+                studentId={0}
+                studentName=""
+              />
             </div>
             <CertificatesList courseId={courseId} />
           </div>
@@ -679,38 +864,42 @@ const { data: categories, isLoading: categoriesLoading } = useQuery<Category[]>(
 // Student management components
 function StudentsList({ courseId }: { courseId: number }) {
   const { toast } = useToast();
-  
+
   // Fetch enrollments for this course
   const { data: enrollments, isLoading } = useQuery<Enrollment[]>({
     queryKey: ["/api/enrollments", { courseId }],
-    queryFn: async () => {
-      const res = await fetch(`/api/enrollments?courseId=${courseId}`);
-      if (!res.ok) throw new Error("Failed to fetch enrollments");
-      return res.json();
-    },
+    queryFn: () =>
+      apiRequest<Enrollment[]>(`/api/courses/${courseId}/enrollments`, {
+        method: "GET",
+      }),
   });
-  
+
   // Fetch user details for each enrolled student
   const { data: students, isLoading: studentsLoading } = useQuery<UserType[]>({
     queryKey: ["/api/students", { courseId }],
-    queryFn: async () => {
-      if (!enrollments?.length) return [];
-      const res = await fetch(`/api/students?courseId=${courseId}`);
-      if (!res.ok) throw new Error("Failed to fetch student details");
-      return res.json();
-    },
+    queryFn: () =>
+      apiRequest<UserType[]>(`/api/courses/${courseId}/students`, {
+        method: "GET",
+      }),
     enabled: !!enrollments,
   });
-  
+
   // Unenroll student mutation
   const unenrollStudentMutation = useMutation({
     mutationFn: async (enrollmentId: number) => {
-      const res = await apiRequest("DELETE", `/api/enrollments/${enrollmentId}`);
-      return res.json();
+      const res = await apiRequest(
+        `/api/courses/${courseId}/enrollments/${enrollmentId}`,
+        { method: "DELETE" }
+      );
+      return res;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/enrollments", { courseId }] });
-      queryClient.invalidateQueries({ queryKey: ["/api/students", { courseId }] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/enrollments", { courseId }],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/students", { courseId }],
+      });
       toast({
         title: "Student Unenrolled",
         description: "The student has been removed from this course.",
@@ -724,15 +913,15 @@ function StudentsList({ courseId }: { courseId: number }) {
       });
     },
   });
-  
+
   // Create avatar fallback from name
   const getAvatarFallback = (name: string) => {
     if (!name) return "?";
-    const nameParts = name.split(' ');
+    const nameParts = name.split(" ");
     if (nameParts.length === 1) return name.substring(0, 2).toUpperCase();
     return (nameParts[0].charAt(0) + nameParts[1].charAt(0)).toUpperCase();
   };
-  
+
   if (isLoading || studentsLoading) {
     return (
       <div className="flex justify-center py-8">
@@ -740,7 +929,7 @@ function StudentsList({ courseId }: { courseId: number }) {
       </div>
     );
   }
-  
+
   if (!enrollments || enrollments.length === 0) {
     return (
       <div className="text-center py-8 border-2 border-dashed rounded-lg">
@@ -752,7 +941,7 @@ function StudentsList({ courseId }: { courseId: number }) {
       </div>
     );
   }
-  
+
   return (
     <div>
       <div className="rounded-md border">
@@ -769,9 +958,11 @@ function StudentsList({ courseId }: { courseId: number }) {
           </TableHeader>
           <TableBody>
             {students?.map((student, index) => {
-              const enrollment = enrollments.find(e => e.userId === student.id);
+              const enrollment = enrollments.find(
+                (e) => e.userId === student.id
+              );
               if (!enrollment) return null;
-              
+
               return (
                 <TableRow key={student.id}>
                   <TableCell className="font-medium">{index + 1}</TableCell>
@@ -779,36 +970,54 @@ function StudentsList({ courseId }: { courseId: number }) {
                     <div className="flex items-center gap-2">
                       <Avatar className="h-8 w-8">
                         <AvatarImage src={student.profileImageUrl || ""} />
-                        <AvatarFallback>{getAvatarFallback(student.firstName + " " + student.lastName)}</AvatarFallback>
+                        <AvatarFallback>
+                          {getAvatarFallback(
+                            student.firstName + " " + student.lastName
+                          )}
+                        </AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-medium">{student.firstName} {student.lastName}</p>
-                        <p className="text-xs text-muted-foreground">{student.email}</p>
+                        <p className="font-medium">
+                          {student.firstName} {student.lastName}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {student.email}
+                        </p>
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell>{new Date(enrollment.enrolledAt || "").toLocaleDateString()}</TableCell>
+                  <TableCell>
+                    {new Date(enrollment.enrolledAt || "").toLocaleDateString()}
+                  </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <div className="w-full max-w-24">
                         <div className="h-2 bg-muted rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-primary rounded-full" 
+                          <div
+                            className="h-full bg-primary rounded-full"
                             style={{ width: `${enrollment.progress || 0}%` }}
                           ></div>
                         </div>
                       </div>
-                      <span className="text-xs">{enrollment.progress || 0}%</span>
+                      <span className="text-xs">
+                        {enrollment.progress || 0}%
+                      </span>
                     </div>
                   </TableCell>
                   <TableCell>
                     {enrollment.certificateId ? (
-                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                      <Badge
+                        variant="outline"
+                        className="bg-green-50 text-green-700 border-green-200"
+                      >
                         <CheckCircle className="h-3 w-3 mr-1" />
                         Certified
                       </Badge>
                     ) : (
-                      <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
+                      <Badge
+                        variant="outline"
+                        className="bg-gray-50 text-gray-700 border-gray-200"
+                      >
                         Not Issued
                       </Badge>
                     )}
@@ -826,19 +1035,24 @@ function StudentsList({ courseId }: { courseId: number }) {
                           <DialogHeader>
                             <DialogTitle>Contact Student</DialogTitle>
                             <DialogDescription>
-                              Send a message to {student.firstName} {student.lastName}
+                              Send a message to {student.firstName}{" "}
+                              {student.lastName}
                             </DialogDescription>
                           </DialogHeader>
                           <div className="py-4">
                             <form className="space-y-4">
                               <div className="space-y-2">
-                                <label className="text-sm font-medium">Subject</label>
+                                <label className="text-sm font-medium">
+                                  Subject
+                                </label>
                                 <Input placeholder="Course update notification" />
                               </div>
                               <div className="space-y-2">
-                                <label className="text-sm font-medium">Message</label>
-                                <Textarea 
-                                  placeholder="Write your message here..." 
+                                <label className="text-sm font-medium">
+                                  Message
+                                </label>
+                                <Textarea
+                                  placeholder="Write your message here..."
                                   className="min-h-32"
                                 />
                               </div>
@@ -852,20 +1066,22 @@ function StudentsList({ courseId }: { courseId: number }) {
                           </DialogFooter>
                         </DialogContent>
                       </Dialog>
-                      
-                      {!enrollment.certificateId && enrollment.progress && enrollment.progress >= 90 && (
-                        <IssueCertificateDialog 
-                          courseId={courseId} 
-                          studentId={student.id} 
-                          studentName={`${student.firstName} ${student.lastName}`}
-                        >
-                          <Button variant="outline" size="sm">
-                            <Award className="h-4 w-4 mr-1" />
-                            Issue Certificate
-                          </Button>
-                        </IssueCertificateDialog>
-                      )}
-                      
+
+                      {!enrollment.certificateId &&
+                        enrollment.progress &&
+                        enrollment.progress >= 90 && (
+                          <IssueCertificateDialog
+                            courseId={courseId}
+                            studentId={student.id}
+                            studentName={`${student.firstName} ${student.lastName}`}
+                          >
+                            <Button variant="outline" size="sm">
+                              <Award className="h-4 w-4 mr-1" />
+                              Issue Certificate
+                            </Button>
+                          </IssueCertificateDialog>
+                        )}
+
                       <Dialog>
                         <DialogTrigger asChild>
                           <Button variant="destructive" size="sm">
@@ -877,17 +1093,20 @@ function StudentsList({ courseId }: { courseId: number }) {
                           <DialogHeader>
                             <DialogTitle>Unenroll Student</DialogTitle>
                             <DialogDescription>
-                              Are you sure you want to unenroll {student.firstName} {student.lastName} from this course? 
-                              This action cannot be undone.
+                              Are you sure you want to unenroll{" "}
+                              {student.firstName} {student.lastName} from this
+                              course? This action cannot be undone.
                             </DialogDescription>
                           </DialogHeader>
                           <DialogFooter>
                             <DialogClose asChild>
                               <Button variant="outline">Cancel</Button>
                             </DialogClose>
-                            <Button 
-                              variant="destructive" 
-                              onClick={() => unenrollStudentMutation.mutate(enrollment.id)}
+                            <Button
+                              variant="destructive"
+                              onClick={() =>
+                                unenrollStudentMutation.mutate(enrollment.id)
+                              }
                               disabled={unenrollStudentMutation.isPending}
                             >
                               {unenrollStudentMutation.isPending ? (
@@ -918,20 +1137,26 @@ function StudentsList({ courseId }: { courseId: number }) {
 function EnrollStudentDialog({ courseId }: { courseId: number }) {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
-  
+  const [selectedStudentId, setSelectedStudentId] = useState<number | null>(
+    null
+  );
+
   // Search students
-  const { data: searchResults, isLoading: searchLoading } = useQuery<UserType[]>({
+  const { data: searchResults, isLoading: searchLoading } = useQuery<
+    UserType[]
+  >({
     queryKey: ["/api/users/search", searchQuery],
     queryFn: async () => {
       if (!searchQuery || searchQuery.length < 3) return [];
-      const res = await fetch(`/api/users/search?q=${encodeURIComponent(searchQuery)}&role=student`);
+      const res = await fetch(
+        `/api/users/search?q=${encodeURIComponent(searchQuery)}&role=student`
+      );
       if (!res.ok) throw new Error("Failed to search users");
       return res.json();
     },
     enabled: searchQuery.length >= 3,
   });
-  
+
   // Enroll student mutation
   const enrollStudentMutation = useMutation({
     mutationFn: async (studentId: number) => {
@@ -940,11 +1165,16 @@ function EnrollStudentDialog({ courseId }: { courseId: number }) {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/enrollments", { courseId }] });
-      queryClient.invalidateQueries({ queryKey: ["/api/students", { courseId }] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/enrollments", { courseId }],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/students", { courseId }],
+      });
       toast({
         title: "Student Enrolled",
-        description: "The student has been successfully enrolled in this course.",
+        description:
+          "The student has been successfully enrolled in this course.",
       });
       setSearchQuery("");
       setSelectedStudentId(null);
@@ -957,21 +1187,21 @@ function EnrollStudentDialog({ courseId }: { courseId: number }) {
       });
     },
   });
-  
+
   // Get avatar fallback
   const getAvatarFallback = (name: string) => {
     if (!name) return "?";
-    const nameParts = name.split(' ');
+    const nameParts = name.split(" ");
     if (nameParts.length === 1) return name.substring(0, 2).toUpperCase();
     return (nameParts[0].charAt(0) + nameParts[1].charAt(0)).toUpperCase();
   };
-  
+
   const handleEnroll = () => {
     if (selectedStudentId) {
       enrollStudentMutation.mutate(selectedStudentId);
     }
   };
-  
+
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -987,7 +1217,7 @@ function EnrollStudentDialog({ courseId }: { courseId: number }) {
             Search for a student by name or email to enroll in this course.
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="space-y-4 py-4">
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
@@ -1000,25 +1230,28 @@ function EnrollStudentDialog({ courseId }: { courseId: number }) {
               />
             </div>
           </div>
-          
+
           {searchQuery.length < 3 && (
             <p className="text-sm text-muted-foreground">
               Type at least 3 characters to search
             </p>
           )}
-          
+
           {searchLoading && searchQuery.length >= 3 && (
             <div className="flex justify-center py-2">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
           )}
-          
-          {searchResults && searchResults.length === 0 && searchQuery.length >= 3 && !searchLoading && (
-            <p className="text-sm text-muted-foreground py-2">
-              No students found matching "{searchQuery}"
-            </p>
-          )}
-          
+
+          {searchResults &&
+            searchResults.length === 0 &&
+            searchQuery.length >= 3 &&
+            !searchLoading && (
+              <p className="text-sm text-muted-foreground py-2">
+                No students found matching "{searchQuery}"
+              </p>
+            )}
+
           {searchResults && searchResults.length > 0 && (
             <div className="border rounded-md max-h-60 overflow-auto">
               <ScrollArea className="h-full">
@@ -1033,11 +1266,19 @@ function EnrollStudentDialog({ courseId }: { courseId: number }) {
                     >
                       <Avatar className="h-8 w-8">
                         <AvatarImage src={student.profileImageUrl || ""} />
-                        <AvatarFallback>{getAvatarFallback(student.firstName + " " + student.lastName)}</AvatarFallback>
+                        <AvatarFallback>
+                          {getAvatarFallback(
+                            student.firstName + " " + student.lastName
+                          )}
+                        </AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
-                        <p className="text-sm font-medium">{student.firstName} {student.lastName}</p>
-                        <p className="text-xs text-muted-foreground">{student.email}</p>
+                        <p className="text-sm font-medium">
+                          {student.firstName} {student.lastName}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {student.email}
+                        </p>
                       </div>
                       {selectedStudentId === student.id && (
                         <CheckCircle className="h-4 w-4 text-primary" />
@@ -1049,7 +1290,7 @@ function EnrollStudentDialog({ courseId }: { courseId: number }) {
             </div>
           )}
         </div>
-        
+
         <DialogFooter>
           <DialogClose asChild>
             <Button variant="outline">Cancel</Button>
@@ -1076,42 +1317,51 @@ function EnrollStudentDialog({ courseId }: { courseId: number }) {
 // Certificate management components
 function CertificatesList({ courseId }: { courseId: number }) {
   const { toast } = useToast();
-  
+
   // Fetch certificates for this course using the fixed direct endpoint
   const { data: certificates, isLoading } = useQuery<Certificate[]>({
     queryKey: ["/api/direct/certificates/course", courseId],
-    queryFn: async () => {
-      const res = await fetch(`/api/direct/certificates/course/${courseId}`);
-      if (!res.ok) throw new Error("Failed to fetch certificates");
-      return res.json();
-    },
+    queryFn: () =>
+      apiRequest<Certificate[]>(`/api/courses/${courseId}/certificates`, {
+        method: "GET",
+      }),
   });
-  
+
   // Fetch enrolled students for this course who don't have certificates yet
-  const { data: eligibleStudents, isLoading: studentsLoading } = useQuery<{
-    id: number;
-    name: string;
-    email: string;
-    enrollmentId: number;
-    progress: number;
-  }[]>({
+  const { data: eligibleStudents, isLoading: studentsLoading } = useQuery<
+    {
+      id: number;
+      name: string;
+      email: string;
+      enrollmentId: number;
+      progress: number;
+    }[]
+  >({
     queryKey: ["/api/students/eligible-for-certificates", { courseId }],
-    queryFn: async () => {
-      const res = await fetch(`/api/students/eligible-for-certificates?courseId=${courseId}`);
-      if (!res.ok) throw new Error("Failed to fetch eligible students");
-      return res.json();
-    },
+    queryFn: () =>
+      apiRequest(
+        `/api/courses/${courseId}/students/eligible-for-certificates`,
+        {
+          method: "GET",
+        }
+      ),
   });
-  
+
   // Revoke certificate mutation
   const revokeCertificateMutation = useMutation({
     mutationFn: async (certificateId: number) => {
-      const res = await apiRequest("DELETE", `/api/certificates/${certificateId}`);
+      const res = await apiRequest(`/api/certificates/${certificateId}`, {
+        method: "DELETE",
+      });
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/direct/certificates/course", courseId] });
-      queryClient.invalidateQueries({ queryKey: ["/api/students/eligible-for-certificates", { courseId }] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/direct/certificates/course", courseId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/students/eligible-for-certificates", { courseId }],
+      });
       toast({
         title: "Certificate Revoked",
         description: "The certificate has been revoked successfully.",
@@ -1125,7 +1375,7 @@ function CertificatesList({ courseId }: { courseId: number }) {
       });
     },
   });
-  
+
   if (isLoading) {
     return (
       <div className="flex justify-center py-8">
@@ -1133,7 +1383,7 @@ function CertificatesList({ courseId }: { courseId: number }) {
       </div>
     );
   }
-  
+
   if (!certificates || certificates.length === 0) {
     return (
       <div className="text-center py-8 border-2 border-dashed rounded-lg">
@@ -1144,22 +1394,31 @@ function CertificatesList({ courseId }: { courseId: number }) {
         </p>
         {eligibleStudents && eligibleStudents.length > 0 && (
           <div className="mt-6">
-            <h4 className="text-md font-medium mb-3">Students Eligible for Certification:</h4>
+            <h4 className="text-md font-medium mb-3">
+              Students Eligible for Certification:
+            </h4>
             <div className="flex flex-col gap-2 max-w-md mx-auto">
               {eligibleStudents.map((student) => (
-                <div key={student.id} className="flex items-center justify-between bg-muted p-3 rounded-md">
+                <div
+                  key={student.id}
+                  className="flex items-center justify-between bg-muted p-3 rounded-md"
+                >
                   <div className="flex items-center gap-2">
                     <Avatar className="h-8 w-8">
-                      <AvatarFallback>{student.name.substring(0, 2)}</AvatarFallback>
+                      <AvatarFallback>
+                        {student.name.substring(0, 2)}
+                      </AvatarFallback>
                     </Avatar>
                     <div>
                       <p className="font-medium text-sm">{student.name}</p>
-                      <p className="text-xs text-muted-foreground">{student.progress}% completed</p>
+                      <p className="text-xs text-muted-foreground">
+                        {student.progress}% completed
+                      </p>
                     </div>
                   </div>
-                  <IssueCertificateDialog 
-                    courseId={courseId} 
-                    studentId={student.id} 
+                  <IssueCertificateDialog
+                    courseId={courseId}
+                    studentId={student.id}
                     studentName={student.name}
                   >
                     <Button size="sm" variant="outline">
@@ -1175,7 +1434,7 @@ function CertificatesList({ courseId }: { courseId: number }) {
       </div>
     );
   }
-  
+
   return (
     <div>
       <div className="rounded-md border mb-6">
@@ -1205,32 +1464,36 @@ function CertificatesList({ courseId }: { courseId: number }) {
                 </TableCell>
                 <TableCell>
                   <Badge variant="outline" className="font-mono text-xs">
-                    {certificate.certificateId}
+                    {certificate.id}
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  {new Date(certificate.issuedAt || "").toLocaleDateString()}
+                  {new Date(certificate.issueDate || "").toLocaleDateString()}
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
-                    {certificate.pdfUrl && (
-                      <Button variant="ghost" size="sm" asChild>
-                        <a href={certificate.pdfUrl} target="_blank" rel="noopener noreferrer">
-                          <Download className="h-4 w-4 mr-1" />
-                          Download
-                        </a>
-                      </Button>
-                    )}
-                    
-                    {certificate.verificationUrl && (
-                      <Button variant="ghost" size="sm" asChild>
-                        <a href={certificate.verificationUrl} target="_blank" rel="noopener noreferrer">
-                          <FileText className="h-4 w-4 mr-1" />
-                          Verify
-                        </a>
-                      </Button>
-                    )}
-                    
+                    <Button variant="ghost" size="sm" asChild>
+                      <a
+                        href={`/api/certificates/${certificate.id}/download`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Download className="h-4 w-4 mr-1" />
+                        Download
+                      </a>
+                    </Button>
+
+                    <Button variant="ghost" size="sm" asChild>
+                      <a
+                        href={`/api/certificates/${certificate.id}/verify`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <FileText className="h-4 w-4 mr-1" />
+                        Verify
+                      </a>
+                    </Button>
+
                     <Dialog>
                       <DialogTrigger asChild>
                         <Button variant="destructive" size="sm">
@@ -1242,16 +1505,19 @@ function CertificatesList({ courseId }: { courseId: number }) {
                         <DialogHeader>
                           <DialogTitle>Revoke Certificate</DialogTitle>
                           <DialogDescription>
-                            Are you sure you want to revoke this certificate? This action cannot be undone.
+                            Are you sure you want to revoke this certificate?
+                            This action cannot be undone.
                           </DialogDescription>
                         </DialogHeader>
                         <DialogFooter>
                           <DialogClose asChild>
                             <Button variant="outline">Cancel</Button>
                           </DialogClose>
-                          <Button 
-                            variant="destructive" 
-                            onClick={() => revokeCertificateMutation.mutate(certificate.id)}
+                          <Button
+                            variant="destructive"
+                            onClick={() =>
+                              revokeCertificateMutation.mutate(certificate.id)
+                            }
                             disabled={revokeCertificateMutation.isPending}
                           >
                             {revokeCertificateMutation.isPending ? (
@@ -1273,10 +1539,12 @@ function CertificatesList({ courseId }: { courseId: number }) {
           </TableBody>
         </Table>
       </div>
-      
+
       {eligibleStudents && eligibleStudents.length > 0 && (
         <div className="mt-6">
-          <h3 className="text-lg font-medium mb-3">Students Eligible for Certification</h3>
+          <h3 className="text-lg font-medium mb-3">
+            Students Eligible for Certification
+          </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {eligibleStudents.map((student) => (
               <Card key={student.id}>
@@ -1284,18 +1552,24 @@ function CertificatesList({ courseId }: { courseId: number }) {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Avatar className="h-8 w-8">
-                        <AvatarFallback>{student.name.substring(0, 2)}</AvatarFallback>
+                        <AvatarFallback>
+                          {student.name.substring(0, 2)}
+                        </AvatarFallback>
                       </Avatar>
-                      <CardTitle className="text-base">{student.name}</CardTitle>
+                      <CardTitle className="text-base">
+                        {student.name}
+                      </CardTitle>
                     </div>
                     <Badge className="ml-2">{student.progress}%</Badge>
                   </div>
-                  <CardDescription className="text-xs truncate">{student.email}</CardDescription>
+                  <CardDescription className="text-xs truncate">
+                    {student.email}
+                  </CardDescription>
                 </CardHeader>
                 <CardFooter className="pt-2">
-                  <IssueCertificateDialog 
-                    courseId={courseId} 
-                    studentId={student.id} 
+                  <IssueCertificateDialog
+                    courseId={courseId}
+                    studentId={student.id}
                     studentName={student.name}
                   >
                     <Button size="sm" className="w-full">
@@ -1314,36 +1588,38 @@ function CertificatesList({ courseId }: { courseId: number }) {
 }
 
 // Dialog for issuing certificates
-function IssueCertificateDialog({ 
-  courseId, 
-  studentId, 
+function IssueCertificateDialog({
+  courseId,
+  studentId,
   studentName,
-  children 
-}: { 
-  courseId: number; 
-  studentId: number; 
+  children,
+}: {
+  courseId: number;
+  studentId: number;
   studentName: string;
   children?: React.ReactNode;
 }) {
   const { toast } = useToast();
-  const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(null);
-  
+  const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(
+    null
+  );
+
   // Fetch course data to display course name
   const { data: course } = useQuery({
     queryKey: ["/api/courses", courseId],
     queryFn: async () => {
       const res = await fetch(`/api/courses/${courseId}`);
       return res.json();
-    }
+    },
   });
-  
+
   // Fetch certificate templates
   const { data: templates = [], isLoading: templatesLoading } = useQuery({
     queryKey: ["/api/certificate-templates"],
     queryFn: async () => {
       const res = await fetch("/api/certificate-templates");
       return res.json();
-    }
+    },
   });
 
   // Fetch default template
@@ -1360,7 +1636,7 @@ function IssueCertificateDialog({
       // Don't retry on 404
       if (error.status === 404) return false;
       return failureCount < 3;
-    }
+    },
   });
 
   // Set the default template when data is loaded
@@ -1371,23 +1647,29 @@ function IssueCertificateDialog({
       setSelectedTemplateId(templates[0].id);
     }
   }, [defaultTemplate, templates, selectedTemplateId]);
-  
+
   // Issue certificate mutation
   const issueCertificateMutation = useMutation({
     mutationFn: async () => {
-      const data = { 
-        courseId, 
+      const data = {
+        courseId,
         userId: studentId,
         certificateId: `CERT-${courseId}-${studentId}-${Date.now().toString(36).toUpperCase()}`,
-        templateId: selectedTemplateId
+        templateId: selectedTemplateId,
       };
       const res = await apiRequest("POST", "/api/certificates", data);
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/certificates", { courseId }] });
-      queryClient.invalidateQueries({ queryKey: ["/api/students/eligible-for-certificates", { courseId }] });
-      queryClient.invalidateQueries({ queryKey: ["/api/enrollments", { courseId }] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/certificates", { courseId }],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/students/eligible-for-certificates", { courseId }],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/enrollments", { courseId }],
+      });
       toast({
         title: "Certificate Issued",
         description: "The certificate has been issued successfully.",
@@ -1403,17 +1685,17 @@ function IssueCertificateDialog({
   });
 
   // Find the selected template
-  const selectedTemplate = templates.find(t => t.id === selectedTemplateId);
+  const selectedTemplate = templates.find((t) => t.id === selectedTemplateId);
 
   // Prepare preview HTML if a template is selected
-  const previewHtml = selectedTemplate ? 
-    selectedTemplate.htmlContent
-      .replace(/{{student_name}}/g, studentName)
-      .replace(/{{course_name}}/g, course?.title || `Course #${courseId}`)
-      .replace(/{{completion_date}}/g, new Date().toLocaleDateString())
-      .replace(/{{instructor_name}}/g, "Instructor") // Could fetch instructor name if needed
+  const previewHtml = selectedTemplate
+    ? selectedTemplate.htmlContent
+        .replace(/{{student_name}}/g, studentName)
+        .replace(/{{course_name}}/g, course?.title || `Course #${courseId}`)
+        .replace(/{{completion_date}}/g, new Date().toLocaleDateString())
+        .replace(/{{instructor_name}}/g, "Instructor") // Could fetch instructor name if needed
     : null;
-  
+
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -1431,12 +1713,12 @@ function IssueCertificateDialog({
             Issue a certificate of completion to {studentName} for this course.
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="py-4 space-y-4">
           <div className="mb-4">
             <Label htmlFor="certificate-template">Certificate Template</Label>
-            <Select 
-              value={selectedTemplateId?.toString() || ''}
+            <Select
+              value={selectedTemplateId?.toString() || ""}
               onValueChange={(value) => setSelectedTemplateId(parseInt(value))}
               disabled={templatesLoading || templates.length === 0}
             >
@@ -1450,35 +1732,47 @@ function IssueCertificateDialog({
                   </div>
                 ) : templates.length > 0 ? (
                   templates.map((template) => (
-                    <SelectItem key={template.id} value={template.id.toString()}>
+                    <SelectItem
+                      key={template.id}
+                      value={template.id.toString()}
+                    >
                       {template.name} {template.isDefault && "(Default)"}
                     </SelectItem>
                   ))
                 ) : (
-                  <SelectItem value="none" disabled>No templates available</SelectItem>
+                  <SelectItem value="none" disabled>
+                    No templates available
+                  </SelectItem>
                 )}
               </SelectContent>
             </Select>
             {templates.length === 0 && !templatesLoading && (
               <p className="text-sm text-muted-foreground mt-2">
-                No certificate templates found. <a href="/certificate-templates" className="text-primary underline">Create one</a> before issuing certificates.
+                No certificate templates found.{" "}
+                <a
+                  href="/certificate-templates"
+                  className="text-primary underline"
+                >
+                  Create one
+                </a>{" "}
+                before issuing certificates.
               </p>
             )}
           </div>
-          
+
           {previewHtml && (
             <div>
               <Label>Certificate Preview</Label>
               <div className="border rounded-md mt-2 overflow-hidden bg-white">
-                <iframe 
+                <iframe
                   srcDoc={previewHtml}
-                  style={{ width: '100%', height: '400px', border: 'none' }}
+                  style={{ width: "100%", height: "400px", border: "none" }}
                   title="Certificate Preview"
                 />
               </div>
             </div>
           )}
-          
+
           {!previewHtml && !templatesLoading && templates.length > 0 && (
             <div className="border rounded-lg p-4 bg-muted/50 text-center space-y-2">
               <Award className="h-10 w-10 mx-auto text-primary mb-2" />
@@ -1486,16 +1780,20 @@ function IssueCertificateDialog({
               <p className="text-sm font-medium">This certifies that</p>
               <p className="text-lg font-semibold">{studentName}</p>
               <p className="text-sm">has successfully completed the course</p>
-              <p className="text-base italic font-medium">"{course?.title || `Course #${courseId}`}"</p>
-              <p className="text-xs text-muted-foreground mt-2">Issued on {new Date().toLocaleDateString()}</p>
+              <p className="text-base italic font-medium">
+                "{course?.title || `Course #${courseId}`}"
+              </p>
+              <p className="text-xs text-muted-foreground mt-2">
+                Issued on {new Date().toLocaleDateString()}
+              </p>
             </div>
           )}
         </div>
-        
+
         <DialogFooter>
           <div className="w-full flex justify-between items-center">
-            <Link 
-              href="/certificate-templates" 
+            <Link
+              href="/certificate-templates"
               className="text-sm text-primary hover:underline flex items-center"
               target="_blank"
             >
@@ -1506,9 +1804,13 @@ function IssueCertificateDialog({
               <DialogClose asChild>
                 <Button variant="outline">Cancel</Button>
               </DialogClose>
-              <Button 
+              <Button
                 onClick={() => issueCertificateMutation.mutate()}
-                disabled={issueCertificateMutation.isPending || !selectedTemplateId || templates.length === 0}
+                disabled={
+                  issueCertificateMutation.isPending ||
+                  !selectedTemplateId ||
+                  templates.length === 0
+                }
               >
                 {issueCertificateMutation.isPending ? (
                   <>
@@ -1533,35 +1835,38 @@ function IssueCertificateDialog({
 // Quiz management components
 function QuizList({ courseId }: { courseId: number }) {
   const { toast } = useToast();
-  
+
   // Fetch quizzes for this course
   const { data: quizzes, isLoading } = useQuery<Quiz[]>({
     queryKey: ["/api/quizzes", { courseId }],
-    queryFn: async () => {
-      const res = await fetch(`/api/quizzes?courseId=${courseId}`);
-      if (!res.ok) throw new Error("Failed to fetch quizzes");
-      return res.json();
-    },
+    queryFn: () =>
+      apiRequest<Quiz[]>(`/api/courses/${courseId}/quizzes`, {
+        method: "GET",
+      }),
   });
-  
+
   // Fetch modules for lesson association
   const { data: modules } = useQuery<Module[]>({
     queryKey: ["/api/modules", { courseId }],
-    queryFn: async () => {
-      const res = await fetch(`/api/modules?courseId=${courseId}`);
-      if (!res.ok) throw new Error("Failed to fetch modules");
-      return res.json();
-    },
+    queryFn: () =>
+      apiRequest<Module[]>(`/api/courses/${courseId}/modules`, {
+        method: "GET",
+      }),
   });
-  
+
   // Delete quiz mutation
   const deleteQuizMutation = useMutation({
     mutationFn: async (quizId: number) => {
-      const res = await apiRequest("DELETE", `/api/quizzes/${quizId}`);
+      const res = await apiRequest(
+        `/api/courses/${courseId}/quizzes/${quizId}`,
+        { method: "DELETE" }
+      );
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/quizzes", { courseId }] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/quizzes", { courseId }],
+      });
       toast({
         title: "Quiz Deleted",
         description: "The quiz has been deleted successfully.",
@@ -1575,14 +1880,14 @@ function QuizList({ courseId }: { courseId: number }) {
       });
     },
   });
-  
+
   // Get module name by ID
   const getModuleName = (moduleId: number | null) => {
     if (!moduleId || !modules) return "None";
-    const module = modules.find(m => m.id === moduleId);
+    const module = modules.find((m) => m.id === moduleId);
     return module ? module.title : "Unknown Module";
   };
-  
+
   if (isLoading) {
     return (
       <div className="flex justify-center py-8">
@@ -1590,14 +1895,15 @@ function QuizList({ courseId }: { courseId: number }) {
       </div>
     );
   }
-  
+
   if (!quizzes || quizzes.length === 0) {
     return (
       <div className="text-center py-8 border-2 border-dashed rounded-lg">
         <PenTool className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
         <h3 className="text-xl font-medium mb-2">No Quizzes Created</h3>
         <p className="text-muted-foreground mb-4">
-          Create quizzes to assess student knowledge and provide interactive learning.
+          Create quizzes to assess student knowledge and provide interactive
+          learning.
         </p>
         <QuizDialog courseId={courseId} modules={modules || []}>
           <Button>
@@ -1608,7 +1914,7 @@ function QuizList({ courseId }: { courseId: number }) {
       </div>
     );
   }
-  
+
   return (
     <div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1617,7 +1923,9 @@ function QuizList({ courseId }: { courseId: number }) {
             <CardHeader>
               <div className="flex justify-between items-center">
                 <CardTitle className="text-lg">{quiz.title}</CardTitle>
-                <Badge variant={quiz.passingScore >= 80 ? "destructive" : "default"}>
+                <Badge
+                  variant={quiz.passingScore >= 80 ? "destructive" : "default"}
+                >
                   {quiz.passingScore || 70}% to pass
                 </Badge>
               </div>
@@ -1626,12 +1934,18 @@ function QuizList({ courseId }: { courseId: number }) {
             <CardContent>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Associated Module:</span>
-                  <span className="font-medium">{getModuleName(quiz.moduleId)}</span>
+                  <span className="text-muted-foreground">
+                    Associated Module:
+                  </span>
+                  <span className="font-medium">
+                    {getModuleName(quiz.moduleId)}
+                  </span>
                 </div>
                 {quiz.lessonId && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Associated Lesson:</span>
+                    <span className="text-muted-foreground">
+                      Associated Lesson:
+                    </span>
                     <span className="font-medium">Lesson #{quiz.lessonId}</span>
                   </div>
                 )}
@@ -1646,10 +1960,10 @@ function QuizList({ courseId }: { courseId: number }) {
                 </Link>
               </Button>
               <div className="flex gap-2">
-                <QuizDialog 
-                  courseId={courseId} 
-                  modules={modules || []} 
-                  quizId={quiz.id} 
+                <QuizDialog
+                  courseId={courseId}
+                  modules={modules || []}
+                  quizId={quiz.id}
                   existingQuiz={quiz}
                 >
                   <Button variant="ghost" size="sm">
@@ -1668,15 +1982,16 @@ function QuizList({ courseId }: { courseId: number }) {
                     <DialogHeader>
                       <DialogTitle>Delete Quiz</DialogTitle>
                       <DialogDescription>
-                        Are you sure you want to delete this quiz and all its questions? This action cannot be undone.
+                        Are you sure you want to delete this quiz and all its
+                        questions? This action cannot be undone.
                       </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
                       <DialogClose asChild>
                         <Button variant="outline">Cancel</Button>
                       </DialogClose>
-                      <Button 
-                        variant="destructive" 
+                      <Button
+                        variant="destructive"
                         onClick={() => deleteQuizMutation.mutate(quiz.id)}
                         disabled={deleteQuizMutation.isPending}
                       >
@@ -1706,13 +2021,12 @@ function QuizQuestionsList({ quizId }: { quizId: number }) {
   // Fetch quiz questions
   const { data: questions, isLoading } = useQuery<QuizQuestion[]>({
     queryKey: ["/api/quiz-questions", { quizId }],
-    queryFn: async () => {
-      const res = await fetch(`/api/quiz-questions?quizId=${quizId}`);
-      if (!res.ok) throw new Error("Failed to fetch quiz questions");
-      return res.json();
-    },
+    queryFn: () =>
+      apiRequest<QuizQuestion[]>(`/api/quizzes/${quizId}/questions`, {
+        method: "GET",
+      }),
   });
-  
+
   if (isLoading) {
     return (
       <div className="py-2">
@@ -1720,7 +2034,7 @@ function QuizQuestionsList({ quizId }: { quizId: number }) {
       </div>
     );
   }
-  
+
   if (!questions || questions.length === 0) {
     return (
       <div className="py-2 text-muted-foreground text-sm italic">
@@ -1728,13 +2042,18 @@ function QuizQuestionsList({ quizId }: { quizId: number }) {
       </div>
     );
   }
-  
+
   return (
     <div className="mt-2">
-      <p className="text-sm font-medium mb-2">Questions ({questions.length}):</p>
+      <p className="text-sm font-medium mb-2">
+        Questions ({questions.length}):
+      </p>
       <div className="space-y-1">
         {questions.slice(0, 3).map((question, index) => (
-          <div key={question.id} className="text-xs text-muted-foreground truncate">
+          <div
+            key={question.id}
+            className="text-xs text-muted-foreground truncate"
+          >
             {index + 1}. {question.question}
           </div>
         ))}
@@ -1749,32 +2068,36 @@ function QuizQuestionsList({ quizId }: { quizId: number }) {
 }
 
 // Dialog for creating/editing quizzes
-function QuizDialog({ 
-  courseId, 
+function QuizDialog({
+  courseId,
   modules,
-  quizId, 
-  existingQuiz, 
-  children 
-}: { 
+  quizId,
+  existingQuiz,
+  children,
+}: {
   courseId: number;
   modules: Module[];
-  quizId?: number; 
-  existingQuiz?: Quiz; 
+  quizId?: number;
+  existingQuiz?: Quiz;
   children?: React.ReactNode;
 }) {
   const { toast } = useToast();
   const isEditing = !!quizId;
-  const [selectedModuleId, setSelectedModuleId] = useState<number | null>(existingQuiz?.moduleId || null);
-  const [questions, setQuestions] = useState<{
-    id?: number;
-    question: string;
-    options: string[];
-    correctAnswer: string;
-    type: string;
-    orderIndex: number;
-    isNew?: boolean;
-  }[]>([]);
-  
+  const [selectedModuleId, setSelectedModuleId] = useState<number | null>(
+    existingQuiz?.moduleId || null
+  );
+  const [questions, setQuestions] = useState<
+    {
+      id?: number;
+      question: string;
+      options: string[];
+      correctAnswer: string;
+      type: string;
+      orderIndex: number;
+      isNew?: boolean;
+    }[]
+  >([]);
+
   // Load questions if editing
   const { data: existingQuestions } = useQuery<QuizQuestion[]>({
     queryKey: ["/api/quiz-questions", { quizId }],
@@ -1787,18 +2110,20 @@ function QuizDialog({
     enabled: !!quizId,
     onSuccess: (data) => {
       if (data && data.length > 0) {
-        setQuestions(data.map(q => ({
-          id: q.id,
-          question: q.question,
-          options: q.options || [],
-          correctAnswer: q.correctAnswer,
-          type: q.type,
-          orderIndex: q.orderIndex,
-        })));
+        setQuestions(
+          data.map((q) => ({
+            id: q.id,
+            question: q.question,
+            options: q.options || [],
+            correctAnswer: q.correctAnswer,
+            type: q.type,
+            orderIndex: q.orderIndex,
+          }))
+        );
       }
-    }
+    },
   });
-  
+
   // Fetch lessons for selected module
   const { data: moduleCustomLessons } = useQuery<Lesson[]>({
     queryKey: ["/api/lessons", { moduleId: selectedModuleId }],
@@ -1810,7 +2135,7 @@ function QuizDialog({
     },
     enabled: !!selectedModuleId,
   });
-  
+
   // Form for quiz creation/editing
   const form = useForm<{
     title: string;
@@ -1836,7 +2161,7 @@ function QuizDialog({
       passingScore: existingQuiz?.passingScore || 70,
     },
   });
-  
+
   // Create quiz mutation
   const createQuizMutation = useMutation({
     mutationFn: async (values: {
@@ -1846,7 +2171,7 @@ function QuizDialog({
         moduleId: number | null;
         lessonId: number | null;
         passingScore: number;
-      },
+      };
       questions: {
         id?: number;
         question: string;
@@ -1854,29 +2179,33 @@ function QuizDialog({
         correctAnswer: string;
         type: string;
         orderIndex: number;
-      }[]
+      }[];
     }) => {
       // Create the quiz first
-      const quizRes = await apiRequest("POST", "/api/quizzes", {
-        ...values.quiz,
-        courseId,
+      const quizRes = await apiRequest(`/api/courses/${courseId}/quizzes`, {
+        method: "POST",
+        data: values.quiz,
       });
       const createdQuiz = await quizRes.json();
-      
+
       // Then create all questions
       const questionPromises = values.questions.map((question, index) => {
-        return apiRequest("POST", "/api/quiz-questions", {
-          ...question,
-          quizId: createdQuiz.id,
-          orderIndex: index,
+        return apiRequest(`/api/quizzes/${createdQuiz.id}/questions`, {
+          method: "POST",
+          data: {
+            ...question,
+            orderIndex: index,
+          },
         });
       });
-      
+
       await Promise.all(questionPromises);
       return createdQuiz;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/quizzes", { courseId }] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/quizzes", { courseId }],
+      });
       form.reset();
       setQuestions([]);
       toast({
@@ -1892,7 +2221,7 @@ function QuizDialog({
       });
     },
   });
-  
+
   // Update quiz mutation
   const updateQuizMutation = useMutation({
     mutationFn: async (values: {
@@ -1902,7 +2231,7 @@ function QuizDialog({
         moduleId: number | null;
         lessonId: number | null;
         passingScore: number;
-      },
+      };
       questions: {
         id?: number;
         question: string;
@@ -1911,37 +2240,49 @@ function QuizDialog({
         type: string;
         orderIndex: number;
         isNew?: boolean;
-      }[]
+      }[];
     }) => {
       // Update the quiz
-      const quizRes = await apiRequest("PATCH", `/api/quizzes/${quizId}`, values.quiz);
+      const quizRes = await apiRequest(`/api/quizzes/${quizId}`, {
+        method: "PUT",
+        data: values.quiz,
+      });
       await quizRes.json();
-      
+
       // Handle questions - create new ones, update existing ones
       const questionPromises = values.questions.map((question, index) => {
         // New question
         if (!question.id || question.isNew) {
-          return apiRequest("POST", "/api/quiz-questions", {
-            ...question,
-            quizId,
-            orderIndex: index,
+          return apiRequest(`/api/quizzes/${quizId}/questions`, {
+            method: "POST",
+            data: {
+              ...question,
+              orderIndex: index,
+            },
           });
         }
-        
+
         // Existing question to update
-        return apiRequest("PATCH", `/api/quiz-questions/${question.id}`, {
-          ...question,
-          orderIndex: index,
+        return apiRequest(`/api/quiz-questions/${question.id}`, {
+          method: "PUT",
+          data: {
+            ...question,
+            orderIndex: index,
+          },
         });
       });
-      
+
       await Promise.all(questionPromises);
-      
+
       return { success: true };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/quizzes", { courseId }] });
-      queryClient.invalidateQueries({ queryKey: ["/api/quiz-questions", { quizId }] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/quizzes", { courseId }],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/quiz-questions", { quizId }],
+      });
       toast({
         title: "Quiz Updated",
         description: "Your quiz has been updated successfully.",
@@ -1955,7 +2296,7 @@ function QuizDialog({
       });
     },
   });
-  
+
   // Add a new question
   const addQuestion = () => {
     setQuestions([
@@ -1967,33 +2308,37 @@ function QuizDialog({
         type: "multiple_choice",
         orderIndex: questions.length,
         isNew: true,
-      }
+      },
     ]);
   };
-  
+
   // Update a question
   const updateQuestion = (index: number, field: string, value: any) => {
     const newQuestions = [...questions];
     newQuestions[index] = { ...newQuestions[index], [field]: value };
     setQuestions(newQuestions);
   };
-  
+
   // Update an option in a question
-  const updateOption = (questionIndex: number, optionIndex: number, value: string) => {
+  const updateOption = (
+    questionIndex: number,
+    optionIndex: number,
+    value: string
+  ) => {
     const newQuestions = [...questions];
     const newOptions = [...newQuestions[questionIndex].options];
     newOptions[optionIndex] = value;
     newQuestions[questionIndex].options = newOptions;
     setQuestions(newQuestions);
   };
-  
+
   // Remove a question
   const removeQuestion = (index: number) => {
     const newQuestions = [...questions];
     newQuestions.splice(index, 1);
     setQuestions(newQuestions);
   };
-  
+
   // Form submission handler
   const onSubmit = (values: any) => {
     // Validate questions
@@ -2005,18 +2350,21 @@ function QuizDialog({
       });
       return;
     }
-    
+
     // Check if all questions have content
-    const invalidQuestions = questions.filter(q => !q.question || !q.correctAnswer);
+    const invalidQuestions = questions.filter(
+      (q) => !q.question || !q.correctAnswer
+    );
     if (invalidQuestions.length > 0) {
       toast({
         title: "Invalid Questions",
-        description: "Please ensure all questions have both a question and a correct answer.",
+        description:
+          "Please ensure all questions have both a question and a correct answer.",
         variant: "destructive",
       });
       return;
     }
-    
+
     const quizData = {
       quiz: {
         title: values.title,
@@ -2027,14 +2375,14 @@ function QuizDialog({
       },
       questions,
     };
-    
+
     if (isEditing) {
       updateQuizMutation.mutate(quizData);
     } else {
       createQuizMutation.mutate(quizData);
     }
   };
-  
+
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -2047,16 +2395,21 @@ function QuizDialog({
       </DialogTrigger>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
         <DialogHeader>
-          <DialogTitle>{isEditing ? "Edit Quiz" : "Create New Quiz"}</DialogTitle>
+          <DialogTitle>
+            {isEditing ? "Edit Quiz" : "Create New Quiz"}
+          </DialogTitle>
           <DialogDescription>
-            {isEditing 
-              ? "Update quiz details and questions." 
+            {isEditing
+              ? "Update quiz details and questions."
               : "Create a new quiz to assess student knowledge."}
           </DialogDescription>
         </DialogHeader>
-        
+
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-2">
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-6 py-2"
+          >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -2065,13 +2418,16 @@ function QuizDialog({
                   <FormItem>
                     <FormLabel>Quiz Title</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., Module 1 Assessment" {...field} />
+                      <Input
+                        placeholder="e.g., Module 1 Assessment"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="passingScore"
@@ -2079,13 +2435,15 @@ function QuizDialog({
                   <FormItem>
                     <FormLabel>Passing Score (%)</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
-                        min="0" 
-                        max="100" 
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
                         {...field}
                         value={field.value}
-                        onChange={e => field.onChange(parseInt(e.target.value))}
+                        onChange={(e) =>
+                          field.onChange(parseInt(e.target.value))
+                        }
                       />
                     </FormControl>
                     <FormMessage />
@@ -2093,7 +2451,7 @@ function QuizDialog({
                 )}
               />
             </div>
-            
+
             <FormField
               control={form.control}
               name="description"
@@ -2101,9 +2459,9 @@ function QuizDialog({
                 <FormItem>
                   <FormLabel>Description (Optional)</FormLabel>
                   <FormControl>
-                    <Textarea 
-                      placeholder="Brief description of this quiz" 
-                      {...field} 
+                    <Textarea
+                      placeholder="Brief description of this quiz"
+                      {...field}
                       value={field.value || ""}
                       onChange={field.onChange}
                     />
@@ -2112,7 +2470,7 @@ function QuizDialog({
                 </FormItem>
               )}
             />
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -2136,7 +2494,10 @@ function QuizDialog({
                       <SelectContent>
                         <SelectItem value="none">None</SelectItem>
                         {modules.map((module) => (
-                          <SelectItem key={module.id} value={module.id.toString()}>
+                          <SelectItem
+                            key={module.id}
+                            value={module.id.toString()}
+                          >
                             {module.title}
                           </SelectItem>
                         ))}
@@ -2146,7 +2507,7 @@ function QuizDialog({
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="lessonId"
@@ -2156,7 +2517,11 @@ function QuizDialog({
                     <Select
                       onValueChange={field.onChange}
                       value={field.value || "default"}
-                      disabled={!selectedModuleId || !moduleCustomLessons || moduleCustomLessons.length === 0}
+                      disabled={
+                        !selectedModuleId ||
+                        !moduleCustomLessons ||
+                        moduleCustomLessons.length === 0
+                      }
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -2166,7 +2531,10 @@ function QuizDialog({
                       <SelectContent>
                         <SelectItem value="none">None</SelectItem>
                         {moduleCustomLessons?.map((lesson) => (
-                          <SelectItem key={lesson.id} value={lesson.id.toString()}>
+                          <SelectItem
+                            key={lesson.id}
+                            value={lesson.id.toString()}
+                          >
                             {lesson.title}
                           </SelectItem>
                         ))}
@@ -2177,7 +2545,7 @@ function QuizDialog({
                 )}
               />
             </div>
-            
+
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-medium">Questions</h3>
@@ -2186,7 +2554,7 @@ function QuizDialog({
                   Add Question
                 </Button>
               </div>
-              
+
               {questions.length === 0 ? (
                 <div className="text-center py-4 border-2 border-dashed rounded-lg">
                   <p className="text-muted-foreground">
@@ -2196,73 +2564,97 @@ function QuizDialog({
               ) : (
                 <div className="space-y-6">
                   {questions.map((question, qIndex) => (
-                    <div key={qIndex} className="border rounded-lg p-4 space-y-4">
+                    <div
+                      key={qIndex}
+                      className="border rounded-lg p-4 space-y-4"
+                    >
                       <div className="flex justify-between items-center">
                         <h4 className="font-medium">Question {qIndex + 1}</h4>
-                        <Button 
-                          type="button" 
-                          variant="ghost" 
-                          size="sm" 
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
                           onClick={() => removeQuestion(qIndex)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
-                      
+
                       <div className="space-y-4">
                         <div className="space-y-2">
-                          <label className="text-sm font-medium">Question</label>
-                          <Textarea 
-                            value={question.question} 
-                            onChange={(e) => updateQuestion(qIndex, "question", e.target.value)}
+                          <label className="text-sm font-medium">
+                            Question
+                          </label>
+                          <Textarea
+                            value={question.question}
+                            onChange={(e) =>
+                              updateQuestion(qIndex, "question", e.target.value)
+                            }
                             placeholder="Enter your question here"
                           />
                         </div>
-                        
+
                         <div className="space-y-2">
                           <label className="text-sm font-medium">Type</label>
                           <Select
                             value={question.type}
-                            onValueChange={(value) => updateQuestion(qIndex, "type", value)}
+                            onValueChange={(value) =>
+                              updateQuestion(qIndex, "type", value)
+                            }
                           >
                             <SelectTrigger>
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="multiple_choice">Multiple Choice</SelectItem>
-                              <SelectItem value="true_false">True/False</SelectItem>
+                              <SelectItem value="multiple_choice">
+                                Multiple Choice
+                              </SelectItem>
+                              <SelectItem value="true_false">
+                                True/False
+                              </SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
-                        
+
                         {question.type === "multiple_choice" && (
                           <div className="space-y-3">
-                            <label className="text-sm font-medium">Options</label>
+                            <label className="text-sm font-medium">
+                              Options
+                            </label>
                             {question.options.map((option, oIndex) => (
                               <div key={oIndex} className="flex gap-2">
-                                <Input 
-                                  value={option} 
-                                  onChange={(e) => updateOption(qIndex, oIndex, e.target.value)}
+                                <Input
+                                  value={option}
+                                  onChange={(e) =>
+                                    updateOption(qIndex, oIndex, e.target.value)
+                                  }
                                   placeholder={`Option ${oIndex + 1}`}
                                 />
                               </div>
                             ))}
                           </div>
                         )}
-                        
+
                         <div className="space-y-2">
-                          <label className="text-sm font-medium">Correct Answer</label>
+                          <label className="text-sm font-medium">
+                            Correct Answer
+                          </label>
                           {question.type === "multiple_choice" ? (
                             <Select
                               value={question.correctAnswer}
-                              onValueChange={(value) => updateQuestion(qIndex, "correctAnswer", value)}
+                              onValueChange={(value) =>
+                                updateQuestion(qIndex, "correctAnswer", value)
+                              }
                             >
                               <SelectTrigger>
                                 <SelectValue placeholder="Select correct answer" />
                               </SelectTrigger>
                               <SelectContent>
                                 {question.options.map((option, oIndex) => (
-                                  <SelectItem key={oIndex} value={option || `option_${oIndex + 1}`}>
+                                  <SelectItem
+                                    key={oIndex}
+                                    value={option || `option_${oIndex + 1}`}
+                                  >
                                     {option || `Option ${oIndex + 1}`}
                                   </SelectItem>
                                 ))}
@@ -2271,7 +2663,9 @@ function QuizDialog({
                           ) : (
                             <Select
                               value={question.correctAnswer}
-                              onValueChange={(value) => updateQuestion(qIndex, "correctAnswer", value)}
+                              onValueChange={(value) =>
+                                updateQuestion(qIndex, "correctAnswer", value)
+                              }
                             >
                               <SelectTrigger>
                                 <SelectValue placeholder="Select correct answer" />
@@ -2289,22 +2683,29 @@ function QuizDialog({
                 </div>
               )}
             </div>
-            
+
             <DialogFooter className="pt-4">
               <DialogClose asChild>
-                <Button variant="outline" type="button">Cancel</Button>
+                <Button variant="outline" type="button">
+                  Cancel
+                </Button>
               </DialogClose>
-              <Button 
-                type="submit" 
-                disabled={createQuizMutation.isPending || updateQuizMutation.isPending}
+              <Button
+                type="submit"
+                disabled={
+                  createQuizMutation.isPending || updateQuizMutation.isPending
+                }
               >
-                {(createQuizMutation.isPending || updateQuizMutation.isPending) ? (
+                {createQuizMutation.isPending ||
+                updateQuizMutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     {isEditing ? "Updating..." : "Creating..."}
                   </>
+                ) : isEditing ? (
+                  "Update Quiz"
                 ) : (
-                  isEditing ? "Update Quiz" : "Create Quiz"
+                  "Create Quiz"
                 )}
               </Button>
             </DialogFooter>
@@ -2316,55 +2717,63 @@ function QuizDialog({
 }
 
 // Module Dialog for Creating/Editing
-function ModuleDialog({ 
-  courseId, 
-  moduleId, 
-  existingModule, 
-  children 
-}: { 
-  courseId: number; 
-  moduleId?: number; 
-  existingModule?: Module; 
+function ModuleDialog({
+  courseId,
+  moduleId,
+  existingModule,
+  children,
+}: {
+  courseId: number;
+  moduleId?: number;
+  existingModule?: Module;
   children?: React.ReactNode;
 }) {
   const { toast } = useToast();
   const isEditing = !!moduleId;
   const [open, setOpen] = useState(false);
-  
+
   // Form for module creation/editing
   const form = useForm<ModuleFormValues>({
     resolver: zodResolver(
       z.object({
         title: z.string().min(3, "Title must be at least 3 characters"),
         description: z.string().nullable(),
+        course_id: z.number().int().min(1),
         order: z.number().int().min(0),
       })
     ),
     defaultValues: {
       title: existingModule?.title || "",
       description: existingModule?.description || "",
+      course_id: existingModule?.courseId || 0,
       order: existingModule?.orderIndex || 0,
     },
   });
-  
+
   // Create module mutation
   const createModuleMutation = useMutation({
     mutationFn: async (values: ModuleFormValues) => {
-      const data = { ...values, courseId };
-      const res = await apiRequest("POST", "/api/modules", data);
+      const res = await apiRequest(`/api/courses/${courseId}/modules`, {
+        method: "POST",
+        data: values,
+      });
       return res.json();
     },
     onSuccess: () => {
       // Immediate query invalidation for instant UI refresh
-      queryClient.invalidateQueries({ queryKey: ["/api/modules", { courseId }] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/modules", { courseId }],
+      });
       queryClient.invalidateQueries({ queryKey: ["/api/courses", courseId] });
-      
+
       // Secondary delayed refresh to ensure UI updates even with network latency
       setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ["/api/modules", { courseId }] });
+        queryClient.invalidateQueries({
+          queryKey: ["/api/modules", { courseId }],
+        });
       }, 500);
-      
-      form.reset({ title: "", description: "", orderIndex: 0 });
+
+      form.reset({ title: "", description: "", course_id: 0, order: 0 });
       toast({
         title: "Module Created",
         description: "Your new module has been added to the course.",
@@ -2380,26 +2789,33 @@ function ModuleDialog({
       });
     },
   });
-  
+
   // Update module mutation
   const updateModuleMutation = useMutation({
     mutationFn: async (values: ModuleFormValues) => {
-      const res = await apiRequest("PATCH", `/api/modules/${moduleId}`, values);
+      const res = await apiRequest(`/api/modules/${moduleId}`, {
+        method: "PUT",
+        data: values,
+      });
       return res.json();
     },
     onSuccess: () => {
       // Immediate query invalidation for instant UI refresh
-      queryClient.invalidateQueries({ queryKey: ["/api/modules", { courseId }] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/modules", { courseId }],
+      });
       queryClient.invalidateQueries({ queryKey: ["/api/courses", courseId] });
-      
+
       // Also invalidate any lessons within this module
       queryClient.invalidateQueries({ queryKey: ["/api/lessons"] });
-      
+
       // Secondary delayed refresh to ensure UI updates even with network latency
       setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ["/api/modules", { courseId }] });
+        queryClient.invalidateQueries({
+          queryKey: ["/api/modules", { courseId }],
+        });
       }, 500);
-      
+
       toast({
         title: "Module Updated",
         description: "Your module has been updated successfully.",
@@ -2415,7 +2831,7 @@ function ModuleDialog({
       });
     },
   });
-  
+
   const onSubmit = (values: ModuleFormValues) => {
     if (isEditing) {
       updateModuleMutation.mutate(values);
@@ -2423,7 +2839,7 @@ function ModuleDialog({
       createModuleMutation.mutate(values);
     }
   };
-  
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild onClick={() => setOpen(true)}>
@@ -2436,16 +2852,21 @@ function ModuleDialog({
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{isEditing ? "Edit Module" : "Add New Module"}</DialogTitle>
+          <DialogTitle>
+            {isEditing ? "Edit Module" : "Add New Module"}
+          </DialogTitle>
           <DialogDescription>
-            {isEditing 
-              ? "Update the details of this module." 
+            {isEditing
+              ? "Update the details of this module."
               : "Add a new module to organize your course content."}
           </DialogDescription>
         </DialogHeader>
-        
+
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-2">
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-4 py-2"
+          >
             <FormField
               control={form.control}
               name="title"
@@ -2453,13 +2874,16 @@ function ModuleDialog({
                 <FormItem>
                   <FormLabel>Module Title</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Introduction to Basics" {...field} />
+                    <Input
+                      placeholder="e.g., Introduction to Basics"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="description"
@@ -2467,13 +2891,16 @@ function ModuleDialog({
                 <FormItem>
                   <FormLabel>Description (Optional)</FormLabel>
                   <FormControl>
-                    <Textarea 
-                      placeholder="Brief description of this module" 
-                      {...field} 
+                    <Textarea
+                      placeholder="Brief description of this module"
+                      {...field}
                       value={field.value || ""}
                       onChange={(e) => {
                         // Sanitize HTML content before setting
-                        const sanitizedValue = e.target.value.replace(/(<([^>]+)>)/gi, "");
+                        const sanitizedValue = e.target.value.replace(
+                          /(<([^>]+)>)/gi,
+                          ""
+                        );
                         field.onChange(sanitizedValue);
                       }}
                     />
@@ -2485,10 +2912,32 @@ function ModuleDialog({
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
-              name="orderIndex"
+              name="course_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Course ID</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      min="1"
+                      {...field}
+                      onChange={(e) => field.onChange(parseInt(e.target.value))}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    The ID of the course this module belongs to
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="order"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Order</FormLabel>
@@ -2507,22 +2956,30 @@ function ModuleDialog({
                 </FormItem>
               )}
             />
-            
+
             <DialogFooter className="pt-4">
               <DialogClose asChild>
-                <Button variant="outline" type="button">Cancel</Button>
+                <Button variant="outline" type="button">
+                  Cancel
+                </Button>
               </DialogClose>
-              <Button 
-                type="submit" 
-                disabled={createModuleMutation.isPending || updateModuleMutation.isPending}
+              <Button
+                type="submit"
+                disabled={
+                  createModuleMutation.isPending ||
+                  updateModuleMutation.isPending
+                }
               >
-                {(createModuleMutation.isPending || updateModuleMutation.isPending) ? (
+                {createModuleMutation.isPending ||
+                updateModuleMutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     {isEditing ? "Updating..." : "Creating..."}
                   </>
+                ) : isEditing ? (
+                  "Update Module"
                 ) : (
-                  isEditing ? "Update Module" : "Add Module"
+                  "Add Module"
                 )}
               </Button>
             </DialogFooter>
@@ -2534,59 +2991,80 @@ function ModuleDialog({
 }
 
 // Lesson Dialog for Creating/Editing
-function LessonDialog({ 
-  moduleId, 
-  lessonId, 
-  existingLesson, 
-  children 
-}: { 
-  moduleId: number; 
-  lessonId?: number; 
-  existingLesson?: Lesson; 
+function LessonDialog({
+  moduleId,
+  lessonId,
+  existingLesson,
+  children,
+}: {
+  moduleId: number;
+  lessonId?: number;
+  existingLesson?: Lesson;
   children?: React.ReactNode;
 }) {
   const { toast } = useToast();
   const isEditing = !!lessonId;
   const [open, setOpen] = useState(false);
-  
+
   // Form for lesson creation/editing
   const form = useForm<LessonFormValues>({
     resolver: zodResolver(
       z.object({
         title: z.string().min(3, "Title must be at least 3 characters"),
         content: z.string().nullable(),
-        videoUrl: z.string().nullable(),
-        orderIndex: z.number().int().min(0),
+        video_url: z.string().nullable(),
+        module_id: z.number().int().min(1),
+        order: z.number().int().min(0),
       })
     ),
     defaultValues: {
       title: existingLesson?.title || "",
       content: existingLesson?.content || "",
-      videoUrl: existingLesson?.videoUrl || "",
-      orderIndex: existingLesson?.orderIndex || 0,
+      video_url: existingLesson?.video_url || "",
+      module_id: existingLesson?.module_id || moduleId,
+      order: existingLesson?.order || 0,
     },
   });
-  
+
+  // Update form when dialog opens to ensure module_id is set correctly
+  useEffect(() => {
+    if (open && !isEditing) {
+      form.setValue("module_id", moduleId);
+    }
+  }, [open, moduleId, isEditing, form]);
+
   // Create lesson mutation
   const createLessonMutation = useMutation({
     mutationFn: async (values: LessonFormValues) => {
-      const data = { ...values, moduleId };
-      const res = await apiRequest("POST", "/api/lessons", data);
-      return res.json();
+      const res = await apiRequest(`/api/courses/modules/${moduleId}/lessons`, {
+        method: "POST",
+        data: values,
+      });
+      return res;
     },
     onSuccess: (data) => {
-      // Immediately invalidate queries to refresh lessons list
-      queryClient.invalidateQueries({ queryKey: ["/api/lessons", { moduleId }] });
-      
-      // Also invalidate the module to update counts if displayed
+      // Refresh modules to update the nested lessons data
+      queryClient.invalidateQueries({
+        queryKey: ["/api/modules", { courseId: moduleId }],
+      });
+
+      // Also invalidate the main modules query
       queryClient.invalidateQueries({ queryKey: ["/api/modules"] });
-      
+
       // Manual refresh attempt to ensure UI is updated
       setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ["/api/lessons", { moduleId }] });
+        queryClient.invalidateQueries({
+          queryKey: ["/api/modules", { courseId: moduleId }],
+        });
       }, 500);
-      
-      form.reset({ title: "", content: "", videoUrl: "", orderIndex: 0 });
+
+      form.reset({
+        title: "",
+        content: "",
+        video_url: "",
+        module_id: 0,
+        order: 0,
+      });
       toast({
         title: "Lesson Created",
         description: "Your new lesson has been added to the module.",
@@ -2602,25 +3080,32 @@ function LessonDialog({
       });
     },
   });
-  
+
   // Update lesson mutation
   const updateLessonMutation = useMutation({
     mutationFn: async (values: LessonFormValues) => {
-      const res = await apiRequest("PATCH", `/api/lessons/${lessonId}`, values);
+      const res = await apiRequest(`/api/lessons/${lessonId}`, {
+        method: "PUT",
+        data: values,
+      });
       return res.json();
     },
     onSuccess: () => {
-      // Immediate invalidation for lesson list refresh
-      queryClient.invalidateQueries({ queryKey: ["/api/lessons", { moduleId }] });
-      
-      // Also invalidate the module to update counts/metadata
+      // Refresh modules to update the nested lessons data
+      queryClient.invalidateQueries({
+        queryKey: ["/api/modules", { courseId: moduleId }],
+      });
+
+      // Also invalidate the main modules query
       queryClient.invalidateQueries({ queryKey: ["/api/modules"] });
-      
+
       // Secondary delayed invalidation to ensure UI updates even with network latency
       setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ["/api/lessons", { moduleId }] });
+        queryClient.invalidateQueries({
+          queryKey: ["/api/modules", { courseId: moduleId }],
+        });
       }, 500);
-      
+
       toast({
         title: "Lesson Updated",
         description: "Your lesson has been updated successfully.",
@@ -2636,7 +3121,7 @@ function LessonDialog({
       });
     },
   });
-  
+
   const onSubmit = (values: LessonFormValues) => {
     if (isEditing) {
       updateLessonMutation.mutate(values);
@@ -2644,7 +3129,7 @@ function LessonDialog({
       createLessonMutation.mutate(values);
     }
   };
-  
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild onClick={() => setOpen(true)}>
@@ -2657,16 +3142,21 @@ function LessonDialog({
       </DialogTrigger>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>{isEditing ? "Edit Lesson" : "Add New Lesson"}</DialogTitle>
+          <DialogTitle>
+            {isEditing ? "Edit Lesson" : "Add New Lesson"}
+          </DialogTitle>
           <DialogDescription>
-            {isEditing 
-              ? "Update the details of this lesson." 
+            {isEditing
+              ? "Update the details of this lesson."
               : "Add a new lesson to this module."}
           </DialogDescription>
         </DialogHeader>
-        
+
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-2">
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-4 py-2"
+          >
             <FormField
               control={form.control}
               name="title"
@@ -2680,7 +3170,7 @@ function LessonDialog({
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="content"
@@ -2688,14 +3178,17 @@ function LessonDialog({
                 <FormItem>
                   <FormLabel>Content</FormLabel>
                   <FormControl>
-                    <Textarea 
-                      placeholder="Lesson content or notes" 
+                    <Textarea
+                      placeholder="Lesson content or notes"
                       className="min-h-24"
-                      {...field} 
+                      {...field}
                       value={field.value || ""}
                       onChange={(e) => {
                         // Sanitize HTML content before setting
-                        const sanitizedValue = e.target.value.replace(/(<([^>]+)>)/gi, "");
+                        const sanitizedValue = e.target.value.replace(
+                          /(<([^>]+)>)/gi,
+                          ""
+                        );
                         field.onChange(sanitizedValue);
                       }}
                     />
@@ -2707,40 +3200,38 @@ function LessonDialog({
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
-              name="videoUrl"
+              name="video_url"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Video Upload (Optional)</FormLabel>
+                  <FormLabel>Video URL (Optional)</FormLabel>
                   <FormControl>
-                    <FileUpload
-                      onUploadComplete={(url) => field.onChange(url)}
-                      defaultValue={field.value || ""}
-                      uploadEndpoint="/api/upload/lesson-video"
-                      acceptedTypes="video/*"
-                      label="Lesson Video"
-                      buttonText="Choose video file"
-                      maxSizeMB={50}
+                    <Input
+                      placeholder="https://www.youtube.com/watch?v=..."
+                      {...field}
+                      value={field.value || ""}
                     />
                   </FormControl>
-                  {field.value && !field.value.startsWith('data:') && (
-                    <div className="text-sm text-muted-foreground">
-                      Current URL: {field.value}
-                    </div>
-                  )}
                   <FormDescription>
-                    Upload a video for this lesson (max 50MB)
+                    Enter the URL of the video for this lesson
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
+
+            {/* Hidden field for module_id - automatically set */}
             <FormField
               control={form.control}
-              name="orderIndex"
+              name="module_id"
+              render={({ field }) => <input type="hidden" {...field} />}
+            />
+
+            <FormField
+              control={form.control}
+              name="order"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Order</FormLabel>
@@ -2759,22 +3250,30 @@ function LessonDialog({
                 </FormItem>
               )}
             />
-            
+
             <DialogFooter className="pt-4">
               <DialogClose asChild>
-                <Button variant="outline" type="button">Cancel</Button>
+                <Button variant="outline" type="button">
+                  Cancel
+                </Button>
               </DialogClose>
-              <Button 
-                type="submit" 
-                disabled={createLessonMutation.isPending || updateLessonMutation.isPending}
+              <Button
+                type="submit"
+                disabled={
+                  createLessonMutation.isPending ||
+                  updateLessonMutation.isPending
+                }
               >
-                {(createLessonMutation.isPending || updateLessonMutation.isPending) ? (
+                {createLessonMutation.isPending ||
+                updateLessonMutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     {isEditing ? "Updating..." : "Creating..."}
                   </>
+                ) : isEditing ? (
+                  "Update Lesson"
                 ) : (
-                  isEditing ? "Update Lesson" : "Add Lesson"
+                  "Add Lesson"
                 )}
               </Button>
             </DialogFooter>
@@ -2786,30 +3285,31 @@ function LessonDialog({
 }
 
 // Accordion Item for a Module
-function ModuleAccordionItem({ module, courseId }: { module: Module; courseId: number }) {
+function ModuleAccordionItem({
+  module,
+  courseId,
+}: {
+  module: Module;
+  courseId: number;
+}) {
   const { toast } = useToast();
-  
-  // Fetch lessons for this module without auto-refresh
-  const { data: lessons, isLoading: lessonsLoading, refetch: refetchLessons } = useQuery<Lesson[]>({
-    queryKey: ["/api/lessons", { moduleId: module.id }],
-    queryFn: async () => {
-      const res = await fetch(`/api/lessons?moduleId=${module.id}`);
-      if (!res.ok) throw new Error("Failed to fetch lessons");
-      return res.json();
-    },
-    // Don't refresh automatically - will be triggered by mutations instead
-    refetchOnWindowFocus: true,
-    staleTime: 30000 // Consider data fresh for 30 seconds
-  });
-  
+
+  // Use lessons from the module data (nested in the API response)
+  const lessons = module.lessons || [];
+  const lessonsLoading = false; // No separate loading state needed since lessons come with modules
+
   // Delete module mutation
   const deleteModuleMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("DELETE", `/api/modules/${module.id}`);
+      const res = await apiRequest(`/api/modules/${module.id}`, {
+        method: "DELETE",
+      });
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/modules", { courseId }] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/modules", { courseId }],
+      });
       toast({
         title: "Module Deleted",
         description: "The module and all its content has been deleted.",
@@ -2823,9 +3323,12 @@ function ModuleAccordionItem({ module, courseId }: { module: Module; courseId: n
       });
     },
   });
-  
+
   return (
-    <AccordionItem value={`module-${module.id}`} className="border px-4 rounded-md mb-4">
+    <AccordionItem
+      value={`module-${module.id}`}
+      className="border px-4 rounded-md mb-4"
+    >
       <div className="flex items-center justify-between pr-4">
         <AccordionTrigger className="flex-grow hover:no-underline py-4">
           <div className="flex items-center">
@@ -2838,17 +3341,23 @@ function ModuleAccordionItem({ module, courseId }: { module: Module; courseId: n
           </div>
         </AccordionTrigger>
         <div className="flex items-center gap-2">
-          <ModuleDialog 
-            courseId={courseId} 
-            moduleId={module.id} 
+          <ModuleDialog
+            courseId={courseId}
+            moduleId={module.id}
             existingModule={module}
           >
-            <Button size="sm" variant="ghost">Edit</Button>
+            <Button size="sm" variant="ghost">
+              Edit
+            </Button>
           </ModuleDialog>
-          
+
           <Dialog>
             <DialogTrigger asChild>
-              <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-700 hover:bg-red-50">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-red-500 hover:text-red-700 hover:bg-red-50"
+              >
                 Delete
               </Button>
             </DialogTrigger>
@@ -2856,15 +3365,16 @@ function ModuleAccordionItem({ module, courseId }: { module: Module; courseId: n
               <DialogHeader>
                 <DialogTitle>Delete Module</DialogTitle>
                 <DialogDescription>
-                  Are you sure you want to delete this module? This will also delete all lessons within the module.
+                  Are you sure you want to delete this module? This will also
+                  delete all lessons within the module.
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter>
                 <DialogClose asChild>
                   <Button variant="outline">Cancel</Button>
                 </DialogClose>
-                <Button 
-                  variant="destructive" 
+                <Button
+                  variant="destructive"
                   onClick={() => deleteModuleMutation.mutate()}
                   disabled={deleteModuleMutation.isPending}
                 >
@@ -2882,14 +3392,14 @@ function ModuleAccordionItem({ module, courseId }: { module: Module; courseId: n
           </Dialog>
         </div>
       </div>
-      
+
       <AccordionContent>
         <div className="pt-2 pb-4">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-sm font-medium">Lessons</h3>
             <LessonDialog moduleId={module.id} />
           </div>
-          
+
           {lessonsLoading ? (
             <div className="flex justify-center py-4">
               <Loader2 className="h-5 w-5 animate-spin text-primary" />
@@ -2897,16 +3407,18 @@ function ModuleAccordionItem({ module, courseId }: { module: Module; courseId: n
           ) : lessons && lessons.length > 0 ? (
             <div className="space-y-2">
               {lessons.map((lesson) => (
-                <LessonCard 
-                  key={lesson.id} 
-                  lesson={lesson} 
-                  moduleId={module.id} 
+                <LessonCard
+                  key={lesson.id}
+                  lesson={lesson}
+                  moduleId={module.id}
                 />
               ))}
             </div>
           ) : (
             <div className="text-center py-6 border border-dashed rounded-md">
-              <p className="text-sm text-muted-foreground mb-2">No lessons added yet</p>
+              <p className="text-sm text-muted-foreground mb-2">
+                No lessons added yet
+              </p>
               <LessonDialog moduleId={module.id}>
                 <Button size="sm" variant="outline">
                   <Plus className="mr-2 h-4 w-4" />
@@ -2922,27 +3434,39 @@ function ModuleAccordionItem({ module, courseId }: { module: Module; courseId: n
 }
 
 // Card for a Lesson
-function LessonCard({ lesson, moduleId }: { lesson: Lesson; moduleId: number }) {
+function LessonCard({
+  lesson,
+  moduleId,
+}: {
+  lesson: Lesson;
+  moduleId: number;
+}) {
   const { toast } = useToast();
-  
+
   // Delete lesson mutation
   const deleteLessonMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("DELETE", `/api/lessons/${lesson.id}`);
-      return res.json();
+      const res = await apiRequest(`/api/lessons/${lesson.id}`, {
+        method: "DELETE",
+      });
+      return res;
     },
     onSuccess: () => {
-      // Immediate query invalidation for UI refresh
-      queryClient.invalidateQueries({ queryKey: ["/api/lessons", { moduleId }] });
-      
-      // Also refresh modules to update any counts or metadata
+      // Refresh modules to update the nested lessons data
+      queryClient.invalidateQueries({
+        queryKey: ["/api/modules", { courseId: moduleId }],
+      });
+
+      // Also refresh the main modules query
       queryClient.invalidateQueries({ queryKey: ["/api/modules"] });
-      
+
       // Additional delayed refresh to handle any network latency
       setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ["/api/lessons", { moduleId }] });
+        queryClient.invalidateQueries({
+          queryKey: ["/api/modules", { courseId: moduleId }],
+        });
       }, 500);
-      
+
       toast({
         title: "Lesson Deleted",
         description: "The lesson has been deleted.",
@@ -2956,13 +3480,13 @@ function LessonCard({ lesson, moduleId }: { lesson: Lesson; moduleId: number }) 
       });
     },
   });
-  
+
   return (
     <Card>
       <div className="flex items-center p-4">
         <div className="flex-grow">
           <h4 className="font-medium">{lesson.title}</h4>
-          {lesson.videoUrl && (
+          {lesson.video_url && (
             <p className="text-xs text-muted-foreground flex items-center mt-1">
               <FileDown className="h-3 w-3 mr-1" />
               Has video
@@ -2970,17 +3494,23 @@ function LessonCard({ lesson, moduleId }: { lesson: Lesson; moduleId: number }) 
           )}
         </div>
         <div className="flex gap-2">
-          <LessonDialog 
-            moduleId={moduleId} 
-            lessonId={lesson.id} 
+          <LessonDialog
+            moduleId={moduleId}
+            lessonId={lesson.id}
             existingLesson={lesson}
           >
-            <Button size="sm" variant="ghost">Edit</Button>
+            <Button size="sm" variant="ghost">
+              Edit
+            </Button>
           </LessonDialog>
-          
+
           <Dialog>
             <DialogTrigger asChild>
-              <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-700 hover:bg-red-50">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-red-500 hover:text-red-700 hover:bg-red-50"
+              >
                 Delete
               </Button>
             </DialogTrigger>
@@ -2995,8 +3525,8 @@ function LessonCard({ lesson, moduleId }: { lesson: Lesson; moduleId: number }) 
                 <DialogClose asChild>
                   <Button variant="outline">Cancel</Button>
                 </DialogClose>
-                <Button 
-                  variant="destructive" 
+                <Button
+                  variant="destructive"
                   onClick={() => deleteLessonMutation.mutate()}
                   disabled={deleteLessonMutation.isPending}
                 >
