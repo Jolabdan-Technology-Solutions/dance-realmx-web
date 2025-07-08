@@ -182,6 +182,21 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
 
   // Transform form data to API format
   const transformFormDataToAPI = (formData: any, mode: string, user: any) => {
+    // Map service_category IDs to names
+    const serviceCategoryNames = formData.service_category.map(
+      (catId: string) => {
+        const found = serviceCategories.find((c) => c.id === catId);
+        return found ? found.name : catId;
+      }
+    );
+    // Map dance_style IDs to names
+    const danceStyleNames = formData.dance_style.map((styleId: string) => {
+      const found = dance_styles.find((s) => s.id.toString() === styleId);
+      return found ? found.name : styleId;
+    });
+    // Services are already text values
+    const servicesNames = formData.services;
+
     if (mode === "get-booked") {
       // Professional profile payload matching UpdateProfileDto
       return {
@@ -192,8 +207,8 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         state: formData.state,
         country: formData.country,
         zip_code: formData.zip_code,
-        service_category: formData.service_category,
-        dance_style: formData.dance_style,
+        service_category: serviceCategoryNames,
+        dance_style: danceStyleNames,
         location: formData.location,
         zipcode: formData.zipcode,
         travel_distance: formData.travel_distance,
@@ -201,7 +216,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         price_max: formData.price_max,
         session_duration: formData.session_duration,
         years_experience: formData.years_experience,
-        services: formData.services,
+        services: servicesNames,
         // availability: formData.availability,
         portfolio: formData.portfolio,
         pricing: formData.pricing,
@@ -214,8 +229,8 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     const basePayload = {
       mode,
       userId: user?.id || user?.user_id || "demo_user",
-      serviceCategory: formData.service_category,
-      danceStyle: formData.dance_style,
+      serviceCategory: serviceCategoryNames,
+      danceStyle: danceStyleNames,
       location: {
         zipcode: formData.zipcode,
         city: formData.city,
@@ -295,11 +310,25 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         // Use the new professional service for searching
         const searchParams: ProfessionalSearchParams = {};
 
+        // Map service_category IDs to names
         if (formData.service_category?.length > 0) {
-          searchParams.service_category = formData.service_category;
+          searchParams.service_category = formData.service_category.map(
+            (catId: string) => {
+              const found = serviceCategories.find((c) => c.id === catId);
+              return found ? found.name : catId;
+            }
+          );
         }
+        // Map dance_style IDs to names
         if (formData.dance_style?.length > 0) {
-          searchParams.dance_style = formData.dance_style;
+          searchParams.dance_style = formData.dance_style.map(
+            (styleId: string) => {
+              const found = dance_styles.find(
+                (s) => s.id.toString() === styleId
+              );
+              return found ? found.name : styleId;
+            }
+          );
         }
         if (formData.zip_code) searchParams.zip_code = formData.zip_code;
         if (formData.city) searchParams.city = formData.city;
