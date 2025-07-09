@@ -2745,7 +2745,7 @@ function ModuleDialog({
     defaultValues: {
       title: existingModule?.title || "",
       description: existingModule?.description || "",
-      course_id: existingModule?.courseId || 0,
+      course_id: existingModule?.courseId || courseId || 0,
       order: existingModule?.orderIndex || 0,
     },
   });
@@ -2912,7 +2912,7 @@ function ModuleDialog({
                 </FormItem>
               )}
             />
-
+            {/* 
             <FormField
               control={form.control}
               name="course_id"
@@ -2933,7 +2933,7 @@ function ModuleDialog({
                   <FormMessage />
                 </FormItem>
               )}
-            />
+            /> */}
 
             <FormField
               control={form.control}

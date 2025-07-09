@@ -27,7 +27,10 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { apiRequest } from "@/lib/queryClient";
 import { ProfessionalRecommendations } from "./professional-recommendations";
-import { ProfessionalSearchParams, professionalService } from "@/lib/professional-service";
+import {
+  ProfessionalSearchParams,
+  professionalService,
+} from "@/lib/professional-service";
 import { ComprehensiveRecommendations } from "./comprehensive-recommendations";
 
 // Custom styles for full-width date picker
@@ -276,6 +279,21 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
 
   // Transform form data to API format
   const transformFormDataToAPI = (formData: any, mode: string, user: any) => {
+    // Map service_category IDs to names
+    const serviceCategoryNames = formData.service_category.map(
+      (catId: string) => {
+        const found = serviceCategories.find((c) => c.id === catId);
+        return found ? found.name : catId;
+      }
+    );
+    // Map dance_style IDs to names
+    const danceStyleNames = formData.dance_style.map((styleId: string) => {
+      const found = dance_styles.find((s) => s.id.toString() === styleId);
+      return found ? found.name : styleId;
+    });
+    // Services are already text values
+    const servicesNames = formData.services;
+
     if (mode === "get-booked") {
       // Professional profile payload matching UpdateProfileDto
       return {
@@ -286,8 +304,8 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         state: formData.state,
         country: formData.country,
         zip_code: formData.zip_code,
-        service_category: formData.service_category,
-        dance_style: formData.dance_style,
+        service_category: serviceCategoryNames,
+        dance_style: danceStyleNames,
         location: formData.location,
         zipcode: formData.zipcode,
         travel_distance: formData.travel_distance,
@@ -315,8 +333,8 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     const basePayload = {
       mode,
       userId: user?.id || user?.user_id || "demo_user",
-      serviceCategory: formData.service_category,
-      danceStyle: formData.dance_style,
+      serviceCategory: serviceCategoryNames,
+      danceStyle: danceStyleNames,
       location: {
         zipcode: formData.zipcode,
         city: formData.city,
@@ -418,93 +436,74 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         );
       } else {
         // Use the new professional service for searching
-        const searchParams: ProfessionalSearchParams = {};
-        const params = new URLSearchParams();
+        const searchPayload: ProfessionalSearchParams = {};
 
+        // Map service_category IDs to names (for backend)
         if (formData.service_category?.length > 0) {
-          searchParams.service_category = formData.service_category;
-          formData.service_category.forEach((cat: string) =>
-            params.append("service_category", cat)
+          const mappedServiceCategories = formData.service_category.map(
+            (catId: string) => {
+              const found = serviceCategories.find((c) => c.id === catId);
+              return found ? found.name : catId;
+            }
           );
+          searchPayload.service_category = mappedServiceCategories;
         }
+        // Map dance_style IDs to names (for backend)
         if (formData.dance_style?.length > 0) {
-          searchParams.dance_style = formData.dance_style;
-          formData.dance_style.forEach((style: string) =>
-            params.append("dance_style", style)
+          const mappedDanceStyles = formData.dance_style.map(
+            (styleId: string) => {
+              const found = dance_styles.find(
+                (s) => s.id.toString() === styleId.toString()
+              );
+              return found ? found.name : styleId;
+            }
           );
+          searchPayload.dance_style = mappedDanceStyles;
         }
         if (formData.zip_code) {
-          searchParams.zip_code = formData.zip_code;
-          params.append("zip_code", formData.zip_code);
+          searchPayload.zip_code = formData.zip_code;
         }
         if (formData.city) {
-          searchParams.city = formData.city;
-          params.append("city", formData.city);
+          searchPayload.city = formData.city;
         }
         if (formData.state) {
-          searchParams.state = formData.state;
-          params.append("state", formData.state);
+          searchPayload.state = formData.state;
         }
         if (formData.location) {
-          searchParams.location = formData.location;
-          params.append("location", formData.location);
+          searchPayload.location = formData.location;
         }
         if (formData.travel_distance) {
-          searchParams.travel_distance = formData.travel_distance;
-          params.append("travel_distance", String(formData.travel_distance));
+          searchPayload.travel_distance = formData.travel_distance;
         }
         if (formData.pricing) {
-          searchParams.pricing = formData.pricing;
-          params.append("pricing", String(formData.pricing));
+          searchPayload.pricing = formData.pricing;
         }
         if (formData.session_duration) {
-          searchParams.session_duration = formData.session_duration;
-          params.append("session_duration", String(formData.session_duration));
+          searchPayload.session_duration = formData.session_duration;
         }
-        // if (formData.date) {
-        //   searchParams.date = formData.date.toISOString();
-        //   params.append("date", formData.date.toISOString());
-        // }
 
         // Add availability data if dates are selected
         if (
           formData.availabilityDates &&
           formData.availabilityDates.length > 0
         ) {
-          // Send availability data in the format the backend expects
-          const availabilityData = formData.availabilityDates.map(
+          // Send availability as a proper array of objects
+          searchPayload.availability_data = formData.availabilityDates.map(
             (avail: any) => ({
               date: avail.date.toISOString().split("T")[0],
               time_slots: avail.timeSlots,
             })
           );
-
-          // Add availability_data as JSON string
-          params.append("availability_data", JSON.stringify(availabilityData));
-
-          // Also add individual dates and time slots for flexibility
-          formData.availabilityDates.forEach((avail: any) => {
-            params.append(
-              "availability_dates",
-              avail.date.toISOString().split("T")[0]
-            );
-            avail.timeSlots.forEach((slot: string) => {
-              params.append("availability_time_slots", slot);
-            });
-          });
         }
 
-        // Log the complete submission data (including availability for reference)
-        console.log("Complete submission data:", {
-          searchParams: Object.fromEntries(params.entries()),
-          availabilityData: formData.availabilityDates,
-          formData: formData,
-        });
+        // Log the complete submission data
+        console.log("Complete submission data (POST):", searchPayload);
 
         result = await apiRequest(
-          `https://api.livetestdomain.com/api/profiles/professionals/search?${params.toString()}`,
+          `https://api.livetestdomain.com/api/profiles/professionals/search`,
           {
-            method: "GET",
+            method: "POST",
+            data: searchPayload,
             requireAuth: true,
           }
         );
@@ -1365,8 +1364,8 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                     return null;
                   })()}
                   <ProfessionalRecommendations
-                    originalSearchCriteria={formData}
-                    onProfessionalSelect={handleProfessionalSelect}
+                    initialFilters={formData}
+                    // onProfessionalSelect={handleProfessionalSelect}
                   />
                 </>
               )

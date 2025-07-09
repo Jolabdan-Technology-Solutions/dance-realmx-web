@@ -44,6 +44,10 @@ export interface ProfessionalSearchParams {
   date?: string;
   price_min?: number;
   price_max?: number;
+  availability_data?: Array<{
+    date: string;
+    time_slots: string[];
+  }>;
 }
 
 export interface ProfessionalSearchResponse {

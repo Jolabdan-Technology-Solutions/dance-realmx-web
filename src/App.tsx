@@ -147,6 +147,7 @@ const MyPurchasesPage = createLazyComponent(
   () => import("./pages/my-purchases")
 );
 
+
 // Dashboard Pages
 const DashboardPage = createLazyComponent(
   () => import("./pages/dashboard-page")

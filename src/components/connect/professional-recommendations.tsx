@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -493,6 +492,7 @@ export const DanceStyleRecommendations: React.FC<
         const allResults: ProfessionalProfile[] = [];
         for (const style of danceStyles) {
           const res = await professionalService.getByDanceStyle(style);
+          console.log("res:", res);
           if (res?.results) {
             allResults.push(...res.results);
           }
@@ -615,6 +615,7 @@ export const CategoryRecommendations: React.FC<
         const allResults: ProfessionalProfile[] = [];
         for (const category of categories) {
           const res = await professionalService.getByCategory(category);
+          console.log("res:", res);
           if (res?.results) {
             allResults.push(...res.results);
           }
@@ -735,6 +736,7 @@ export const CityRecommendations: React.FC<CityRecommendationsProps> = ({
       setError(null);
       try {
         const res = await professionalService.getByCity(city);
+        console.log("res:", res);
         if (isMounted) setProfessionals(res?.results || []);
       } catch (e) {
         setError("Failed to load professionals.");
