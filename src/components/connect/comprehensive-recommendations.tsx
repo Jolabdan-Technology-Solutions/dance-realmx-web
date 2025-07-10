@@ -23,6 +23,7 @@ import {
   professionalService,
   ProfessionalProfile,
 } from "@/lib/professional-service";
+import { toast } from "../ui/use-toast";
 
 interface ComprehensiveRecommendationsProps {
   bookingData: any;
@@ -58,7 +59,17 @@ export const ComprehensiveRecommendations: React.FC<
           ? prev.filter((id) => id !== profileId)
           : [...prev, profileId]
       );
+      toast({
+        title: "Favorite Added",
+        description: "Professional has been added to your favorites",
+        variant: "success",
+      });
     } catch (error) {
+      toast({
+        title: "Favorite Removed",
+        description: "Professional has been removed from your favorites",
+        variant: "error",
+      });
       console.error("Failed to toggle favorite:", error);
     }
   };
