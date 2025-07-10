@@ -3,6 +3,7 @@
 "use client"
 import { useState, useEffect } from "react"
 import { Filter, ChevronDown, Search, X } from "lucide-react"
+import { useLocation } from "wouter"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/hooks/use-auth"
 import { useCart } from "@/hooks/use-cart"
@@ -17,6 +18,7 @@ import { ResourceErrorCard, ResourcePlaceholderGrid } from "@/components/ui/reso
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ResourceDetailsModal } from "@/components/curriculum/resource-details-modal"
 import router from "@/routes/api"
+import { navigate } from "wouter/use-browser-location"
 
 // Unified filter state
 type FilterState = {
@@ -44,6 +46,8 @@ const CustomDropdown = ({
   placeholder?: string
 }) => {
   const [isOpen, setIsOpen] = useState(false)
+  const [, navigate] = useLocation()
+
 
   return (
     <div className="relative">
@@ -493,7 +497,7 @@ export default function CurriculumPageImproved() {
                     </span>
                   </div>
                   <div className="flex gap-2">
-                    <Button
+                    {/* <Button
                       variant="outline"
                       size="sm"
                       onClick={() => {
@@ -504,7 +508,15 @@ export default function CurriculumPageImproved() {
                       // className="hover:bg-gray-50"
                     >
                       Details
+                    </Button> */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate(`/curriculum/${resource.id}`)}
+                    >
+                      Details
                     </Button>
+
                     <Button onClick={() => addToCart(resource)} size="sm" className="bg-primary hover:bg-primary/90">
                       Add to Cart
                     </Button>

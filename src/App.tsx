@@ -99,12 +99,14 @@ const BookingPage = lazy(() => import("@/pages/booking-page"));
 const MyBookingsPage = lazy(() => import("@/pages/my-bookings-page"));
 
 // Curriculum Resource Module
+const CurriculumInfoPage = lazy(() => import("@/pages/curriculum/curriculum-info-wrapper"));
+
 const CurriculumPage = lazy(
   () => import("@/pages/curriculum/curriculum-page-simple")
 );
-// const CurriculumPageCombined = lazy(
-//   // () => import("@/pages/curriculum/curriculum-page-combined")
-// );
+// const CurriculumInfoPage = lazy(
+//   () => import("@/pages/curriculum/curriculumInfo-page")
+// )
 const ResourceDetailsPage = lazy(
   () => import("@/pages/curriculum/curriculum-details-page")
 );
@@ -311,6 +313,8 @@ const Pages = {
   SellerStore: withLayout(SellerStorePage),
   SellerDashboard: withLayout(SellerDashboardPage),
   SellerPayments: withLayout(SellerPaymentsPage),
+  CurriculumInfoPage: withLayout(CurriculumInfoPage),
+
 
   // Subscription Module
   Subscription: withLayout(SubscriptionPage),
@@ -456,8 +460,15 @@ function Router() {
         <ProtectedRoute path="/my-bookings" component={Pages.MyBookings} />
 
         {/* Curriculum Resource Module */}
-        <GuestRoute path="/curriculum" component={Pages.Curriculum} />
 
+        <GuestRoute
+  path="/curriculum/:resourceId"
+  component={Pages.CurriculumInfoPage}
+/>
+
+        
+        <GuestRoute path="/curriculum" component={Pages.Curriculum} />
+        <Route path="/curriculum/:id" component={Pages.Curriculum} />
         <GuestRoute
           path="/curriculum/:resourceId"
           component={Pages.ResourceDetails}
