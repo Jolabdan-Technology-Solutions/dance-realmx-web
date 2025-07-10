@@ -2,33 +2,45 @@ import { apiRequest } from "./queryClient";
 
 export interface ProfessionalProfile {
   id: number;
-  userId: number;
-  username: string;
-  firstName: string | null;
-  lastName: string | null;
-  email: string | null;
-  profileImageUrl: string | null;
-  providerType: string | null;
-  danceStyles: string[] | null;
+  user_id: number;
+  user: {
+    id: number;
+    email: string;
+    username: string;
+    password: string;
+    first_name: string;
+    last_name: string;
+    profile_image_url?: string;
+  };
+  firstName?: string | null;
+  lastName?: string | null;
+  email?: string | null;
+  profileImageUrl?: string | null;
+  providerType?: string | null;
+  dance_style: string[];
   location: string | null;
-  rate: string | null;
+  rate?: string | null;
   availability: string | null;
   bio: string | null;
-  yearsExperience: number | null;
-  services: string[] | null;
-  rating: number | null;
-  reviewCount: number | null;
+  years_experience: number;
+  service_category: string[];
+  services: string[];
+  rating?: number | null;
+  reviewCount?: number | null;
   city: string | null;
   state: string | null;
-  zipCode: string | null;
-  travelDistance: number | null;
-  priceMin: number | null;
-  priceMax: number | null;
-  sessionDuration: number | null;
+  zip_code: string | null;
+  travel_distance: number | null;
+  price_min: number | null;
+  price_max: number | null;
+  session_duration: number | null;
   portfolio: string | null;
-  phoneNumber: string | null;
+  phone_number: string | null;
   address: string | null;
   country: string | null;
+  pricing: number | null;
+  is_professional: boolean;
+  is_verified: boolean;
 }
 
 export interface ProfessionalSearchParams {
@@ -44,6 +56,7 @@ export interface ProfessionalSearchParams {
   date?: string;
   price_min?: number;
   price_max?: number;
+  availability_dates?: string[];
   availability_data?: Array<{
     date: string;
     time_slots: string[];
@@ -62,59 +75,59 @@ class ProfessionalService {
 
   // Get professionals by category
   async getByCategory(category: string): Promise<ProfessionalSearchResponse> {
-    return apiRequest(
-      `${this.baseUrl}/by-category?category=${encodeURIComponent(category)}`,
-      {
-        method: "GET",
-        requireAuth: true,
-      }
-    );
+    const url = `${this.baseUrl}/by-category?category=${encodeURIComponent(category)}`;
+    const response = await apiRequest(url, {
+      method: "GET",
+      requireAuth: true,
+    });
+
+    return response;
   }
 
   // Get professionals by city
   async getByCity(city: string): Promise<ProfessionalSearchResponse> {
-    return apiRequest(
-      `${this.baseUrl}/by-city?city=${encodeURIComponent(city)}`,
-      {
-        method: "GET",
-        requireAuth: true,
-      }
-    );
+    const url = `${this.baseUrl}/by-city?city=${encodeURIComponent(city)}`;
+    const response = await apiRequest(url, {
+      method: "GET",
+      requireAuth: true,
+    });
+
+    return response;
   }
 
   // Get professionals by dance style
   async getByDanceStyle(
     danceStyle: string
   ): Promise<ProfessionalSearchResponse> {
-    return apiRequest(
-      `${this.baseUrl}/by-dance-style?danceStyle=${encodeURIComponent(danceStyle)}`,
-      {
-        method: "GET",
-        requireAuth: true,
-      }
-    );
+    const url = `${this.baseUrl}/by-dance-style?danceStyle=${encodeURIComponent(danceStyle)}`;
+    const response = await apiRequest(url, {
+      method: "GET",
+      requireAuth: true,
+    });
+
+    return response;
   }
 
   // Get professionals by date
   async getByDate(date: string): Promise<ProfessionalSearchResponse> {
-    return apiRequest(
-      `${this.baseUrl}/by-date?date=${encodeURIComponent(date)}`,
-      {
-        method: "GET",
-        requireAuth: true,
-      }
-    );
+    const url = `${this.baseUrl}/by-date?date=${encodeURIComponent(date)}`;
+    const response = await apiRequest(url, {
+      method: "GET",
+      requireAuth: true,
+    });
+
+    return response;
   }
 
   // Get professionals by location
   async getByLocation(location: string): Promise<ProfessionalSearchResponse> {
-    return apiRequest(
-      `${this.baseUrl}/by-location?location=${encodeURIComponent(location)}`,
-      {
-        method: "GET",
-        requireAuth: true,
-      }
-    );
+    const url = `${this.baseUrl}/by-location?location=${encodeURIComponent(location)}`;
+    const response = await apiRequest(url, {
+      method: "GET",
+      requireAuth: true,
+    });
+
+    return response;
   }
 
   // Get professionals by pricing
@@ -126,43 +139,36 @@ class ProfessionalService {
     if (minPrice !== undefined) params.append("price_min", minPrice.toString());
     if (maxPrice !== undefined) params.append("price_max", maxPrice.toString());
 
-    return apiRequest(`${this.baseUrl}/by-pricing?${params.toString()}`, {
+    const url = `${this.baseUrl}/by-pricing?${params.toString()}`;
+    const response = await apiRequest(url, {
       method: "GET",
       requireAuth: true,
     });
+
+    return response;
   }
 
   // Get professionals by state
   async getByState(state: string): Promise<ProfessionalSearchResponse> {
-    return apiRequest(
-      `${this.baseUrl}/by-state?state=${encodeURIComponent(state)}`,
-      {
-        method: "GET",
-        requireAuth: true,
-      }
-    );
+    const url = `${this.baseUrl}/by-state?state=${encodeURIComponent(state)}`;
+    const response = await apiRequest(url, {
+      method: "GET",
+      requireAuth: true,
+    });
+
+    return response;
   }
 
   // Search professionals with multiple criteria
   async search(
     params: ProfessionalSearchParams
   ): Promise<ProfessionalSearchResponse> {
-    const searchParams = new URLSearchParams();
+    delete params.availability_dates;
 
-    // Add all parameters to the search
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        if (Array.isArray(value)) {
-          value.forEach((item) => searchParams.append(key, item));
-        } else {
-          searchParams.append(key, value.toString());
-        }
-      }
-    });
-
-    return apiRequest(`${this.baseUrl}/search?${searchParams.toString()}`, {
-      method: "GET",
+    return await apiRequest(`${this.baseUrl}/search`, {
+      method: "POST",
       requireAuth: true,
+      data: params,
     });
   }
 
@@ -175,7 +181,7 @@ class ProfessionalService {
 
   // Book a professional
   async bookProfessional(profileId: number, bookingData: any): Promise<any> {
-    return apiRequest(
+    return await apiRequest(
       `https://api.livetestdomain.com/api/profiles/${profileId}/book`,
       {
         method: "POST",
@@ -187,8 +193,8 @@ class ProfessionalService {
 
   // Add/remove professional from favorites
   async toggleFavorite(profileId: number): Promise<any> {
-    return apiRequest(
-      `https://api.livetestdomain.com/api/profiles/${profileId}/favorite`,
+    return await apiRequest(
+      `https://api.livetestdomain.com/api/profiles/${profileId}/book`,
       {
         method: "POST",
         requireAuth: true,
@@ -200,13 +206,13 @@ class ProfessionalService {
   async getProfessionalDetails(
     profileId: number
   ): Promise<ProfessionalProfile> {
-    return apiRequest(
-      `https://api.livetestdomain.com/api/profiles/${profileId}`,
-      {
-        method: "GET",
-        requireAuth: true,
-      }
-    );
+    const url = `https://api.livetestdomain.com/api/profiles/${profileId}`;
+    const response = await apiRequest(url, {
+      method: "GET",
+      requireAuth: true,
+    });
+
+    return response;
   }
 }
 
