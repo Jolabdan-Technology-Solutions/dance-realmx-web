@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -12,14 +12,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Slider } from "@/components/ui/slider";
 import {
   Search,
   MapPin,
   Star,
   Heart,
   Clock,
-  Users,
   Filter,
   X,
   Loader2,
@@ -46,6 +44,11 @@ export const ProfessionalRecommendations: React.FC<
   showFilters = true,
   maxResults: initialMaxResults = 6,
 }) => {
+  console.log(
+    "ProfessionalRecommendations - Component rendered with initialFilters:",
+    initialFilters
+  );
+
   const { toast } = useToast();
   const [filters, setFilters] =
     useState<ProfessionalSearchParams>(initialFilters);
@@ -62,11 +65,45 @@ export const ProfessionalRecommendations: React.FC<
     refetch,
   } = useQuery({
     queryKey: ["professionals", filters],
-    queryFn: () => professionalService.search(filters),
-    enabled: Object.keys(filters).length > 0,
+    queryFn: async () => {
+      console.log(
+        "ProfessionalRecommendations - Calling search with filters:",
+        filters
+      );
+      // If no filters, get some default recommendations
+      if (Object.keys(filters).length === 0) {
+        console.log(
+          "ProfessionalRecommendations - No filters, getting default recommendations"
+        );
+        // You could call a different endpoint for default recommendations
+        // For now, let's try with empty filters to get all professionals
+        const result = await professionalService.search({});
+        console.log(
+          "ProfessionalRecommendations - Default search result:",
+          result
+        );
+        return result;
+      }
+      const result = await professionalService.search(filters);
+      console.log("ProfessionalRecommendations - Search result:", result);
+      return result;
+    },
+    enabled: true, // Always enable the query to fetch data
   });
 
-  const professionals = professionalsData?.results || [];
+  // Handle different possible data structures and ensure it's always an array
+  const professionals: ProfessionalProfile[] = Array.isArray(professionalsData)
+    ? professionalsData
+    : professionalsData?.results || [];
+
+  // Debug logging
+  console.log(
+    "ProfessionalRecommendations - professionalsData:",
+    professionalsData
+  );
+  console.log("ProfessionalRecommendations - professionals:", professionals);
+  console.log("ProfessionalRecommendations - isLoading:", isLoading);
+  console.log("ProfessionalRecommendations - error:", error);
 
   // Handle filter changes
   const updateFilter = (key: keyof ProfessionalSearchParams, value: any) => {
@@ -319,9 +356,15 @@ export const ProfessionalRecommendations: React.FC<
             <p className="text-gray-500">
               No professionals found matching your criteria.
             </p>
-            <Button onClick={clearFilters} className="mt-2">
-              Clear Filters
-            </Button>
+            <div className="mt-4 space-y-2">
+              <p className="text-sm text-gray-400">
+                Try adjusting your search criteria or check back later for new
+                professionals.
+              </p>
+              <Button onClick={clearFilters} className="mt-2">
+                Clear Filters
+              </Button>
+            </div>
           </div>
         ) : (
           professionals.slice(0, displayCount).map((professional) => (
@@ -478,6 +521,11 @@ interface DanceStyleRecommendationsProps {
 export const DanceStyleRecommendations: React.FC<
   DanceStyleRecommendationsProps
 > = ({ danceStyles, title = "Professionals based on your dance style" }) => {
+  console.log(
+    "DanceStyleRecommendations - Component rendered with danceStyles:",
+    danceStyles
+  );
+
   const [loading, setLoading] = useState(false);
   const [professionals, setProfessionals] = useState<ProfessionalProfile[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -488,29 +536,86 @@ export const DanceStyleRecommendations: React.FC<
       setLoading(true);
       setError(null);
       try {
-        // Fetch for each dance style and merge results (dedup by id)
-        const allResults: ProfessionalProfile[] = [];
-        for (const style of danceStyles) {
-          const res = await professionalService.getByDanceStyle(style);
-          console.log("res:", res);
-          if (res?.results) {
-            allResults.push(...res.results);
-          }
-        }
-        // Deduplicate by id
-        const unique = Array.from(
-          new Map(allResults.map((p) => [p.id, p])).values()
+        console.log(
+          "DanceStyleRecommendations - Fetching for dance styles:",
+          danceStyles
         );
-        if (isMounted) setProfessionals(unique);
+
+        // Use the main search method with dance_style filter
+        const searchParams: ProfessionalSearchParams = {
+          dance_style: danceStyles,
+        };
+
+        const res = await professionalService.search(searchParams);
+        console.log("DanceStyleRecommendations - Search result:", res);
+
+        if (isMounted) {
+          // Handle both possible data structures: res.results or res directly
+          const rawResults = Array.isArray(res) ? res : res?.results || [];
+
+          // Map API response to expected UI structure
+          const mappedResults = rawResults.map(
+            (item: any) =>
+              ({
+                id: item.id,
+                userId: item.user_id,
+                firstName: item.user?.first_name,
+                lastName: item.user?.last_name,
+                username: item.user?.username,
+                email: item.user?.email,
+                profileImageUrl: item.user?.profile_image_url,
+                bio: item.bio,
+                location: item.location,
+                danceStyles: item.dance_style || [],
+                serviceCategory: item.service_category || [],
+                pricing: item.pricing,
+                rate: item.pricing?.toString() || "",
+                yearsExperience: item.years_experience,
+                services: item.services || [],
+                portfolio: item.portfolio,
+                rating: item.rating,
+                reviewCount: item.review_count,
+                sessionDuration: item.session_duration,
+                priceMin: item.price_min,
+                priceMax: item.price_max,
+                providerType:
+                  item.service_category?.[0] || "Dance Professional",
+                availability: item.availability || [],
+                isVerified: item.is_verified || false,
+                isProfessional: item.is_professional || false,
+                phoneNumber: item.phone_number,
+                address: item.address,
+                city: item.city,
+                state: item.state,
+                country: item.country,
+                zipCode: item.zip_code,
+                travelDistance: item.travel_distance,
+              }) as ProfessionalProfile
+          );
+
+          setProfessionals(mappedResults);
+          console.log(
+            "DanceStyleRecommendations - Set professionals:",
+            mappedResults
+          );
+        }
       } catch (e) {
-        setError("Failed to load professionals.");
+        console.error("DanceStyleRecommendations - Error:", e);
+        if (isMounted) setError("Failed to load professionals.");
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
     if (danceStyles && danceStyles.length > 0) {
+      console.log(
+        "DanceStyleRecommendations - Starting fetch for dance styles:",
+        danceStyles
+      );
       fetchProfessionals();
     } else {
+      console.log(
+        "DanceStyleRecommendations - No dance styles provided, setting empty array"
+      );
       setProfessionals([]);
     }
     return () => {
@@ -615,16 +720,59 @@ export const CategoryRecommendations: React.FC<
         const allResults: ProfessionalProfile[] = [];
         for (const category of categories) {
           const res = await professionalService.getByCategory(category);
-          console.log("res:", res);
-          if (res?.results) {
-            allResults.push(...res.results);
-          }
+          console.log("CategoryRecommendations - res:", res);
+
+          // Handle both possible data structures: res.results or res directly
+          const rawResults = Array.isArray(res) ? res : res?.results || [];
+
+          // Map API response to expected UI structure
+          const mappedResults = rawResults.map(
+            (item: any) =>
+              ({
+                id: item.id,
+                userId: item.user_id,
+                firstName: item.user?.first_name,
+                lastName: item.user?.last_name,
+                username: item.user?.username,
+                email: item.user?.email,
+                profileImageUrl: item.user?.profile_image_url,
+                bio: item.bio,
+                location: item.location,
+                danceStyles: item.dance_style || [],
+                serviceCategory: item.service_category || [],
+                pricing: item.pricing,
+                rate: item.pricing?.toString() || "",
+                yearsExperience: item.years_experience,
+                services: item.services || [],
+                portfolio: item.portfolio,
+                rating: item.rating,
+                reviewCount: item.review_count,
+                sessionDuration: item.session_duration,
+                priceMin: item.price_min,
+                priceMax: item.price_max,
+                providerType:
+                  item.service_category?.[0] || "Dance Professional",
+                availability: item.availability || [],
+                isVerified: item.is_verified || false,
+                isProfessional: item.is_professional || false,
+                phoneNumber: item.phone_number,
+                address: item.address,
+                city: item.city,
+                state: item.state,
+                country: item.country,
+                zipCode: item.zip_code,
+                travelDistance: item.travel_distance,
+              }) as ProfessionalProfile
+          );
+
+          allResults.push(...mappedResults);
         }
         const unique = Array.from(
           new Map(allResults.map((p) => [p.id, p])).values()
         );
         if (isMounted) setProfessionals(unique);
       } catch (e) {
+        console.error("CategoryRecommendations - Error:", e);
         setError("Failed to load professionals.");
       } finally {
         setLoading(false);
@@ -736,9 +884,56 @@ export const CityRecommendations: React.FC<CityRecommendationsProps> = ({
       setError(null);
       try {
         const res = await professionalService.getByCity(city);
-        console.log("res:", res);
-        if (isMounted) setProfessionals(res?.results || []);
+        console.log("CityRecommendations - res:", res);
+
+        if (isMounted) {
+          // Handle both possible data structures: res.results or res directly
+          const rawResults = Array.isArray(res) ? res : res?.results || [];
+
+          // Map API response to expected UI structure
+          const mappedResults = rawResults.map(
+            (item: any) =>
+              ({
+                id: item.id,
+                userId: item.user_id,
+                firstName: item.user?.first_name,
+                lastName: item.user?.last_name,
+                username: item.user?.username,
+                email: item.user?.email,
+                profileImageUrl: item.user?.profile_image_url,
+                bio: item.bio,
+                location: item.location,
+                danceStyles: item.dance_style || [],
+                serviceCategory: item.service_category || [],
+                pricing: item.pricing,
+                rate: item.pricing?.toString() || "",
+                yearsExperience: item.years_experience,
+                services: item.services || [],
+                portfolio: item.portfolio,
+                rating: item.rating,
+                reviewCount: item.review_count,
+                sessionDuration: item.session_duration,
+                priceMin: item.price_min,
+                priceMax: item.price_max,
+                providerType:
+                  item.service_category?.[0] || "Dance Professional",
+                availability: item.availability || [],
+                isVerified: item.is_verified || false,
+                isProfessional: item.is_professional || false,
+                phoneNumber: item.phone_number,
+                address: item.address,
+                city: item.city,
+                state: item.state,
+                country: item.country,
+                zipCode: item.zip_code,
+                travelDistance: item.travel_distance,
+              }) as ProfessionalProfile
+          );
+
+          setProfessionals(mappedResults);
+        }
       } catch (e) {
+        console.error("CityRecommendations - Error:", e);
         setError("Failed to load professionals.");
       } finally {
         setLoading(false);
@@ -850,8 +1045,56 @@ export const StateRecommendations: React.FC<StateRecommendationsProps> = ({
       setError(null);
       try {
         const res = await professionalService.getByState(state);
-        if (isMounted) setProfessionals(res?.results || []);
+        console.log("StateRecommendations - res:", res);
+
+        if (isMounted) {
+          // Handle both possible data structures: res.results or res directly
+          const rawResults = Array.isArray(res) ? res : res?.results || [];
+
+          // Map API response to expected UI structure
+          const mappedResults = rawResults.map(
+            (item: any) =>
+              ({
+                id: item.id,
+                userId: item.user_id,
+                firstName: item.user?.first_name,
+                lastName: item.user?.last_name,
+                username: item.user?.username,
+                email: item.user?.email,
+                profileImageUrl: item.user?.profile_image_url,
+                bio: item.bio,
+                location: item.location,
+                danceStyles: item.dance_style || [],
+                serviceCategory: item.service_category || [],
+                pricing: item.pricing,
+                rate: item.pricing?.toString() || "",
+                yearsExperience: item.years_experience,
+                services: item.services || [],
+                portfolio: item.portfolio,
+                rating: item.rating,
+                reviewCount: item.review_count,
+                sessionDuration: item.session_duration,
+                priceMin: item.price_min,
+                priceMax: item.price_max,
+                providerType:
+                  item.service_category?.[0] || "Dance Professional",
+                availability: item.availability || [],
+                isVerified: item.is_verified || false,
+                isProfessional: item.is_professional || false,
+                phoneNumber: item.phone_number,
+                address: item.address,
+                city: item.city,
+                state: item.state,
+                country: item.country,
+                zipCode: item.zip_code,
+                travelDistance: item.travel_distance,
+              }) as ProfessionalProfile
+          );
+
+          setProfessionals(mappedResults);
+        }
       } catch (e) {
+        console.error("StateRecommendations - Error:", e);
         setError("Failed to load professionals.");
       } finally {
         setLoading(false);
@@ -965,8 +1208,56 @@ export const PricingRecommendations: React.FC<PricingRecommendationsProps> = ({
       setError(null);
       try {
         const res = await professionalService.getByPricing(minPrice, maxPrice);
-        if (isMounted) setProfessionals(res?.results || []);
+        console.log("PricingRecommendations - res:", res);
+
+        if (isMounted) {
+          // Handle both possible data structures: res.results or res directly
+          const rawResults = Array.isArray(res) ? res : res?.results || [];
+
+          // Map API response to expected UI structure
+          const mappedResults = rawResults.map(
+            (item: any) =>
+              ({
+                id: item.id,
+                userId: item.user_id,
+                firstName: item.user?.first_name,
+                lastName: item.user?.last_name,
+                username: item.user?.username,
+                email: item.user?.email,
+                profileImageUrl: item.user?.profile_image_url,
+                bio: item.bio,
+                location: item.location,
+                danceStyles: item.dance_style || [],
+                serviceCategory: item.service_category || [],
+                pricing: item.pricing,
+                rate: item.pricing?.toString() || "",
+                yearsExperience: item.years_experience,
+                services: item.services || [],
+                portfolio: item.portfolio,
+                rating: item.rating,
+                reviewCount: item.review_count,
+                sessionDuration: item.session_duration,
+                priceMin: item.price_min,
+                priceMax: item.price_max,
+                providerType:
+                  item.service_category?.[0] || "Dance Professional",
+                availability: item.availability || [],
+                isVerified: item.is_verified || false,
+                isProfessional: item.is_professional || false,
+                phoneNumber: item.phone_number,
+                address: item.address,
+                city: item.city,
+                state: item.state,
+                country: item.country,
+                zipCode: item.zip_code,
+                travelDistance: item.travel_distance,
+              }) as ProfessionalProfile
+          );
+
+          setProfessionals(mappedResults);
+        }
       } catch (e) {
+        console.error("PricingRecommendations - Error:", e);
         setError("Failed to load professionals.");
       } finally {
         setLoading(false);
@@ -1078,8 +1369,56 @@ export const DateRecommendations: React.FC<DateRecommendationsProps> = ({
       setError(null);
       try {
         const res = await professionalService.getByDate(date);
-        if (isMounted) setProfessionals(res?.results || []);
+        console.log("DateRecommendations - res:", res);
+
+        if (isMounted) {
+          // Handle both possible data structures: res.results or res directly
+          const rawResults = Array.isArray(res) ? res : res?.results || [];
+
+          // Map API response to expected UI structure
+          const mappedResults = rawResults.map(
+            (item: any) =>
+              ({
+                id: item.id,
+                userId: item.user_id,
+                firstName: item.user?.first_name,
+                lastName: item.user?.last_name,
+                username: item.user?.username,
+                email: item.user?.email,
+                profileImageUrl: item.user?.profile_image_url,
+                bio: item.bio,
+                location: item.location,
+                danceStyles: item.dance_style || [],
+                serviceCategory: item.service_category || [],
+                pricing: item.pricing,
+                rate: item.pricing?.toString() || "",
+                yearsExperience: item.years_experience,
+                services: item.services || [],
+                portfolio: item.portfolio,
+                rating: item.rating,
+                reviewCount: item.review_count,
+                sessionDuration: item.session_duration,
+                priceMin: item.price_min,
+                priceMax: item.price_max,
+                providerType:
+                  item.service_category?.[0] || "Dance Professional",
+                availability: item.availability || [],
+                isVerified: item.is_verified || false,
+                isProfessional: item.is_professional || false,
+                phoneNumber: item.phone_number,
+                address: item.address,
+                city: item.city,
+                state: item.state,
+                country: item.country,
+                zipCode: item.zip_code,
+                travelDistance: item.travel_distance,
+              }) as ProfessionalProfile
+          );
+
+          setProfessionals(mappedResults);
+        }
       } catch (e) {
+        console.error("DateRecommendations - Error:", e);
         setError("Failed to load professionals.");
       } finally {
         setLoading(false);
@@ -1190,8 +1529,56 @@ export const LocationRecommendations: React.FC<
       setError(null);
       try {
         const res = await professionalService.getByLocation(location);
-        if (isMounted) setProfessionals(res?.results || []);
+        console.log("LocationRecommendations - res:", res);
+
+        if (isMounted) {
+          // Handle both possible data structures: res.results or res directly
+          const rawResults = Array.isArray(res) ? res : res?.results || [];
+
+          // Map API response to expected UI structure
+          const mappedResults = rawResults.map(
+            (item: any) =>
+              ({
+                id: item.id,
+                userId: item.user_id,
+                firstName: item.user?.first_name,
+                lastName: item.user?.last_name,
+                username: item.user?.username,
+                email: item.user?.email,
+                profileImageUrl: item.user?.profile_image_url,
+                bio: item.bio,
+                location: item.location,
+                danceStyles: item.dance_style || [],
+                serviceCategory: item.service_category || [],
+                pricing: item.pricing,
+                rate: item.pricing?.toString() || "",
+                yearsExperience: item.years_experience,
+                services: item.services || [],
+                portfolio: item.portfolio,
+                rating: item.rating,
+                reviewCount: item.review_count,
+                sessionDuration: item.session_duration,
+                priceMin: item.price_min,
+                priceMax: item.price_max,
+                providerType:
+                  item.service_category?.[0] || "Dance Professional",
+                availability: item.availability || [],
+                isVerified: item.is_verified || false,
+                isProfessional: item.is_professional || false,
+                phoneNumber: item.phone_number,
+                address: item.address,
+                city: item.city,
+                state: item.state,
+                country: item.country,
+                zipCode: item.zip_code,
+                travelDistance: item.travel_distance,
+              }) as ProfessionalProfile
+          );
+
+          setProfessionals(mappedResults);
+        }
       } catch (e) {
+        console.error("LocationRecommendations - Error:", e);
         setError("Failed to load professionals.");
       } finally {
         setLoading(false);

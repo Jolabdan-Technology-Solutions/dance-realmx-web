@@ -30,6 +30,8 @@ import { ProfessionalRecommendations } from "./professional-recommendations";
 import {
   ProfessionalSearchParams,
   professionalService,
+  ProfessionalSearchResponse,
+  ProfessionalProfile,
 } from "@/lib/professional-service";
 import { ComprehensiveRecommendations } from "./comprehensive-recommendations";
 
@@ -190,6 +192,17 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
   const [favorites, setFavorites] = useState<number[]>([]);
   const [showRecommendations, setShowRecommendations] = useState(false);
   const [selectedProfessional, setSelectedProfessional] = useState<any>(null);
+
+  // State for professional recommendations data
+  const [professionalData, setProfessionalData] = useState<{
+    categoryProfessionals?: ProfessionalProfile[];
+    cityProfessionals?: ProfessionalProfile[];
+    danceStyleProfessionals?: ProfessionalProfile[];
+    dateProfessionals?: ProfessionalProfile[];
+    locationProfessionals?: ProfessionalProfile[];
+    pricingProfessionals?: ProfessionalProfile[];
+    stateProfessionals?: ProfessionalProfile[];
+  }>({});
 
   // Mock toast function - replace with your actual toast implementation
   const toast = (options: {
@@ -523,6 +536,13 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         console.log("Results found, setting submitSuccess to true");
       }
 
+      // Fetch professional recommendations data
+      if (mode === "book") {
+        console.log("handleComplete - About to call fetchProfessionalData");
+        await fetchProfessionalData();
+        console.log("handleComplete - fetchProfessionalData completed");
+      }
+
       toast({
         title:
           mode === "book" ? "Booking request submitted!" : "Profile created!",
@@ -590,6 +610,115 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     setSelectedProfessional(professional);
     // Navigate to professional profile
     navigate(`/professional/${professional.id}`);
+  };
+
+  // Function to fetch professional recommendations data
+  const fetchProfessionalData = async () => {
+    console.log("fetchProfessionalData - Starting to fetch professional data");
+    console.log("fetchProfessionalData - formData:", formData);
+
+    try {
+      const newProfessionalData: any = {};
+
+      // 1. By Category
+      if (formData.service_category?.length > 0) {
+        const allResults: any[] = [];
+        for (const categoryId of formData.service_category) {
+          const found = serviceCategories.find((c) => c.id === categoryId);
+          if (found) {
+            console.log(
+              `fetchProfessionalData - Fetching category: ${found.name}`
+            );
+            const res = await professionalService.getByCategory(found.name);
+            console.log(`fetchProfessionalData - Category response:`, res);
+            if (res?.results && Array.isArray(res.results)) {
+              allResults.push(...res.results);
+            }
+          }
+        }
+        const unique = Array.from(
+          new Map(allResults.map((p) => [p.id, p])).values()
+        );
+        newProfessionalData.categoryProfessionals = unique;
+      }
+
+      // 2. By City
+      if (formData.city) {
+        console.log(`fetchProfessionalData - Fetching city: ${formData.city}`);
+        const res = await professionalService.getByCity(formData.city);
+        console.log(`fetchProfessionalData - City response:`, res);
+        newProfessionalData.cityProfessionals = res?.results || res;
+      }
+
+      // 3. By Dance Style
+      if (formData.dance_style?.length > 0) {
+        const allResults: any[] = [];
+        for (const styleId of formData.dance_style) {
+          const found = dance_styles.find((s) => s.id.toString() === styleId);
+          if (found) {
+            console.log(
+              `fetchProfessionalData - Fetching dance style: ${found.name}`
+            );
+            const res = await professionalService.getByDanceStyle(found.name);
+            console.log(`fetchProfessionalData - Dance style response:`, res);
+            if (res?.results && Array.isArray(res.results)) {
+              allResults.push(...res.results);
+            }
+          }
+        }
+        const unique = Array.from(
+          new Map(allResults.map((p) => [p.id, p])).values()
+        );
+        newProfessionalData.danceStyleProfessionals = unique;
+      }
+
+      // 4. By Date
+      if (formData.availabilityDates?.length > 0) {
+        const dateStr = formData.availabilityDates[0].date.toISOString();
+        console.log(`fetchProfessionalData - Fetching date: ${dateStr}`);
+        const res = await professionalService.getByDate(dateStr);
+        console.log(`fetchProfessionalData - Date response:`, res);
+        newProfessionalData.dateProfessionals = res?.results || res;
+      }
+
+      // 5. By Location
+      if (formData.location) {
+        console.log(
+          `fetchProfessionalData - Fetching location: ${formData.location}`
+        );
+        const res = await professionalService.getByLocation(formData.location);
+        console.log(`fetchProfessionalData - Location response:`, res);
+        newProfessionalData.locationProfessionals = res?.results || res;
+      }
+
+      // 6. By Pricing
+      if (formData.pricing) {
+        console.log(
+          `fetchProfessionalData - Fetching pricing: max ${formData.pricing}`
+        );
+        const res = await professionalService.getByPricing(
+          undefined,
+          formData.pricing
+        );
+        console.log(`fetchProfessionalData - Pricing response:`, res);
+        newProfessionalData.pricingProfessionals = res?.results || res;
+      }
+
+      // 7. By State
+      if (formData.state) {
+        console.log(
+          `fetchProfessionalData - Fetching state: ${formData.state}`
+        );
+        const res = await professionalService.getByState(formData.state);
+        console.log(`fetchProfessionalData - State response:`, res);
+        newProfessionalData.stateProfessionals = res?.results || res;
+      }
+
+      console.log("fetchProfessionalData - Final data:", newProfessionalData);
+      setProfessionalData(newProfessionalData);
+    } catch (error) {
+      console.error("Error fetching professional data:", error);
+    }
   };
 
   // Render steps based on current step and mode
@@ -1364,7 +1493,43 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                     return null;
                   })()}
                   <ProfessionalRecommendations
-                    initialFilters={formData}
+                    initialFilters={{
+                      // Map service_category IDs to names
+                      service_category: formData.service_category.map(
+                        (catId: string) => {
+                          const found = serviceCategories.find(
+                            (c) => c.id === catId
+                          );
+                          return found ? found.name : catId;
+                        }
+                      ),
+                      // Map dance_style IDs to names
+                      dance_style: formData.dance_style.map(
+                        (styleId: string) => {
+                          const found = dance_styles.find(
+                            (s) => s.id.toString() === styleId
+                          );
+                          return found ? found.name : styleId;
+                        }
+                      ),
+                      // Services are already text value
+                      // Location data
+                      location: formData.location,
+                      city: formData.city,
+                      state: formData.state,
+                      zip_code: formData.zip_code,
+                      travel_distance: formData.travel_distance,
+                      // Pricing
+                      pricing: formData.pricing,
+                      session_duration: formData.session_duration,
+                      // Availability data
+                      availability_data: formData.availabilityDates.map(
+                        (avail: any) => ({
+                          date: avail.date.toISOString().split("T")[0],
+                          time_slots: avail.timeSlots,
+                        })
+                      ),
+                    }}
                     // onProfessionalSelect={handleProfessionalSelect}
                   />
                 </>
@@ -1503,7 +1668,20 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
           )}
 
           {submitSuccess && mode === "book" && (
-            <ComprehensiveRecommendations bookingData={formData} />
+            <>
+              <ComprehensiveRecommendations
+                bookingData={formData}
+                categoryProfessionals={professionalData.categoryProfessionals}
+                cityProfessionals={professionalData.cityProfessionals}
+                danceStyleProfessionals={
+                  professionalData.danceStyleProfessionals
+                }
+                dateProfessionals={professionalData.dateProfessionals}
+                locationProfessionals={professionalData.locationProfessionals}
+                pricingProfessionals={professionalData.pricingProfessionals}
+                stateProfessionals={professionalData.stateProfessionals}
+              />
+            </>
           )}
         </div>
       );
