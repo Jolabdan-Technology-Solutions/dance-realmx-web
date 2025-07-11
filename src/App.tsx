@@ -147,7 +147,6 @@ const MyPurchasesPage = createLazyComponent(
   () => import("./pages/my-purchases")
 );
 
-
 // Dashboard Pages
 const DashboardPage = createLazyComponent(
   () => import("./pages/dashboard-page")
@@ -155,6 +154,7 @@ const DashboardPage = createLazyComponent(
 const MultiDashboardPage = createLazyComponent(
   () => import("./pages/multi-dashboard-page")
 );
+const ProfilePage = createLazyComponent(() => import("./pages/profile"));
 const ProfileEditPage = createLazyComponent(
   () => import("./pages/profile-edit-page")
 );
@@ -327,6 +327,7 @@ const Pages = {
   // Dashboard Pages
   Dashboard: withLayout(DashboardPage),
   MultiDashboard: withLayout(MultiDashboardPage),
+  Profile: withLayout(ProfilePage),
   ProfileEdit: withLayout(ProfileEditPage),
   UserProfile: withLayout(UserProfilePage),
 
@@ -568,7 +569,7 @@ function Router() {
           path="/seller/resources/create"
           component={Pages.SimpleUploadResource}
         />
-        <ProtectedRoute path="/profile" component={Pages.ProfileEdit} />
+        <ProtectedRoute path="/profile" component={Pages.Profile} />
         <ProtectedRoute path="/profile/edit" component={Pages.ProfileEdit} />
         <ProtectedRoute
           path="/profile-image-debug"

@@ -521,7 +521,7 @@ export default function CourseDetailPage() {
                           <FileUpload
                             onUploadComplete={(url) => field.onChange(url)}
                             defaultValue={field.value || ""}
-                            uploadEndpoint="/api/upload/course"
+                            uploadEndpoint="/api/upload"
                             acceptedTypes="image/*"
                             label="Course Image"
                             buttonText="Choose course image"
@@ -2181,26 +2181,58 @@ function QuizDialog({
         orderIndex: number;
       }[];
     }) => {
-      // Create the quiz first
-      const quizRes = await apiRequest(`/api/courses/${courseId}/quizzes`, {
-        method: "POST",
-        data: values.quiz,
-      });
-      const createdQuiz = await quizRes.json();
+      // Check if we have a lessonId for lesson-specific quiz creation
+      if (values.quiz.lessonId) {
+        // Use the new lesson-specific quiz endpoint
+        const transformedQuestions = values.questions.map(
+          (question, index) => ({
+            text: question.question,
+            options: question.options.map((option, optionIndex) => ({
+              text: option,
+              is_correct: option === question.correctAnswer,
+            })),
+            answer: question.options.findIndex(
+              (opt) => opt === question.correctAnswer
+            ),
+            order: index,
+          })
+        );
 
-      // Then create all questions
-      const questionPromises = values.questions.map((question, index) => {
-        return apiRequest(`/api/quizzes/${createdQuiz.id}/questions`, {
+        const quizData = {
+          title: values.quiz.title,
+          questions: transformedQuestions,
+        };
+
+        const quizRes = await apiRequest(
+          `/api/lessons/${values.quiz.lessonId}/quizzes`,
+          {
+            method: "POST",
+            data: quizData,
+          }
+        );
+        return await quizRes.json();
+      } else {
+        // Fallback to the old course-level quiz creation for backward compatibility
+        const quizRes = await apiRequest(`/api/courses/${courseId}/quizzes`, {
           method: "POST",
-          data: {
-            ...question,
-            orderIndex: index,
-          },
+          data: values.quiz,
         });
-      });
+        const createdQuiz = await quizRes.json();
 
-      await Promise.all(questionPromises);
-      return createdQuiz;
+        // Then create all questions
+        const questionPromises = values.questions.map((question, index) => {
+          return apiRequest(`/api/quizzes/${createdQuiz.id}/questions`, {
+            method: "POST",
+            data: {
+              ...question,
+              orderIndex: index,
+            },
+          });
+        });
+
+        await Promise.all(questionPromises);
+        return createdQuiz;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -3494,6 +3526,13 @@ function LessonCard({
           )}
         </div>
         <div className="flex gap-2">
+          <LessonQuizDialog lessonId={lesson.id} lessonTitle={lesson.title}>
+            <Button size="sm" variant="outline">
+              <PenTool className="h-3 w-3 mr-1" />
+              Add Quiz
+            </Button>
+          </LessonQuizDialog>
+
           <LessonDialog
             moduleId={moduleId}
             lessonId={lesson.id}
@@ -3545,5 +3584,334 @@ function LessonCard({
         </div>
       </div>
     </Card>
+  );
+}
+
+// Dialog for creating quizzes specifically for lessons
+function LessonQuizDialog({
+  lessonId,
+  lessonTitle,
+  children,
+}: {
+  lessonId: number;
+  lessonTitle: string;
+  children?: React.ReactNode;
+}) {
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [questions, setQuestions] = useState<
+    {
+      text: string;
+      options: { text: string; is_correct: boolean }[];
+      answer: number;
+      order: number;
+    }[]
+  >([]);
+
+  // Form for lesson quiz creation
+  const form = useForm<{
+    title: string;
+  }>({
+    resolver: zodResolver(
+      z.object({
+        title: z.string().min(3, "Title must be at least 3 characters"),
+      })
+    ),
+    defaultValues: {
+      title: `Quiz for ${lessonTitle}`,
+    },
+  });
+
+  // Create lesson quiz mutation
+  const createLessonQuizMutation = useMutation({
+    mutationFn: async (values: {
+      title: string;
+      questions: {
+        text: string;
+        options: { text: string; is_correct: boolean }[];
+        answer: number;
+        order: number;
+      }[];
+    }) => {
+      const quizData = {
+        title: values.title,
+        questions: values.questions,
+      };
+
+      const res = await apiRequest(`/api/lessons/${lessonId}/quizzes`, {
+        method: "POST",
+        data: quizData,
+      });
+      return await res.json();
+    },
+    onSuccess: () => {
+      // Invalidate relevant queries
+      queryClient.invalidateQueries({
+        queryKey: ["/api/quizzes", { courseId: 0 }], // Will be updated when we know the courseId
+      });
+      form.reset();
+      setQuestions([]);
+      toast({
+        title: "Quiz Created",
+        description: "Your lesson quiz has been created successfully.",
+      });
+      setOpen(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error Creating Quiz",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Add a new question
+  const addQuestion = () => {
+    setQuestions([
+      ...questions,
+      {
+        text: "",
+        options: [
+          { text: "", is_correct: false },
+          { text: "", is_correct: false },
+          { text: "", is_correct: false },
+          { text: "", is_correct: false },
+        ],
+        answer: 0,
+        order: questions.length,
+      },
+    ]);
+  };
+
+  // Update a question
+  const updateQuestion = (index: number, field: string, value: any) => {
+    const newQuestions = [...questions];
+    newQuestions[index] = { ...newQuestions[index], [field]: value };
+    setQuestions(newQuestions);
+  };
+
+  // Update an option in a question
+  const updateOption = (
+    questionIndex: number,
+    optionIndex: number,
+    field: string,
+    value: any
+  ) => {
+    const newQuestions = [...questions];
+    const newOptions = [...newQuestions[questionIndex].options];
+    newOptions[optionIndex] = { ...newOptions[optionIndex], [field]: value };
+
+    // If this option is marked as correct, unmark others
+    if (field === "is_correct" && value === true) {
+      newOptions.forEach((option, idx) => {
+        if (idx !== optionIndex) {
+          option.is_correct = false;
+        }
+      });
+      newQuestions[questionIndex].answer = optionIndex;
+    }
+
+    newQuestions[questionIndex].options = newOptions;
+    setQuestions(newQuestions);
+  };
+
+  // Remove a question
+  const removeQuestion = (index: number) => {
+    const newQuestions = [...questions];
+    newQuestions.splice(index, 1);
+    setQuestions(newQuestions);
+  };
+
+  // Form submission handler
+  const onSubmit = (values: { title: string }) => {
+    // Validate questions
+    if (questions.length === 0) {
+      toast({
+        title: "No Questions Added",
+        description: "Please add at least one question to the quiz.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if all questions have content and at least one correct answer
+    const invalidQuestions = questions.filter(
+      (q) =>
+        !q.text ||
+        !q.options.some((opt) => opt.is_correct) ||
+        q.options.some((opt) => !opt.text)
+    );
+    if (invalidQuestions.length > 0) {
+      toast({
+        title: "Invalid Questions",
+        description:
+          "Please ensure all questions have content, all options have text, and exactly one correct answer.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    createLessonQuizMutation.mutate({
+      title: values.title,
+      questions,
+    });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild onClick={() => setOpen(true)}>
+        {children || (
+          <Button>
+            <PenTool className="mr-2 h-4 w-4" />
+            Add Quiz
+          </Button>
+        )}
+      </DialogTrigger>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
+        <DialogHeader>
+          <DialogTitle>Create Lesson Quiz</DialogTitle>
+          <DialogDescription>
+            Create a quiz specifically for "{lessonTitle}"
+          </DialogDescription>
+        </DialogHeader>
+
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-6 py-2"
+          >
+            <FormField
+              control={form.control}
+              name="title"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Quiz Title</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g., Lesson Assessment" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-medium">Questions</h3>
+                <Button type="button" variant="outline" onClick={addQuestion}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Question
+                </Button>
+              </div>
+
+              {questions.length === 0 ? (
+                <div className="text-center py-4 border-2 border-dashed rounded-lg">
+                  <p className="text-muted-foreground">
+                    No questions added yet. Click "Add Question" to begin.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {questions.map((question, qIndex) => (
+                    <div
+                      key={qIndex}
+                      className="border rounded-lg p-4 space-y-4"
+                    >
+                      <div className="flex justify-between items-center">
+                        <h4 className="font-medium">Question {qIndex + 1}</h4>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeQuestion(qIndex)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">
+                            Question
+                          </label>
+                          <Textarea
+                            value={question.text}
+                            onChange={(e) =>
+                              updateQuestion(qIndex, "text", e.target.value)
+                            }
+                            placeholder="Enter your question here"
+                          />
+                        </div>
+
+                        <div className="space-y-3">
+                          <label className="text-sm font-medium">Options</label>
+                          {question.options.map((option, oIndex) => (
+                            <div
+                              key={oIndex}
+                              className="flex gap-2 items-center"
+                            >
+                              <Input
+                                value={option.text}
+                                onChange={(e) =>
+                                  updateOption(
+                                    qIndex,
+                                    oIndex,
+                                    "text",
+                                    e.target.value
+                                  )
+                                }
+                                placeholder={`Option ${oIndex + 1}`}
+                              />
+                              <div className="flex items-center space-x-2">
+                                <input
+                                  type="radio"
+                                  name={`correct-${qIndex}`}
+                                  checked={option.is_correct}
+                                  onChange={() =>
+                                    updateOption(
+                                      qIndex,
+                                      oIndex,
+                                      "is_correct",
+                                      true
+                                    )
+                                  }
+                                  className="h-4 w-4"
+                                />
+                                <label className="text-sm">Correct</label>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <DialogFooter className="pt-4">
+              <DialogClose asChild>
+                <Button variant="outline" type="button">
+                  Cancel
+                </Button>
+              </DialogClose>
+              <Button
+                type="submit"
+                disabled={createLessonQuizMutation.isPending}
+              >
+                {createLessonQuizMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  "Create Quiz"
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
   );
 }

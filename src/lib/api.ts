@@ -35,7 +35,7 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem("access_token");
-      // window.location.href = '/auth'
+      // Don't redirect automatically - let components handle it
     }
     return Promise.reject(error);
   }

@@ -120,13 +120,10 @@ export function StepAccountCreation({
         window.location.href = "/dashboard";
       }
     } catch (err: any) {
-      setError(
-        err?.response?.data?.message || err?.message || "Registration failed"
-      );
+      setError(err?.message || err?.message || "Registration failed");
       toast({
         title: "Registration Failed",
-        description:
-          err?.response?.data?.message || err?.message || "Registration failed",
+        description: err?.message || err?.message || "Registration failed",
         variant: "destructive",
       });
     } finally {

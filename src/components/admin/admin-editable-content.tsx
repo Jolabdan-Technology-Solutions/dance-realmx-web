@@ -16,6 +16,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { UserRole } from "@/types/user";
 
 interface EditableContentProps {
   children: ReactNode;
@@ -48,11 +49,14 @@ export function AdminEditableContent({
   const [value, setValue] = useState(initialValue);
 
   // Only show edit UI for admin users
-  const isAdmin = user && user.role === "admin";
+  const isAdmin = user && user.role.includes(UserRole.ADMIN);
 
   const mutation = useMutation({
     mutationFn: async (data: Record<string, any>) => {
-      const res = await apiRequest("PATCH", `${endpoint}/${id}`, data);
+      const res = await apiRequest(`${endpoint}/${id}`, {
+        method: "PATCH",
+        data,
+      });
       return res.json();
     },
     onSuccess: () => {

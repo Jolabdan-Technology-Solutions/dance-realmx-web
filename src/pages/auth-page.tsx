@@ -302,7 +302,7 @@ function AuthPageWithAuth() {
         const checkoutRequest = {
           planSlug: selectedPlan.toUpperCase(), // e.g., "free", "nobility", "royal", "imperial"
           tier: selectedPlanData.tier, // e.g., "FREE", "NOBILITY", "ROYAL", "IMPERIAL"
-          frequency: "MONTHLY" as const,
+          frequency: "MONTHLY" as const, // Default to monthly since it's not in the plan data
           email: form.email.trim(),
         };
 

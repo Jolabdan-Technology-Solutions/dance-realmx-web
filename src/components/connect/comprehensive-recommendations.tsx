@@ -23,7 +23,7 @@ import {
   professionalService,
   ProfessionalProfile,
 } from "@/lib/professional-service";
-import { toast } from "../ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 interface ComprehensiveRecommendationsProps {
   bookingData: any;
@@ -49,6 +49,7 @@ export const ComprehensiveRecommendations: React.FC<
   pricingProfessionals = [],
   stateProfessionals = [],
 }) => {
+  const { toast } = useToast();
   const [favorites, setFavorites] = useState<number[]>([]);
 
   const handleFavorite = async (profileId: number) => {
@@ -62,13 +63,12 @@ export const ComprehensiveRecommendations: React.FC<
       toast({
         title: "Favorite Added",
         description: "Professional has been added to your favorites",
-        variant: "success",
       });
     } catch (error) {
       toast({
-        title: "Favorite Removed",
-        description: "Professional has been removed from your favorites",
-        variant: "error",
+        title: "Error",
+        description: "Failed to update favorite",
+        variant: "destructive",
       });
       console.error("Failed to toggle favorite:", error);
     }

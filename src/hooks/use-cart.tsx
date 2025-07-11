@@ -179,22 +179,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
     details?: PriceDetails;
   }
 
-  const total = items.reduce((sum: number, item: ItemWithDetails): number => {
-    // Get price from either item.price or item.details.price
-    const priceString: string = item.details?.price || item.price;
-
-    // Remove any non-numeric characters except decimal point
-    const cleanPrice: string = priceString
-      ? priceString.toString().replace(/[^0-9.]/g, "")
-      : "0";
-
-    // Parse as float with fallback to 0
-    const price: number = parseFloat(cleanPrice) || 0;
-
-    // Multiply by quantity with fallback to 1
-    const quantity: number = item.quantity || 1;
-
-    // Add to sum
+  const total = items.reduce((sum: number, item: any): number => {
+    // Try item.itemDetails.price, then item.resource.price, then item.price
+    const price =
+      Number(item.itemDetails?.price ?? item.resource?.price ?? item.price) ||
+      0;
+    const quantity = item.quantity || 1;
     return sum + price * quantity;
   }, 0);
 
