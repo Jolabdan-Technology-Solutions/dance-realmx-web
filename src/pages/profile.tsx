@@ -26,6 +26,7 @@ import {
 import { apiRequest } from "@/lib/queryClient";
 import { CachedAvatar } from "@/components/ui/cached-avatar";
 import { useToast } from "@/hooks/use-toast";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 interface UserProfile {
   id: number;
@@ -80,6 +81,10 @@ export default function ProfilePage() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState("profile");
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [bookingsLoading, setBookingsLoading] = useState(false);
+  const [bookingsError, setBookingsError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -123,6 +128,26 @@ export default function ProfilePage() {
 
     fetchProfile();
   }, [user]);
+
+  // Fetch bookings when 'my-bookings' tab is active
+  useEffect(() => {
+    if (activeTab === "my-bookings" && user?.id) {
+      setBookingsLoading(true);
+      setBookingsError(null);
+      apiRequest(
+        `https://api.livetestdomain.com/api/bookings?userId=${user.id}`,
+        {
+          method: "GET",
+          requireAuth: true,
+        }
+      )
+        .then((data) => setBookings(data))
+        .catch((err) =>
+          setBookingsError(err.message || "Failed to fetch bookings")
+        )
+        .finally(() => setBookingsLoading(false));
+    }
+  }, [activeTab, user]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -402,302 +427,385 @@ export default function ProfilePage() {
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Main Info */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Bio */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  About
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-700 leading-relaxed">
-                  {profile?.profile?.bio ||
-                    "No bio available. Add one to your profile!"}
-                </p>
-              </CardContent>
-            </Card>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="mb-6">
+            <TabsTrigger value="profile">Profile</TabsTrigger>
+            <TabsTrigger value="my-bookings">My Bookings</TabsTrigger>
+          </TabsList>
 
-            {/* Professional Information - Only show if user is a professional */}
-            {profile?.profile?.is_professional && (
-              <>
-                {/* Services & Specialties */}
+          {/* Profile Tab Content */}
+          <TabsContent value="profile">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Left Column - Main Info */}
+              <div className="lg:col-span-2 space-y-6">
+                {/* Bio */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>Services & Specialties</CardTitle>
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="h-5 w-5" />
+                      About
+                    </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    {profile.profile.service_category &&
-                      profile.profile.service_category.length > 0 && (
-                        <>
-                          <div>
-                            <h4 className="font-semibold text-gray-800 mb-2">
-                              Professional Categories
-                            </h4>
-                            <div className="flex flex-wrap gap-2">
-                              {profile.profile.service_category.map(
-                                (category: string, index: number) => (
-                                  <Badge
-                                    key={index}
-                                    variant="secondary"
-                                    className="bg-blue-100 text-blue-800"
-                                  >
-                                    {category}
-                                  </Badge>
-                                )
-                              )}
-                            </div>
-                          </div>
-                          <Separator />
-                        </>
-                      )}
-
-                    {profile.profile.dance_style &&
-                      profile.profile.dance_style.length > 0 && (
-                        <>
-                          <div>
-                            <h4 className="font-semibold text-gray-800 mb-2">
-                              Dance Styles
-                            </h4>
-                            <div className="flex flex-wrap gap-2">
-                              {profile.profile.dance_style.map(
-                                (style: string, index: number) => (
-                                  <Badge
-                                    key={index}
-                                    variant="outline"
-                                    className="border-purple-200 text-purple-700"
-                                  >
-                                    {style}
-                                  </Badge>
-                                )
-                              )}
-                            </div>
-                          </div>
-                          <Separator />
-                        </>
-                      )}
-
-                    {profile.profile.services &&
-                      profile.profile.services.length > 0 && (
-                        <div>
-                          <h4 className="font-semibold text-gray-800 mb-2">
-                            Services Offered
-                          </h4>
-                          <div className="grid grid-cols-2 gap-2">
-                            {profile.profile.services.map(
-                              (service: string, index: number) => (
-                                <div
-                                  key={index}
-                                  className="flex items-center gap-2 text-sm text-gray-600"
-                                >
-                                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                  {service}
-                                </div>
-                              )
-                            )}
-                          </div>
-                        </div>
-                      )}
+                  <CardContent>
+                    <p className="text-gray-700 leading-relaxed">
+                      {profile?.profile?.bio ||
+                        "No bio available. Add one to your profile!"}
+                    </p>
                   </CardContent>
                 </Card>
 
-                {/* Availability */}
-                {profile.profile.availability &&
-                  profile.profile.availability.length > 0 && (
+                {/* Professional Information - Only show if user is a professional */}
+                {profile?.profile?.is_professional && (
+                  <>
+                    {/* Services & Specialties */}
                     <Card>
                       <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Calendar className="h-5 w-5" />
-                          Availability
-                        </CardTitle>
+                        <CardTitle>Services & Specialties</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        {profile.profile.service_category &&
+                          profile.profile.service_category.length > 0 && (
+                            <>
+                              <div>
+                                <h4 className="font-semibold text-gray-800 mb-2">
+                                  Professional Categories
+                                </h4>
+                                <div className="flex flex-wrap gap-2">
+                                  {profile.profile.service_category.map(
+                                    (category: string, index: number) => (
+                                      <Badge
+                                        key={index}
+                                        variant="secondary"
+                                        className="bg-blue-100 text-blue-800"
+                                      >
+                                        {category}
+                                      </Badge>
+                                    )
+                                  )}
+                                </div>
+                              </div>
+                              <Separator />
+                            </>
+                          )}
+
+                        {profile.profile.dance_style &&
+                          profile.profile.dance_style.length > 0 && (
+                            <>
+                              <div>
+                                <h4 className="font-semibold text-gray-800 mb-2">
+                                  Dance Styles
+                                </h4>
+                                <div className="flex flex-wrap gap-2">
+                                  {profile.profile.dance_style.map(
+                                    (style: string, index: number) => (
+                                      <Badge
+                                        key={index}
+                                        variant="outline"
+                                        className="border-purple-200 text-purple-700"
+                                      >
+                                        {style}
+                                      </Badge>
+                                    )
+                                  )}
+                                </div>
+                              </div>
+                              <Separator />
+                            </>
+                          )}
+
+                        {profile.profile.services &&
+                          profile.profile.services.length > 0 && (
+                            <div>
+                              <h4 className="font-semibold text-gray-800 mb-2">
+                                Services Offered
+                              </h4>
+                              <div className="grid grid-cols-2 gap-2">
+                                {profile.profile.services.map(
+                                  (service: string, index: number) => (
+                                    <div
+                                      key={index}
+                                      className="flex items-center gap-2 text-sm text-gray-600"
+                                    >
+                                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                      {service}
+                                    </div>
+                                  )
+                                )}
+                              </div>
+                            </div>
+                          )}
+                      </CardContent>
+                    </Card>
+
+                    {/* Availability */}
+                    {profile.profile.availability &&
+                      profile.profile.availability.length > 0 && (
+                        <Card>
+                          <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                              <Calendar className="h-5 w-5" />
+                              Availability
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-4">
+                              <div className="flex items-center gap-2">
+                                <Badge
+                                  variant="outline"
+                                  className="border-green-200 text-green-700"
+                                >
+                                  {getAvailabilityPatternName(
+                                    profile.profile.availability
+                                  )}
+                                </Badge>
+                              </div>
+
+                              <div className="space-y-3">
+                                {profile.profile.availability.map(
+                                  (range: any, index: number) => (
+                                    <div
+                                      key={index}
+                                      className="bg-gray-50 rounded-lg p-4"
+                                    >
+                                      <div className="font-medium text-gray-800 mb-2">
+                                        {formatDateRange(
+                                          range.start_date,
+                                          range.end_date
+                                        )}
+                                      </div>
+                                      <div className="flex flex-wrap gap-2">
+                                        {range.time_slots.map(
+                                          (slot: string, slotIndex: number) => (
+                                            <Badge
+                                              key={slotIndex}
+                                              variant="outline"
+                                              className="text-sm"
+                                            >
+                                              <Clock className="h-3 w-3 mr-1" />
+                                              {slot}
+                                            </Badge>
+                                          )
+                                        )}
+                                      </div>
+                                    </div>
+                                  )
+                                )}
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+                  </>
+                )}
+              </div>
+
+              {/* Right Column - Sidebar */}
+              <div className="space-y-6">
+                {/* Pricing - Only show if user is a professional */}
+                {profile?.profile?.is_professional &&
+                  profile?.profile?.pricing && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Pricing</CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <div className="space-y-4">
-                          <div className="flex items-center gap-2">
-                            <Badge
-                              variant="outline"
-                              className="border-green-200 text-green-700"
-                            >
-                              {getAvailabilityPatternName(
-                                profile.profile.availability
-                              )}
-                            </Badge>
+                        <div className="text-center">
+                          <div className="text-3xl font-bold text-green-600 mb-2">
+                            ${profile.profile.pricing.toLocaleString()}
                           </div>
-
-                          <div className="space-y-3">
-                            {profile.profile.availability.map(
-                              (range: any, index: number) => (
-                                <div
-                                  key={index}
-                                  className="bg-gray-50 rounded-lg p-4"
-                                >
-                                  <div className="font-medium text-gray-800 mb-2">
-                                    {formatDateRange(
-                                      range.start_date,
-                                      range.end_date
-                                    )}
-                                  </div>
-                                  <div className="flex flex-wrap gap-2">
-                                    {range.time_slots.map(
-                                      (slot: string, slotIndex: number) => (
-                                        <Badge
-                                          key={slotIndex}
-                                          variant="outline"
-                                          className="text-sm"
-                                        >
-                                          <Clock className="h-3 w-3 mr-1" />
-                                          {slot}
-                                        </Badge>
-                                      )
-                                    )}
-                                  </div>
-                                </div>
-                              )
-                            )}
-                          </div>
+                          <p className="text-gray-600">per session</p>
                         </div>
                       </CardContent>
                     </Card>
                   )}
-              </>
-            )}
-          </div>
 
-          {/* Right Column - Sidebar */}
-          <div className="space-y-6">
-            {/* Pricing - Only show if user is a professional */}
-            {profile?.profile?.is_professional && profile?.profile?.pricing && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Pricing</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center">
-                    <div className="text-3xl font-bold text-green-600 mb-2">
-                      ${profile.profile.pricing.toLocaleString()}
-                    </div>
-                    <p className="text-gray-600">per session</p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Contact Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Contact Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {profile?.profile?.phone_number && (
-                  <div className="flex items-center gap-3 text-gray-700">
-                    <Phone className="h-4 w-4 text-gray-500" />
-                    <span>{profile.profile.phone_number}</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-3 text-gray-700">
-                  <Mail className="h-4 w-4 text-gray-500" />
-                  <span>{profile?.email}</span>
-                </div>
-                {profile?.profile?.portfolio && (
-                  <div className="flex items-center gap-3 text-gray-700">
-                    <Globe className="h-4 w-4 text-gray-500" />
-                    <a
-                      href={profile.profile.portfolio}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline"
-                    >
-                      View Portfolio
-                    </a>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Location */}
-            {(profile?.location || profile?.city || profile?.state) && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Location</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center gap-3 text-gray-700">
-                    <MapPin className="h-4 w-4 text-gray-500" />
-                    <div>
-                      <div>
-                        {profile.location ||
-                          `${profile.city}, ${profile.state}`}
+                {/* Contact Information */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Contact Information</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {profile?.profile?.phone_number && (
+                      <div className="flex items-center gap-3 text-gray-700">
+                        <Phone className="h-4 w-4 text-gray-500" />
+                        <span>{profile.profile.phone_number}</span>
                       </div>
-                      {profile.zip_code && (
-                        <div className="text-sm text-gray-500">
-                          {profile.zip_code}
-                        </div>
-                      )}
+                    )}
+                    <div className="flex items-center gap-3 text-gray-700">
+                      <Mail className="h-4 w-4 text-gray-500" />
+                      <span>{profile?.email}</span>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+                    {profile?.profile?.portfolio && (
+                      <div className="flex items-center gap-3 text-gray-700">
+                        <Globe className="h-4 w-4 text-gray-500" />
+                        <a
+                          href={profile.profile.portfolio}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline"
+                        >
+                          View Portfolio
+                        </a>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
 
-            {/* Profile Details */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Profile Details</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Member since:</span>
-                  <span className="font-medium">
-                    {formatDate(
-                      profile?.created_at || new Date().toISOString()
+                {/* Location */}
+                {(profile?.location || profile?.city || profile?.state) && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Location</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center gap-3 text-gray-700">
+                        <MapPin className="h-4 w-4 text-gray-500" />
+                        <div>
+                          <div>
+                            {profile.location ||
+                              `${profile.city}, ${profile.state}`}
+                          </div>
+                          {profile.zip_code && (
+                            <div className="text-sm text-gray-500">
+                              {profile.zip_code}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Profile Details */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Profile Details</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Member since:</span>
+                      <span className="font-medium">
+                        {formatDate(
+                          profile?.created_at || new Date().toISOString()
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Last updated:</span>
+                      <span className="font-medium">
+                        {formatDate(
+                          profile?.updated_at || new Date().toISOString()
+                        )}
+                      </span>
+                    </div>
+                    {profile?.years_experience && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Experience:</span>
+                        <span className="font-medium">
+                          {profile.years_experience} years
+                        </span>
+                      </div>
                     )}
+                    {profile?.is_verified && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Status:</span>
+                        <Badge
+                          variant="outline"
+                          className="border-green-200 text-green-700"
+                        >
+                          Verified Professional
+                        </Badge>
+                      </div>
+                    )}
+                    {profile?.is_professional && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Account Type:</span>
+                        <Badge
+                          variant="outline"
+                          className="border-blue-200 text-blue-700"
+                        >
+                          Professional
+                        </Badge>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* My Bookings Tab Content */}
+          <TabsContent value="my-bookings">
+            <div className="">
+              <h2 className="text-2xl font-bold mb-4">My Bookings</h2>
+              {bookingsLoading ? (
+                <div className="flex justify-center items-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <span className="ml-2 text-gray-600">
+                    Loading bookings...
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Last updated:</span>
-                  <span className="font-medium">
-                    {formatDate(
-                      profile?.updated_at || new Date().toISOString()
-                    )}
-                  </span>
+              ) : bookingsError ? (
+                <div className="text-red-500 text-center py-8">
+                  {bookingsError}
                 </div>
-                {profile?.years_experience && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Experience:</span>
-                    <span className="font-medium">
-                      {profile.years_experience} years
-                    </span>
-                  </div>
-                )}
-                {profile?.is_verified && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Status:</span>
-                    <Badge
-                      variant="outline"
-                      className="border-green-200 text-green-700"
-                    >
-                      Verified Professional
-                    </Badge>
-                  </div>
-                )}
-                {profile?.is_professional && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Account Type:</span>
-                    <Badge
-                      variant="outline"
-                      className="border-blue-200 text-blue-700"
-                    >
-                      Professional
-                    </Badge>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+              ) : bookings.length === 0 ? (
+                <div className="text-center text-gray-500 py-8">
+                  No bookings found.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {bookings.map((booking) => (
+                    <Card key={booking.id}>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <User className="h-5 w-5" />
+                          Booking #{booking.id}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        <div className="flex flex-wrap gap-4 items-center">
+                          <div>
+                            <span className="font-semibold">Session:</span>{" "}
+                            {new Date(booking.session_start).toLocaleString()} -{" "}
+                            {new Date(booking.session_end).toLocaleTimeString()}
+                          </div>
+                          <div>
+                            <span className="font-semibold">Status:</span>{" "}
+                            <Badge
+                              variant={
+                                booking.status === "PENDING"
+                                  ? "outline"
+                                  : "default"
+                              }
+                            >
+                              {booking.status}
+                            </Badge>
+                          </div>
+                        </div>
+                        <div>
+                          <span className="font-semibold">
+                            Professional/Instructor ID:
+                          </span>{" "}
+                          {booking.instructor_id}
+                        </div>
+                        <div>
+                          <span className="font-semibold">Booked by:</span>{" "}
+                          {booking.user?.first_name} {booking.user?.last_name} (
+                          {booking.user?.email})
+                        </div>
+                        <div className="text-xs text-gray-400">
+                          Created:{" "}
+                          {new Date(booking.created_at).toLocaleString()}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
