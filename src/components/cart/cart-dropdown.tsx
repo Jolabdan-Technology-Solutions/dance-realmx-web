@@ -38,12 +38,10 @@ export function CartDropdown() {
     }
   };
 
- 
-
   // Handle checkout
   const handleCheckout = () => {
     setIsOpen(false);
-    navigate("/simple-checkout");
+    navigate("/checkout-complete");
   };
 
   return (
@@ -88,7 +86,9 @@ export function CartDropdown() {
               {cartItems.map((item) => (
                 <div key={item.id} className="flex space-x-3">
                   <div className="flex-1">
-                    <h4 className="font-medium leading-tight">{item.resource?.title}</h4>
+                    <h4 className="font-medium leading-tight">
+                      {item.resource?.title}
+                    </h4>
                     <div className="text-sm text-muted-foreground py-2">
                       {item.resource?.type}
                     </div>

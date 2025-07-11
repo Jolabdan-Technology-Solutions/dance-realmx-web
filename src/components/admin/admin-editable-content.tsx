@@ -64,18 +64,19 @@ export function AdminEditableContent({
           queryClient.invalidateQueries({ queryKey });
         }
       }
-      
+
       toast({
         title: "Content updated",
         description: `${field.charAt(0).toUpperCase() + field.slice(1)} has been updated successfully.`,
       });
-      
+
       setIsOpen(false);
     },
     onError: (error: any) => {
       toast({
         title: "Update failed",
-        description: error?.message || "There was a problem updating the content.",
+        description:
+          error?.message || "There was a problem updating the content.",
         variant: "destructive",
       });
     },
@@ -94,13 +95,13 @@ export function AdminEditableContent({
   return (
     <div className={`relative group ${className}`}>
       {children}
-      
+
       {/* Edit overlay - only visible on hover */}
       <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-        <Button 
-          size="sm" 
-          variant="secondary" 
-          className="p-2" 
+        <Button
+          size="sm"
+          variant="secondary"
+          className="p-2"
           onClick={() => setIsOpen(true)}
         >
           <Edit className="h-4 w-4" />
@@ -114,10 +115,10 @@ export function AdminEditableContent({
           <DialogHeader>
             <DialogTitle>Edit Content</DialogTitle>
           </DialogHeader>
-          
+
           <div className="py-4">
             <Label htmlFor="content-edit">Edit {field}</Label>
-            
+
             {/* Different input types depending on content type */}
             {type === "text" && (
               <Input
@@ -127,7 +128,7 @@ export function AdminEditableContent({
                 className="mt-2"
               />
             )}
-            
+
             {type === "longText" && (
               <Textarea
                 id="content-edit"
@@ -136,7 +137,7 @@ export function AdminEditableContent({
                 className="mt-2 min-h-[100px]"
               />
             )}
-            
+
             {type === "html" && (
               <Textarea
                 id="content-edit"
@@ -145,7 +146,7 @@ export function AdminEditableContent({
                 className="mt-2 min-h-[150px] font-mono text-sm"
               />
             )}
-            
+
             {type === "image" && (
               <div className="space-y-4 mt-2">
                 <div className="grid grid-cols-1 gap-4">
@@ -159,40 +160,46 @@ export function AdminEditableContent({
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (!file) return;
-                        
+
                         // Create a FormData object to send the file
                         const formData = new FormData();
-                        formData.append('image', file);
-                        
+                        formData.append("file", file);
+
                         toast({
                           title: "Uploading image...",
-                          description: "Please wait while we upload your image.",
+                          description:
+                            "Please wait while we upload your image.",
                         });
-                        
+
                         try {
                           // Upload the file first
-                          const res = await fetch('/api/upload', {
-                            method: 'POST',
+                          const res = await fetch("/api/upload", {
+                            method: "POST",
                             body: formData,
                           });
-                          
+
                           if (!res.ok) {
                             const errorData = await res.json();
-                            throw new Error(errorData.message || 'Failed to upload image');
+                            throw new Error(
+                              errorData.message || "Failed to upload image"
+                            );
                           }
-                          
+
                           const data = await res.json();
                           setValue(data.imageUrl);
-                          
+
                           toast({
                             title: "Upload successful",
-                            description: "Image has been uploaded successfully.",
+                            description:
+                              "Image has been uploaded successfully.",
                           });
                         } catch (error: any) {
-                          console.error('Error uploading image:', error);
+                          console.error("Error uploading image:", error);
                           toast({
                             title: "Upload failed",
-                            description: error?.message || "There was a problem uploading your image.",
+                            description:
+                              error?.message ||
+                              "There was a problem uploading your image.",
                             variant: "destructive",
                           });
                         }
@@ -202,7 +209,7 @@ export function AdminEditableContent({
                       Supported formats: JPG, PNG, GIF. Max size: 5MB
                     </p>
                   </div>
-                  
+
                   <div>
                     <Label htmlFor="image-url">Or Enter Image URL</Label>
                     <Input
@@ -214,16 +221,17 @@ export function AdminEditableContent({
                     />
                   </div>
                 </div>
-                
+
                 <div className="border p-2 rounded-md">
                   <p className="text-sm font-medium mb-2">Image Preview:</p>
                   <div className="h-40 flex items-center justify-center bg-gray-800">
-                    <img 
-                      src={value} 
-                      alt="Preview" 
+                    <img
+                      src={value}
+                      alt="Preview"
                       className="max-h-40 max-w-full object-contain"
                       onError={(e) => {
-                        (e.target as HTMLImageElement).src = "/assets/images/image-placeholder.jpg";
+                        (e.target as HTMLImageElement).src =
+                          "/assets/images/image-placeholder.jpg";
                       }}
                     />
                   </div>
@@ -231,16 +239,13 @@ export function AdminEditableContent({
               </div>
             )}
           </div>
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsOpen(false)}>
               <X className="mr-2 h-4 w-4" />
               Cancel
             </Button>
-            <Button 
-              onClick={handleSave} 
-              disabled={mutation.isPending}
-            >
+            <Button onClick={handleSave} disabled={mutation.isPending}>
               {mutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

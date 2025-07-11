@@ -31,7 +31,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { FileUpload } from "@/components/ui/file-upload";
 import { CachedAvatar } from "@/components/ui/cached-avatar";
 import { CachedImage } from "@/components/ui/cached-image";
-import { Loader2, ArrowLeft, Save, User as UserIcon, KeyRound } from "lucide-react";
+import {
+  Loader2,
+  ArrowLeft,
+  Save,
+  User as UserIcon,
+  KeyRound,
+} from "lucide-react";
 import { AuthWrapper } from "@/lib/auth-wrapper";
 
 // Form validation schemas
@@ -43,13 +49,17 @@ const userProfileSchema = z.object({
   profile_image_url: z.string().optional().nullable(),
 });
 
-const userPasswordSchema = z.object({
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  confirmPassword: z.string().min(6, "Password must be at least 6 characters"),
-}).refine(data => data.password === data.confirmPassword, {
-  message: "Passwords do not match",
-  path: ["confirmPassword"]
-});
+const userPasswordSchema = z
+  .object({
+    password: z.string().min(6, "Password must be at least 6 characters"),
+    confirmPassword: z
+      .string()
+      .min(6, "Password must be at least 6 characters"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
 
 function ProfileEditContent() {
   const { user } = useAuth();
@@ -66,7 +76,7 @@ function ProfileEditContent() {
       email: "",
       bio: "",
       profile_image_url: "",
-    }
+    },
   });
 
   // Password form
@@ -74,8 +84,8 @@ function ProfileEditContent() {
     resolver: zodResolver(userPasswordSchema),
     defaultValues: {
       password: "",
-      confirmPassword: ""
-    }
+      confirmPassword: "",
+    },
   });
 
   // Initialize forms with user data
@@ -91,27 +101,36 @@ function ProfileEditContent() {
       setIsLoading(false);
     }
   }, [user, profileForm]);
-  
+
   // Listen for profile image updates from the FileUpload component
   useEffect(() => {
     // Event handler for profile image updates
     const handleProfileImageUpdate = (event: Event) => {
       const customEvent = event as CustomEvent<{ url: string }>;
-      console.log("Profile image updated event received:", customEvent.detail.url);
-      
+      console.log(
+        "Profile image updated event received:",
+        customEvent.detail.url
+      );
+
       // Force refetch user data to get the updated profile image
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      
+
       // Also update the form with the new image URL
       profileForm.setValue("profile_image_url", customEvent.detail.url);
     };
-    
+
     // Add event listener
-    document.addEventListener('profile-image-updated', handleProfileImageUpdate);
-    
+    document.addEventListener(
+      "profile-image-updated",
+      handleProfileImageUpdate
+    );
+
     // Cleanup
     return () => {
-      document.removeEventListener('profile-image-updated', handleProfileImageUpdate);
+      document.removeEventListener(
+        "profile-image-updated",
+        handleProfileImageUpdate
+      );
     };
   }, [profileForm]);
 
@@ -119,26 +138,32 @@ function ProfileEditContent() {
   const updateProfileMutation = useMutation({
     mutationFn: async (data: z.infer<typeof userProfileSchema>) => {
       console.log("Updating profile with data:", data);
-      const res = await apiRequest("PATCH", `/api/users/profile`, data);
-      return await res.json();
+      const res = await apiRequest(`/api/profiles/me`, {
+        method: "PATCH",
+        data: data,
+        requireAuth: true,
+      });
+      return res;
     },
     onSuccess: (updatedUser) => {
       toast({
         title: "Profile Updated",
         description: "Your profile has been updated successfully.",
       });
-      
+
       console.log("Profile updated successfully:", updatedUser);
-      
+
       // Immediately update the user in the cache
       queryClient.setQueryData(["/api/user"], updatedUser);
-      
+
       // Force refetch to ensure fresh data
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      
+
       // Also invalidate any user-specific queries
       if (updatedUser.id) {
-        queryClient.invalidateQueries({ queryKey: [`/api/users/${updatedUser.id}`] });
+        queryClient.invalidateQueries({
+          queryKey: [`/api/users/${updatedUser.id}`],
+        });
       }
     },
     onError: (error: Error) => {
@@ -153,21 +178,25 @@ function ProfileEditContent() {
   // Update password mutation
   const updatePasswordMutation = useMutation({
     mutationFn: async (data: { password: string }) => {
-      const res = await apiRequest("PATCH", `/api/users/password`, data);
-      return await res.json();
+      const res = await apiRequest(`/api/auth/change-password`, {
+        method: "POST",
+        data: data,
+        requireAuth: true,
+      });
+      return res;
     },
     onSuccess: () => {
       toast({
         title: "Password Updated",
         description: "Your password has been updated successfully.",
       });
-      
+
       // Reset the password form
       passwordForm.reset({
         password: "",
-        confirmPassword: ""
+        confirmPassword: "",
       });
-      
+
       // Refresh user data to ensure everything is in sync
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
     },
@@ -183,47 +212,58 @@ function ProfileEditContent() {
   const onSubmitProfile = (data: z.infer<typeof userProfileSchema>) => {
     // Make sure we're logging the data we're submitting for debugging
     console.log("Submitting profile data:", data);
-    
+
     // Ensure we're correctly handling the profile image URL
     const formData = {
       ...data,
       // Make sure we're passing the profile_image_url exactly as it was set by the FileUpload component
-      profile_image_url: data.profile_image_url || null
+      profile_image_url: data.profile_image_url || null,
     };
-    
-    console.log("Final formData with profile_image_url:", formData.profile_image_url);
-    
+
+    console.log(
+      "Final formData with profile_image_url:",
+      formData.profile_image_url
+    );
+
     updateProfileMutation.mutate(formData, {
       onSuccess: (updatedUser) => {
         console.log("Profile updated successfully, user data:", updatedUser);
-        
+
         // Add timestamp to image URL to force refresh in UI
         if (updatedUser.profile_image_url) {
           // Update the user in cache with timestamped image URL for immediate UI refresh
           // First, clean any existing timestamp parameter
-          const baseUrl = updatedUser.profile_image_url.split('?')[0];
+          const baseUrl = updatedUser.profile_image_url.split("?")[0];
           const userWithTimestampedImage = {
             ...updatedUser,
             // Apply cleaned URL with new timestamp for proper cache busting
-            profile_image_url: `${baseUrl}?t=${Date.now()}`
+            profile_image_url: `${baseUrl}?t=${Date.now()}`,
           };
           queryClient.setQueryData(["/api/user"], userWithTimestampedImage);
-          
+
           // Also update user-specific queries if needed
           if (updatedUser.id) {
-            queryClient.setQueryData([`/api/users/${updatedUser.id}`], userWithTimestampedImage);
-            queryClient.setQueryData([`/api/instructors/${updatedUser.id}`], userWithTimestampedImage);
+            queryClient.setQueryData(
+              [`/api/users/${updatedUser.id}`],
+              userWithTimestampedImage
+            );
+            queryClient.setQueryData(
+              [`/api/instructors/${updatedUser.id}`],
+              userWithTimestampedImage
+            );
           }
         }
-        
+
         // Log the timestamp-updated user cache data
-        console.log("Updated user cache data with timestamped profile image URL");
-        
+        console.log(
+          "Updated user cache data with timestamped profile image URL"
+        );
+
         // Navigate back to dashboard after successful update
         setTimeout(() => {
           navigate("/dashboard");
         }, 1000); // Short delay to show success message
-      }
+      },
     });
   };
 
@@ -246,9 +286,9 @@ function ProfileEditContent() {
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="flex items-center mb-6">
-        <Button 
-          variant="outline" 
-          size="icon" 
+        <Button
+          variant="outline"
+          size="icon"
           onClick={() => navigate("/dashboard")}
           className="mr-2"
         >
@@ -273,7 +313,7 @@ function ProfileEditContent() {
               Security
             </TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="profile">
             <Card>
               <CardHeader>
@@ -284,7 +324,10 @@ function ProfileEditContent() {
               </CardHeader>
               <CardContent>
                 <Form {...profileForm}>
-                  <form onSubmit={profileForm.handleSubmit(onSubmitProfile)} className="space-y-4">
+                  <form
+                    onSubmit={profileForm.handleSubmit(onSubmitProfile)}
+                    className="space-y-4"
+                  >
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <FormField
                         control={profileForm.control}
@@ -293,13 +336,17 @@ function ProfileEditContent() {
                           <FormItem>
                             <FormLabel>First Name</FormLabel>
                             <FormControl>
-                              <Input placeholder="First name" {...field} value={field.value || ""} />
+                              <Input
+                                placeholder="First name"
+                                {...field}
+                                value={field.value || ""}
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
-                      
+
                       <FormField
                         control={profileForm.control}
                         name="last_name"
@@ -307,14 +354,18 @@ function ProfileEditContent() {
                           <FormItem>
                             <FormLabel>Last Name</FormLabel>
                             <FormControl>
-                              <Input placeholder="Last name" {...field} value={field.value || ""} />
+                              <Input
+                                placeholder="Last name"
+                                {...field}
+                                value={field.value || ""}
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
                     </div>
-                    
+
                     <FormField
                       control={profileForm.control}
                       name="email"
@@ -322,13 +373,17 @@ function ProfileEditContent() {
                         <FormItem>
                           <FormLabel>Email</FormLabel>
                           <FormControl>
-                            <Input placeholder="user@example.com" {...field} value={field.value || ""} />
+                            <Input
+                              placeholder="user@example.com"
+                              {...field}
+                              value={field.value || ""}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={profileForm.control}
                       name="bio"
@@ -336,10 +391,10 @@ function ProfileEditContent() {
                         <FormItem>
                           <FormLabel>Bio</FormLabel>
                           <FormControl>
-                            <Textarea 
-                              placeholder="Tell us about yourself" 
-                              {...field} 
-                              value={field.value || ""} 
+                            <Textarea
+                              placeholder="Tell us about yourself"
+                              {...field}
+                              value={field.value || ""}
                               className="min-h-32"
                             />
                           </FormControl>
@@ -350,7 +405,7 @@ function ProfileEditContent() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={profileForm.control}
                       name="profile_image_url"
@@ -377,14 +432,18 @@ function ProfileEditContent() {
                                       src={field.value}
                                       alt={`${user?.first_name || user?.username || "User"}'s Profile`}
                                       className="w-full h-full border-2 border-primary/30"
-                                      fallbackText={user?.first_name?.[0] || user?.username?.[0] || "U"}
+                                      fallbackText={
+                                        user?.first_name?.[0] ||
+                                        user?.username?.[0] ||
+                                        "U"
+                                      }
                                       forceCacheBusting={true}
                                     />
                                   </div>
                                   <div className="mt-2">
-                                    <Button 
-                                      type="button" 
-                                      variant="outline" 
+                                    <Button
+                                      type="button"
+                                      variant="outline"
                                       size="sm"
                                       className="text-xs"
                                       onClick={(e) => {
@@ -403,11 +462,11 @@ function ProfileEditContent() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <div className="flex justify-end">
-                      <Button 
-                        type="submit" 
-                        className="bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90" 
+                      <Button
+                        type="submit"
+                        className="bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90"
                         disabled={updateProfileMutation.isPending}
                       >
                         {updateProfileMutation.isPending ? (
@@ -428,7 +487,7 @@ function ProfileEditContent() {
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           <TabsContent value="security">
             <Card>
               <CardHeader>
@@ -439,7 +498,10 @@ function ProfileEditContent() {
               </CardHeader>
               <CardContent>
                 <Form {...passwordForm}>
-                  <form onSubmit={passwordForm.handleSubmit(onSubmitPassword)} className="space-y-4">
+                  <form
+                    onSubmit={passwordForm.handleSubmit(onSubmitPassword)}
+                    className="space-y-4"
+                  >
                     <FormField
                       control={passwordForm.control}
                       name="password"
@@ -447,7 +509,11 @@ function ProfileEditContent() {
                         <FormItem>
                           <FormLabel>New Password</FormLabel>
                           <FormControl>
-                            <Input type="password" placeholder="New password" {...field} />
+                            <Input
+                              type="password"
+                              placeholder="New password"
+                              {...field}
+                            />
                           </FormControl>
                           <FormDescription>
                             Must be at least 6 characters long.
@@ -456,7 +522,7 @@ function ProfileEditContent() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={passwordForm.control}
                       name="confirmPassword"
@@ -464,16 +530,20 @@ function ProfileEditContent() {
                         <FormItem>
                           <FormLabel>Confirm New Password</FormLabel>
                           <FormControl>
-                            <Input type="password" placeholder="Confirm new password" {...field} />
+                            <Input
+                              type="password"
+                              placeholder="Confirm new password"
+                              {...field}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                    
+
                     <div className="flex justify-end">
-                      <Button 
-                        type="submit" 
+                      <Button
+                        type="submit"
                         className="bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90"
                         disabled={updatePasswordMutation.isPending}
                       >

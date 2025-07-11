@@ -1,68 +1,10 @@
-// // // pages/curriculum/curriculum-info-wrapper.tsx
-// // import { useParams } from "wouter";
-// // import CurriculumInfoPage from "./curriculumInfo-page";
 
-// // export default function CurriculumInfoPageWrapper() {
-// //   const { resourceId } = useParams<{ resourceId: string }>();
-// //   const parsedId = parseInt(resourceId || "0");
-
-// //   return <CurriculumInfoPage resourceId={parsedId} />;
-// // }
-
-
-// // src/pages/curriculum/curriculum-info-page.tsx
-// import { useParams } from "wouter";
-// import { useEffect, useState } from "react";
-
-// type Resource = {
-//   id: number;
-//   name: string;
-//   description: string;
-// };
-
-// export default function CurriculumInfoPage() {
-//   const { id } = useParams<{ id: string }>();
-//   const [resource, setResource] = useState<Resource | null>(null);
-//   const [loading, setLoading] = useState(true);
-//   const [error, setError] = useState("");
-
-//   useEffect(() => {
-//     if (!id) {
-//       setError("Invalid ID");
-//       return;
-//     }
-
-//     fetch(`/api/resources/${id}`)
-//       .then((res) => {
-//         if (!res.ok) throw new Error("Resource not found");
-//         return res.json();
-//       })
-//       .then((data) => {
-//         setResource(data);
-//         setLoading(false);
-//       })
-//       .catch((err) => {
-//         setError(err.message);
-//         setLoading(false);
-//       });
-//   }, [id]);
-
-//   if (loading) return <p className="p-8 text-center">Loading...</p>;
-//   if (error) return <p className="p-8 text-center text-red-500">{error}</p>;
-//   if (!resource) return null;
-
-//   return (
-//     <div className="max-w-4xl mx-auto px-4 py-8">
-//       <h1 className="text-3xl font-bold mb-4">{resource.name}</h1>
-//       <p className="text-gray-700">{resource.description}</p>
-//     </div>
-//   );
-// }
-
-
+import { Button } from "@/components/ui/button"
 import { useEffect, useState } from "react"
 // Import useParams from wouter instead of next/navigation
 import { useParams } from "wouter"
+import { navigate } from "wouter/use-browser-location"
+import { useCart } from "@/hooks/use-cart"
 
 type Seller = {
   id: number
@@ -101,6 +43,7 @@ export default function CurriculumInfoPage() {
   // Use wouter's useParams and get resourceId (not id)
   const params = useParams()
   const resourceId = params.resourceId
+  const { addItem } = useCart()
   
   console.log('Wouter params:', params)
   console.log('Resource ID from wouter:', resourceId)
@@ -108,6 +51,21 @@ export default function CurriculumInfoPage() {
   const [resource, setResource] = useState<Resource | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+
+  const handleAddToCart = () => {
+    if (resource) {
+      addItem({
+        itemType: "resource",
+        itemId: resource.id,
+        quantity: 1,
+        title: resource.title,
+        price: resource.price,
+        thumbnailUrl: resource.thumbnailUrl
+      });
+    }
+  };
+  
 
   useEffect(() => {
     if (!resourceId) {
@@ -207,6 +165,10 @@ export default function CurriculumInfoPage() {
     target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y3ZjdmNyIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTk5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5JbWFnZSBub3QgZm91bmQ8L3RleHQ+PC9zdmc+'
   }
 
+  function addToCart(_resource: Resource): void {
+    throw new Error("Function not implemented.")
+  }
+
   return (
     <div className="max-w-3xl mx-auto p-6">
       {/* Thumbnail Image */}
@@ -220,9 +182,15 @@ export default function CurriculumInfoPage() {
       </div>
 
       {/* Title and Description */}
-      <div className="mb-6">
+      <div className="mb-6 flex justify-between">
+        <div className="">
         <h1 className="text-3xl font-bold text-gray-400 mb-3">{resource.title}</h1>
-        <p className="text-gray-600 text-lg leading-relaxed">{resource.description}</p>
+        <p className="text-gray-200 text-lg leading-relaxed">{resource.description}</p>
+        </div>
+         <Button onClick={handleAddToCart} size="sm" className="bg-primary hover:bg-primary/90">
+                              Add to Cart
+                            </Button>
+
       </div>
 
       {/* Resource Details */}
@@ -288,7 +256,9 @@ export default function CurriculumInfoPage() {
               </h3>
               <p className="text-sm text-gray-500">@{resource.seller.username}</p>
               {resource.seller.role.includes('ADMIN') && (
-                <button className="inline-block mt-1 px-2 py-1 bg-purple-100 text-purple-800 text-xs font-medium rounded">
+                <button
+                onClick={() => navigate(`/instructors/${resource.seller.id}/courses`)}
+                className="inline-block mt-1 px-2 py-1 bg-purple-100 text-purple-800 text-xs font-medium rounded">
                   Admin
                 </button>
               )}

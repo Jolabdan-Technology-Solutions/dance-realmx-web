@@ -1,14 +1,14 @@
 // import { useState } from "react";
 // import { useQuery, useMutation } from "@tanstack/react-query";
 // import { Link } from "wouter";
-// import { 
-//   Users, 
-//   Filter, 
-//   Plus, 
-//   RefreshCw, 
-//   Edit, 
-//   Trash2, 
-//   Check, 
+// import {
+//   Users,
+//   Filter,
+//   Plus,
+//   RefreshCw,
+//   Edit,
+//   Trash2,
+//   Check,
 //   X,
 //   Shield,
 //   Mail,
@@ -89,7 +89,7 @@
 //   const [itemsPerPage] = useState(10);
 //   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
 //   const [userToDelete, setUserToDelete] = useState<number | null>(null);
-  
+
 //   // Fetch users
 //   const { data: users = [], isLoading, refetch } = useQuery<User[]>({
 //     queryKey: ["/api/admin/users"],
@@ -98,7 +98,7 @@
 //       return res.json();
 //     },
 //   });
-  
+
 //   // Delete user
 //   const deleteUserMutation = useMutation({
 //     mutationFn: async (userId: number) => {
@@ -121,7 +121,7 @@
 //       });
 //     },
 //   });
-  
+
 //   // Toggle user role (instructor)
 //   const toggleRoleMutation = useMutation({
 //     mutationFn: async ({ userId, isInstructor }: { userId: number, isInstructor: boolean }) => {
@@ -145,42 +145,42 @@
 //       });
 //     },
 //   });
-  
+
 //   // Filter users based on search query and filters
 //   const filteredUsers = users.filter(user => {
 //     const fullName = `${user.first_name || ""} ${user.last_name || ""}`.trim();
-    
-//     const matchesSearch = 
-//       searchQuery === "" || 
+
+//     const matchesSearch =
+//       searchQuery === "" ||
 //       user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
 //       fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
 //       (user.email && user.email.toLowerCase().includes(searchQuery.toLowerCase()));
-    
+
 //     const matchesRole = roleFilter === null || user.role === roleFilter;
 //     const matchesStatus = statusFilter === null || user.status === statusFilter;
 //     const matchesSubscription = subscriptionFilter === null || user.subscriptionPlan === subscriptionFilter;
-    
+
 //     return matchesSearch && matchesRole && matchesStatus && matchesSubscription;
 //   });
-  
+
 //   // Pagination
 //   const indexOfLastItem = currentPage * itemsPerPage;
 //   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
 //   const currentUsers = filteredUsers.slice(indexOfFirstItem, indexOfLastItem);
 //   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
-  
+
 //   // Handle delete click
 //   const handleDeleteClick = (userId: number) => {
 //     setUserToDelete(userId);
 //     setIsConfirmDialogOpen(true);
 //   };
-  
+
 //   const confirmDelete = () => {
 //     if (userToDelete !== null) {
 //       deleteUserMutation.mutate(userToDelete);
 //     }
 //   };
-  
+
 //   // Handle toggle instructor role
 //   const handleToggleInstructor = (userId: number, currentIsInstructor: boolean | null) => {
 //     toggleRoleMutation.mutate({
@@ -188,13 +188,13 @@
 //       isInstructor: !(currentIsInstructor === true)
 //     });
 //   };
-  
+
 //   // Format date
 //   const formatDate = (date: Date | null) => {
 //     if (!date) return "—";
 //     return new Date(date).toLocaleDateString();
 //   };
-  
+
 //   // Get role badge for a single role
 //   const getSingleRoleBadge = (role: string) => {
 //     switch (role) {
@@ -277,7 +277,7 @@
 //         );
 //     }
 //   };
-  
+
 //   // Get role badges for user (can have multiple roles)
 //   const getRoleBadge = (user: User) => {
 //     // If user has roles array, use that
@@ -288,12 +288,12 @@
 //         </div>
 //       );
 //     }
-    
+
 //     // Fallback to single role field if roles array is not available
 //     if (user.role) {
 //       return getSingleRoleBadge(user.role);
 //     }
-    
+
 //     // Default if no roles are found
 //     return (
 //       <Badge variant="outline">
@@ -302,11 +302,11 @@
 //       </Badge>
 //     );
 //   };
-  
+
 //   // Get subscription badge
 //   const getSubscriptionBadge = (plan: string | null, status: string | null) => {
 //     if (!plan) return null;
-    
+
 //     let color;
 //     switch (plan.toLowerCase()) {
 //       case 'free':
@@ -324,7 +324,7 @@
 //       default:
 //         color = 'bg-gray-600 hover:bg-gray-700';
 //     }
-    
+
 //     return (
 //       <Badge className={color}>
 //         {plan}
@@ -336,11 +336,11 @@
 //       </Badge>
 //     );
 //   };
-  
+
 //   // Get status badge
 //   const getStatusBadge = (status: string | null) => {
 //     if (!status) return null;
-    
+
 //     switch (status.toLowerCase()) {
 //       case 'active':
 //         return (
@@ -371,7 +371,7 @@
 //         );
 //     }
 //   };
-  
+
 //   // Get user display name
 //   const getUserDisplayName = (user: User) => {
 //     if (user.first_name && user.last_name) {
@@ -379,7 +379,7 @@
 //     }
 //     return user.username;
 //   };
-  
+
 //   // Get avatar initials
 //   const getAvatarInitials = (user: User) => {
 //     if (user.first_name && user.last_name) {
@@ -387,7 +387,7 @@
 //     }
 //     return user.username.substring(0, 2).toUpperCase();
 //   };
-  
+
 //   return (
 //     <>
 //       <div className="space-y-6">
@@ -397,7 +397,7 @@
 //             <p className="text-gray-400">Manage all users in the system</p>
 //           </div>
 //           <div className="flex items-center space-x-2">
-//             <Button 
+//             <Button
 //               variant="outline"
 //               onClick={() => refetch()}
 //             >
@@ -412,7 +412,7 @@
 //             </Link>
 //           </div>
 //         </div>
-        
+
 //         <Card>
 //           <CardHeader>
 //             <CardTitle>Users</CardTitle>
@@ -431,9 +431,9 @@
 //                   <Search className="h-4 w-4" />
 //                 </div>
 //               </div>
-              
-//               <Select 
-//                 value={roleFilter || "all_roles"} 
+
+//               <Select
+//                 value={roleFilter || "all_roles"}
 //                 onValueChange={(value) => setRoleFilter(value === "all_roles" ? null : value)}
 //               >
 //                 <SelectTrigger className="w-full md:w-48">
@@ -454,9 +454,9 @@
 //                   <SelectItem value={USER_ROLES.STUDENT}>Student</SelectItem>
 //                 </SelectContent>
 //               </Select>
-              
-//               <Select 
-//                 value={statusFilter || "all_statuses"} 
+
+//               <Select
+//                 value={statusFilter || "all_statuses"}
 //                 onValueChange={(value) => setStatusFilter(value === "all_statuses" ? null : value)}
 //               >
 //                 <SelectTrigger className="w-full md:w-48">
@@ -469,9 +469,9 @@
 //                   <SelectItem value="suspended">Suspended</SelectItem>
 //                 </SelectContent>
 //               </Select>
-              
-//               <Select 
-//                 value={subscriptionFilter || "all_subscriptions"} 
+
+//               <Select
+//                 value={subscriptionFilter || "all_subscriptions"}
 //                 onValueChange={(value) => setSubscriptionFilter(value === "all_subscriptions" ? null : value)}
 //               >
 //                 <SelectTrigger className="w-full md:w-48">
@@ -486,7 +486,7 @@
 //                 </SelectContent>
 //               </Select>
 //             </div>
-            
+
 //             {isLoading ? (
 //               <div className="py-24 flex items-center justify-center">
 //                 <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" aria-label="Loading" />
@@ -576,7 +576,7 @@
 //                     </TableBody>
 //                   </Table>
 //                 </div>
-                
+
 //                 {totalPages > 1 && (
 //                   <Pagination className="mt-4">
 //                     <PaginationContent>
@@ -603,7 +603,7 @@
 //           </CardContent>
 //         </Card>
 //       </div>
-      
+
 //       {/* Confirmation Dialog */}
 //       <Dialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
 //         <DialogContent>
@@ -634,20 +634,17 @@
 //   );
 // }
 
-
-
-
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { 
-  Users, 
-  Filter, 
-  Plus, 
-  RefreshCw, 
-  Edit, 
-  Trash2, 
-  Check, 
+import {
+  Users,
+  Filter,
+  Plus,
+  RefreshCw,
+  Edit,
+  Trash2,
+  Check,
   X,
   Shield,
   Mail,
@@ -657,7 +654,7 @@ import {
   ShoppingBag,
   FileText,
   FileCog,
-  GraduationCap
+  GraduationCap,
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -722,71 +719,80 @@ interface User {
 
 // Role constants matching your API
 const USER_ROLES = {
-  ADMIN: 'ADMIN',
-  INSTRUCTOR: 'INSTRUCTOR',
-  INSTRUCTOR_ADMIN: 'INSTRUCTOR_ADMIN',
-  STUDENT: 'STUDENT',
-  MODERATOR: 'MODERATOR',
-  USER: 'USER',
-  SELLER: 'SELLER',
-  BOOKING: 'BOOKING',
-  BOOKING_PROVIDER: 'BOOKING_PROVIDER',
-  BOOKING_CLIENT: 'BOOKING_CLIENT',
-  CURRICULUM_OFFICER: 'CURRICULUM_OFFICER',
-  CURRICULUM_ADMIN: 'CURRICULUM_ADMIN',
+  ADMIN: "ADMIN",
+  INSTRUCTOR: "INSTRUCTOR",
+  INSTRUCTOR_ADMIN: "INSTRUCTOR_ADMIN",
+  STUDENT: "STUDENT",
+  MODERATOR: "MODERATOR",
+  USER: "USER",
+  SELLER: "SELLER",
+  BOOKING: "BOOKING",
+  BOOKING_PROVIDER: "BOOKING_PROVIDER",
+  BOOKING_CLIENT: "BOOKING_CLIENT",
+  CURRICULUM_OFFICER: "CURRICULUM_OFFICER",
+  CURRICULUM_ADMIN: "CURRICULUM_ADMIN",
 };
 
 export default function AdminUsersPage() {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<string | null>(null);
-  const [subscriptionFilter, setSubscriptionFilter] = useState<string | null>(null);
+  const [subscriptionFilter, setSubscriptionFilter] = useState<string | null>(
+    null
+  );
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<number | null>(null);
-  
+
   // Fetch users - Updated to use correct endpoint
-  const { data: users = [], isLoading, refetch } = useQuery<User[]>({
+  const {
+    data: users = [],
+    isLoading,
+    refetch,
+  } = useQuery<User[]>({
     queryKey: ["/api/users"],
     queryFn: async () => {
       // Temporary direct fetch - replace with fixed apiRequest later
       const res = await fetch("https://api.livetestdomain.com/api/users", {
         method: "GET",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           // Add authentication if required:
           // 'Authorization': 'Bearer your-token-here',
           // 'X-API-Key': 'your-api-key',
           // Or whatever auth your API uses
         },
       });
-      
-      console.log('Response status:', res.status);
-      console.log('Response headers:', res.headers);
-      
+
+      console.log("Response status:", res.status);
+      console.log("Response headers:", res.headers);
+
       if (!res.ok) {
         const errorText = await res.text();
-        console.error('Error response:', errorText);
+        console.error("Error response:", errorText);
         throw new Error(`HTTP error! status: ${res.status} - ${errorText}`);
       }
-      
+
       if (!res.ok) {
         const errorText = await res.text();
-        console.error('Error response:', errorText);
+        console.error("Error response:", errorText);
         throw new Error(`HTTP error! status: ${res.status} - ${errorText}`);
       }
-      
+
       const data = await res.json();
-      console.log('Received data:', data);
+      console.log("Received data:", data);
       return data;
     },
   });
-  
+
   // Delete user
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: number) => {
-      await apiRequest("DELETE", `/api/users/${userId}`);
+      await apiRequest(`/api/users/${userId}`, {
+        method: "DELETE",
+        requireAuth: true,
+      });
     },
     onSuccess: () => {
       toast({
@@ -805,14 +811,24 @@ export default function AdminUsersPage() {
       });
     },
   });
-  
+
   // Toggle user role (instructor)
   const toggleRoleMutation = useMutation({
-    mutationFn: async ({ userId, roles }: { userId: number, roles: string[] }) => {
-      const res = await apiRequest("PATCH", `/api/users/${userId}`, {
-        role: roles // Send as role array
+    mutationFn: async ({
+      userId,
+      roles,
+    }: {
+      userId: number;
+      roles: string[];
+    }) => {
+      const res = await apiRequest(`/api/users/${userId}`, {
+        method: "PATCH",
+        data: {
+          role: roles, // Send as role array
+        },
+        requireAuth: true,
       });
-      return res.json();
+      return res;
     },
     onSuccess: () => {
       toast({
@@ -829,66 +845,69 @@ export default function AdminUsersPage() {
       });
     },
   });
-  
+
   // Filter users based on search query and filters
-  const filteredUsers = users.filter(user => {
+  const filteredUsers = users.filter((user) => {
     const fullName = `${user.first_name || ""} ${user.last_name || ""}`.trim();
-    
-    const matchesSearch = 
-      searchQuery === "" || 
+
+    const matchesSearch =
+      searchQuery === "" ||
       user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
       fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (user.email && user.email.toLowerCase().includes(searchQuery.toLowerCase()));
-    
+      (user.email &&
+        user.email.toLowerCase().includes(searchQuery.toLowerCase()));
+
     const matchesRole = roleFilter === null || user.role.includes(roleFilter);
-    const matchesSubscription = subscriptionFilter === null || user.subscription_tier === subscriptionFilter;
-    
+    const matchesSubscription =
+      subscriptionFilter === null ||
+      user.subscription_tier === subscriptionFilter;
+
     return matchesSearch && matchesRole && matchesSubscription;
   });
-  
+
   // Pagination
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentUsers = filteredUsers.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
-  
+
   // Handle delete click
   const handleDeleteClick = (userId: number) => {
     setUserToDelete(userId);
     setIsConfirmDialogOpen(true);
   };
-  
+
   const confirmDelete = () => {
     if (userToDelete !== null) {
       deleteUserMutation.mutate(userToDelete);
     }
   };
-  
+
   // Handle toggle instructor role
   const handleToggleInstructor = (userId: number, currentRoles: string[]) => {
     const hasInstructor = currentRoles.includes(USER_ROLES.INSTRUCTOR);
     let newRoles;
-    
+
     if (hasInstructor) {
       // Remove instructor role
-      newRoles = currentRoles.filter(role => role !== USER_ROLES.INSTRUCTOR);
+      newRoles = currentRoles.filter((role) => role !== USER_ROLES.INSTRUCTOR);
     } else {
       // Add instructor role
       newRoles = [...currentRoles, USER_ROLES.INSTRUCTOR];
     }
-    
+
     toggleRoleMutation.mutate({
       userId,
-      roles: newRoles
+      roles: newRoles,
     });
   };
-  
+
   // Format date
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "—";
     return new Date(dateString).toLocaleDateString();
   };
-  
+
   // Get role badge for a single role
   const getSingleRoleBadge = (role: string) => {
     switch (role) {
@@ -973,22 +992,22 @@ export default function AdminUsersPage() {
         return (
           <Badge key={role} variant="outline">
             <User className="w-3 h-3 mr-1" />
-            {role.charAt(0).toUpperCase() + role.slice(1).replace(/_/g, ' ')}
+            {role.charAt(0).toUpperCase() + role.slice(1).replace(/_/g, " ")}
           </Badge>
         );
     }
   };
-  
+
   // Get role badges for user (updated to use role array from API)
   const getRoleBadge = (user: User) => {
     if (user.role && user.role.length > 0) {
       return (
         <div className="flex flex-wrap gap-1">
-          {user.role.map(role => getSingleRoleBadge(role))}
+          {user.role.map((role) => getSingleRoleBadge(role))}
         </div>
       );
     }
-    
+
     // Default if no roles are found
     return (
       <Badge variant="outline">
@@ -997,40 +1016,37 @@ export default function AdminUsersPage() {
       </Badge>
     );
   };
-  
+
   // Get subscription badge (updated to use subscription_tier)
   const getSubscriptionBadge = (tier: string | null) => {
-    if (!tier) return (
-      <Badge variant="outline" className="text-gray-400">
-        No Subscription
-      </Badge>
-    );
-    
+    if (!tier)
+      return (
+        <Badge variant="outline" className="text-gray-400">
+          No Subscription
+        </Badge>
+      );
+
     let color;
     switch (tier.toLowerCase()) {
-      case 'nobility':
-        color = 'bg-purple-600 hover:bg-purple-700';
+      case "nobility":
+        color = "bg-purple-600 hover:bg-purple-700";
         break;
-      case 'free':
-        color = 'bg-gray-600 hover:bg-gray-700';
+      case "free":
+        color = "bg-gray-600 hover:bg-gray-700";
         break;
-      case 'educator':
-        color = 'bg-green-600 hover:bg-green-700';
+      case "educator":
+        color = "bg-green-600 hover:bg-green-700";
         break;
-      case 'premium':
-        color = 'bg-blue-600 hover:bg-blue-700';
+      case "premium":
+        color = "bg-blue-600 hover:bg-blue-700";
         break;
       default:
-        color = 'bg-gray-600 hover:bg-gray-700';
+        color = "bg-gray-600 hover:bg-gray-700";
     }
-    
-    return (
-      <Badge className={color}>
-        {tier}
-      </Badge>
-    );
+
+    return <Badge className={color}>{tier}</Badge>;
   };
-  
+
   // Get user display name
   const getUserDisplayName = (user: User) => {
     if (user.first_name && user.last_name) {
@@ -1038,7 +1054,7 @@ export default function AdminUsersPage() {
     }
     return user.username;
   };
-  
+
   // Get avatar initials
   const getAvatarInitials = (user: User) => {
     if (user.first_name && user.last_name) {
@@ -1046,20 +1062,19 @@ export default function AdminUsersPage() {
     }
     return user.username.substring(0, 2).toUpperCase();
   };
-  
+
   return (
     <>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
+            <h1 className="text-3xl font-bold tracking-tight">
+              User Management
+            </h1>
             <p className="text-gray-400">Manage all users in the system</p>
           </div>
           <div className="flex items-center space-x-2">
-            <Button 
-              variant="outline"
-              onClick={() => refetch()}
-            >
+            <Button variant="outline" onClick={() => refetch()}>
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh
             </Button>
@@ -1071,7 +1086,7 @@ export default function AdminUsersPage() {
             </Link>
           </div>
         </div>
-        
+
         <Card>
           <CardHeader>
             <CardTitle>Users ({filteredUsers.length})</CardTitle>
@@ -1090,10 +1105,12 @@ export default function AdminUsersPage() {
                   <Search className="h-4 w-4" />
                 </div>
               </div>
-              
-              <Select 
-                value={roleFilter || "all_roles"} 
-                onValueChange={(value) => setRoleFilter(value === "all_roles" ? null : value)}
+
+              <Select
+                value={roleFilter || "all_roles"}
+                onValueChange={(value) =>
+                  setRoleFilter(value === "all_roles" ? null : value)
+                }
               >
                 <SelectTrigger className="w-full md:w-48">
                   <SelectValue placeholder="Filter by role" />
@@ -1101,29 +1118,49 @@ export default function AdminUsersPage() {
                 <SelectContent>
                   <SelectItem value="all_roles">All Roles</SelectItem>
                   <SelectItem value={USER_ROLES.ADMIN}>Admin</SelectItem>
-                  <SelectItem value={USER_ROLES.INSTRUCTOR}>Instructor</SelectItem>
-                  <SelectItem value={USER_ROLES.INSTRUCTOR_ADMIN}>Instructor Admin</SelectItem>
+                  <SelectItem value={USER_ROLES.INSTRUCTOR}>
+                    Instructor
+                  </SelectItem>
+                  <SelectItem value={USER_ROLES.INSTRUCTOR_ADMIN}>
+                    Instructor Admin
+                  </SelectItem>
                   <SelectItem value={USER_ROLES.STUDENT}>Student</SelectItem>
-                  <SelectItem value={USER_ROLES.MODERATOR}>Moderator</SelectItem>
+                  <SelectItem value={USER_ROLES.MODERATOR}>
+                    Moderator
+                  </SelectItem>
                   <SelectItem value={USER_ROLES.USER}>User</SelectItem>
                   <SelectItem value={USER_ROLES.SELLER}>Seller</SelectItem>
                   <SelectItem value={USER_ROLES.BOOKING}>Booking</SelectItem>
-                  <SelectItem value={USER_ROLES.BOOKING_PROVIDER}>Booking Provider</SelectItem>
-                  <SelectItem value={USER_ROLES.BOOKING_CLIENT}>Booking Client</SelectItem>
-                  <SelectItem value={USER_ROLES.CURRICULUM_OFFICER}>Curriculum Officer</SelectItem>
-                  <SelectItem value={USER_ROLES.CURRICULUM_ADMIN}>Curriculum Admin</SelectItem>
+                  <SelectItem value={USER_ROLES.BOOKING_PROVIDER}>
+                    Booking Provider
+                  </SelectItem>
+                  <SelectItem value={USER_ROLES.BOOKING_CLIENT}>
+                    Booking Client
+                  </SelectItem>
+                  <SelectItem value={USER_ROLES.CURRICULUM_OFFICER}>
+                    Curriculum Officer
+                  </SelectItem>
+                  <SelectItem value={USER_ROLES.CURRICULUM_ADMIN}>
+                    Curriculum Admin
+                  </SelectItem>
                 </SelectContent>
               </Select>
-              
-              <Select 
-                value={subscriptionFilter || "all_subscriptions"} 
-                onValueChange={(value) => setSubscriptionFilter(value === "all_subscriptions" ? null : value)}
+
+              <Select
+                value={subscriptionFilter || "all_subscriptions"}
+                onValueChange={(value) =>
+                  setSubscriptionFilter(
+                    value === "all_subscriptions" ? null : value
+                  )
+                }
               >
                 <SelectTrigger className="w-full md:w-48">
                   <SelectValue placeholder="Filter by subscription" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all_subscriptions">All Subscriptions</SelectItem>
+                  <SelectItem value="all_subscriptions">
+                    All Subscriptions
+                  </SelectItem>
                   <SelectItem value="NOBILITY">Nobility</SelectItem>
                   <SelectItem value="free">Free</SelectItem>
                   <SelectItem value="educator">Educator</SelectItem>
@@ -1131,10 +1168,13 @@ export default function AdminUsersPage() {
                 </SelectContent>
               </Select>
             </div>
-            
+
             {isLoading ? (
               <div className="py-24 flex items-center justify-center">
-                <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" aria-label="Loading" />
+                <div
+                  className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"
+                  aria-label="Loading"
+                />
               </div>
             ) : (
               <>
@@ -1164,12 +1204,21 @@ export default function AdminUsersPage() {
                             <TableCell>
                               <div className="flex items-center space-x-3">
                                 <Avatar>
-                                  <AvatarImage src={user.profile_image_url || undefined} alt={getUserDisplayName(user)} />
-                                  <AvatarFallback>{getAvatarInitials(user)}</AvatarFallback>
+                                  <AvatarImage
+                                    src={user.profile_image_url || undefined}
+                                    alt={getUserDisplayName(user)}
+                                  />
+                                  <AvatarFallback>
+                                    {getAvatarInitials(user)}
+                                  </AvatarFallback>
                                 </Avatar>
                                 <div>
-                                  <div className="font-medium">{getUserDisplayName(user)}</div>
-                                  <div className="text-sm text-gray-500">@{user.username}</div>
+                                  <div className="font-medium">
+                                    {getUserDisplayName(user)}
+                                  </div>
+                                  <div className="text-sm text-gray-500">
+                                    @{user.username}
+                                  </div>
                                 </div>
                               </div>
                             </TableCell>
@@ -1184,21 +1233,33 @@ export default function AdminUsersPage() {
                               )}
                             </TableCell>
                             <TableCell>{getRoleBadge(user)}</TableCell>
-                            <TableCell>{getSubscriptionBadge(user.subscription_tier)}</TableCell>
+                            <TableCell>
+                              {getSubscriptionBadge(user.subscription_tier)}
+                            </TableCell>
                             <TableCell>{formatDate(user.created_at)}</TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end space-x-2">
                                 <Button
                                   variant="outline"
                                   size="icon"
-                                  onClick={() => handleToggleInstructor(user.id, user.role)}
-                                  title={user.role.includes(USER_ROLES.INSTRUCTOR) ? "Remove instructor role" : "Add instructor role"}
+                                  onClick={() =>
+                                    handleToggleInstructor(user.id, user.role)
+                                  }
+                                  title={
+                                    user.role.includes(USER_ROLES.INSTRUCTOR)
+                                      ? "Remove instructor role"
+                                      : "Add instructor role"
+                                  }
                                   disabled={toggleRoleMutation.isPending}
                                 >
                                   <User className="h-4 w-4" />
                                 </Button>
                                 <Link href={`/admin/users/${user.id}`}>
-                                  <Button variant="outline" size="icon" title="Edit user">
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    title="Edit user"
+                                  >
                                     <Edit className="h-4 w-4" />
                                   </Button>
                                 </Link>
@@ -1206,7 +1267,10 @@ export default function AdminUsersPage() {
                                   variant="destructive"
                                   size="icon"
                                   onClick={() => handleDeleteClick(user.id)}
-                                  disabled={deleteUserMutation.isPending || user.role.includes(USER_ROLES.ADMIN)}
+                                  disabled={
+                                    deleteUserMutation.isPending ||
+                                    user.role.includes(USER_ROLES.ADMIN)
+                                  }
                                   title="Delete user"
                                 >
                                   <Trash2 className="h-4 w-4" />
@@ -1219,14 +1283,20 @@ export default function AdminUsersPage() {
                     </TableBody>
                   </Table>
                 </div>
-                
+
                 {totalPages > 1 && (
                   <Pagination className="mt-4">
                     <PaginationContent>
                       <PaginationItem>
                         <PaginationPrevious
-                          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                          className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
+                          onClick={() =>
+                            setCurrentPage((prev) => Math.max(prev - 1, 1))
+                          }
+                          className={
+                            currentPage === 1
+                              ? "pointer-events-none opacity-50"
+                              : ""
+                          }
                         />
                       </PaginationItem>
                       <PaginationItem>
@@ -1234,8 +1304,16 @@ export default function AdminUsersPage() {
                       </PaginationItem>
                       <PaginationItem>
                         <PaginationNext
-                          onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                          className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
+                          onClick={() =>
+                            setCurrentPage((prev) =>
+                              Math.min(prev + 1, totalPages)
+                            )
+                          }
+                          className={
+                            currentPage === totalPages
+                              ? "pointer-events-none opacity-50"
+                              : ""
+                          }
                         />
                       </PaginationItem>
                     </PaginationContent>
@@ -1246,14 +1324,16 @@ export default function AdminUsersPage() {
           </CardContent>
         </Card>
       </div>
-      
+
       {/* Confirmation Dialog */}
       <Dialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Confirm User Deletion</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this user? This action cannot be undone, and all associated data will also be deleted, including course enrollments, certificates, and payment history.
+              Are you sure you want to delete this user? This action cannot be
+              undone, and all associated data will also be deleted, including
+              course enrollments, certificates, and payment history.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
