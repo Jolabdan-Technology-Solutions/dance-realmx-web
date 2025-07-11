@@ -7,7 +7,6 @@ import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { User } from "@/types/user";
 import {
   Card,
   CardContent,
@@ -18,7 +17,6 @@ import {
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -28,473 +26,682 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { FileUpload } from "@/components/ui/file-upload";
-import { CachedAvatar } from "@/components/ui/cached-avatar";
-import { CachedImage } from "@/components/ui/cached-image";
+import { Separator } from "@/components/ui/separator";
 import {
   Loader2,
   ArrowLeft,
-  Save,
   User as UserIcon,
   KeyRound,
+  Users,
 } from "lucide-react";
 import { AuthWrapper } from "@/lib/auth-wrapper";
 
 // Form validation schemas
-const userProfileSchema = z.object({
-  first_name: z.string().optional().nullable(),
-  last_name: z.string().optional().nullable(),
-  email: z.string().email().optional().nullable(),
-  bio: z.string().optional().nullable(),
-  profile_image_url: z.string().optional().nullable(),
+const userDetailsSchema = z.object({
+  first_name: z.string().min(1, "First name is required"),
+  last_name: z.string().min(1, "Last name is required"),
+  email: z.string().email("Invalid email address"),
+  username: z.string().min(3, "Username must be at least 3 characters"),
 });
 
-const userPasswordSchema = z
+const profileDetailsSchema = z.object({
+  bio: z.string().optional(),
+  phone_number: z.string().optional(),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  country: z.string().optional(),
+  zip_code: z.string().optional(),
+  location: z.string().optional(),
+  travel_distance: z.number().optional(),
+  price_min: z.number().optional(),
+  price_max: z.number().optional(),
+  session_duration: z.number().optional(),
+  years_experience: z.number().optional(),
+  portfolio: z.string().url().optional().or(z.literal("")),
+  service_category: z.array(z.string()).optional(),
+  dance_style: z.array(z.string()).optional(),
+  services: z.array(z.string()).optional(),
+});
+
+const passwordSchema = z
   .object({
-    password: z.string().min(6, "Password must be at least 6 characters"),
+    currentPassword: z.string().min(1, "Current password is required"),
+    newPassword: z.string().min(6, "Password must be at least 6 characters"),
     confirmPassword: z
       .string()
       .min(6, "Password must be at least 6 characters"),
   })
-  .refine((data) => data.password === data.confirmPassword, {
+  .refine((data) => data.newPassword === data.confirmPassword, {
     message: "Passwords do not match",
     path: ["confirmPassword"],
   });
+
+interface UserProfile {
+  id: number;
+  email: string;
+  username: string;
+  first_name: string;
+  last_name: string;
+  profile_image_url?: string;
+  role: string[];
+  is_active: boolean;
+  subscription_tier: string;
+  created_at: string;
+  updated_at: string;
+  profile?: {
+    id: number;
+    user_id: number;
+    bio?: string;
+    phone_number?: string;
+    address?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    zip_code?: string;
+    is_professional?: boolean;
+    is_verified?: boolean;
+    service_category?: string[];
+    dance_style?: string[];
+    location?: string;
+    travel_distance?: number;
+    price_min?: number;
+    price_max?: number;
+    session_duration?: number;
+    years_experience?: number;
+    services?: string[];
+    availability?: Array<{
+      start_date: string;
+      end_date: string;
+      time_slots: string[];
+    }>;
+    portfolio?: string;
+    pricing?: number;
+  };
+}
 
 function ProfileEditContent() {
   const { user } = useAuth();
   const [_, navigate] = useLocation();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
 
-  // Profile form
-  const profileForm = useForm<z.infer<typeof userProfileSchema>>({
-    resolver: zodResolver(userProfileSchema),
-    defaultValues: {
-      first_name: "",
-      last_name: "",
-      email: "",
-      bio: "",
-      profile_image_url: "",
-    },
+  // Forms
+  const userDetailsForm = useForm<z.infer<typeof userDetailsSchema>>({
+    resolver: zodResolver(userDetailsSchema),
   });
 
-  // Password form
-  const passwordForm = useForm<z.infer<typeof userPasswordSchema>>({
-    resolver: zodResolver(userPasswordSchema),
-    defaultValues: {
-      password: "",
-      confirmPassword: "",
-    },
+  const profileDetailsForm = useForm<z.infer<typeof profileDetailsSchema>>({
+    resolver: zodResolver(profileDetailsSchema),
   });
 
-  // Initialize forms with user data
+  const passwordForm = useForm<z.infer<typeof passwordSchema>>({
+    resolver: zodResolver(passwordSchema),
+  });
+
+  // Fetch profile data
   useEffect(() => {
-    if (user) {
-      profileForm.reset({
-        first_name: user.first_name,
-        last_name: user.last_name,
-        email: user.email,
-        bio: user.bio,
-        profile_image_url: user.profile_image_url,
-      });
-      setIsLoading(false);
-    }
-  }, [user, profileForm]);
-
-  // Listen for profile image updates from the FileUpload component
-  useEffect(() => {
-    // Event handler for profile image updates
-    const handleProfileImageUpdate = (event: Event) => {
-      const customEvent = event as CustomEvent<{ url: string }>;
-      console.log(
-        "Profile image updated event received:",
-        customEvent.detail.url
-      );
-
-      // Force refetch user data to get the updated profile image
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-
-      // Also update the form with the new image URL
-      profileForm.setValue("profile_image_url", customEvent.detail.url);
-    };
-
-    // Add event listener
-    document.addEventListener(
-      "profile-image-updated",
-      handleProfileImageUpdate
-    );
-
-    // Cleanup
-    return () => {
-      document.removeEventListener(
-        "profile-image-updated",
-        handleProfileImageUpdate
-      );
-    };
-  }, [profileForm]);
-
-  // Update profile mutation
-  const updateProfileMutation = useMutation({
-    mutationFn: async (data: z.infer<typeof userProfileSchema>) => {
-      console.log("Updating profile with data:", data);
-      const res = await apiRequest(`/api/profiles/me`, {
-        method: "PATCH",
-        data: data,
-        requireAuth: true,
-      });
-      return res;
-    },
-    onSuccess: (updatedUser) => {
-      toast({
-        title: "Profile Updated",
-        description: "Your profile has been updated successfully.",
-      });
-
-      console.log("Profile updated successfully:", updatedUser);
-
-      // Immediately update the user in the cache
-      queryClient.setQueryData(["/api/user"], updatedUser);
-
-      // Force refetch to ensure fresh data
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-
-      // Also invalidate any user-specific queries
-      if (updatedUser.id) {
-        queryClient.invalidateQueries({
-          queryKey: [`/api/users/${updatedUser.id}`],
-        });
+    const fetchProfile = async () => {
+      if (!user?.id) {
+        setIsLoading(false);
+        return;
       }
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Update Failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
 
-  // Update password mutation
-  const updatePasswordMutation = useMutation({
-    mutationFn: async (data: { password: string }) => {
-      const res = await apiRequest(`/api/auth/change-password`, {
-        method: "POST",
-        data: data,
-        requireAuth: true,
-      });
-      return res;
+      try {
+        const result = await apiRequest(
+          `https://api.livetestdomain.com/api/me`,
+          {
+            method: "GET",
+            requireAuth: true,
+          }
+        );
+        setProfile(result);
+
+        // Initialize user details form
+        userDetailsForm.reset({
+          first_name: result.first_name || "",
+          last_name: result.last_name || "",
+          email: result.email || "",
+          username: result.username || "",
+        });
+
+        // Initialize profile details form
+        profileDetailsForm.reset({
+          bio: result.profile?.bio || "",
+          phone_number: result.profile?.phone_number || "",
+          address: result.profile?.address || "",
+          city: result.profile?.city || "",
+          state: result.profile?.state || "",
+          country: result.profile?.country || "",
+          zip_code: result.profile?.zip_code || "",
+          location: result.profile?.location || "",
+          travel_distance: result.profile?.travel_distance || 0,
+          price_min: result.profile?.price_min || 0,
+          price_max: result.profile?.price_max || 0,
+          session_duration: result.profile?.session_duration || 0,
+          years_experience: result.profile?.years_experience || 0,
+          portfolio: result.profile?.portfolio || "",
+          service_category: result.profile?.service_category || [],
+          dance_style: result.profile?.dance_style || [],
+          services: result.profile?.services || [],
+        });
+      } catch (err: any) {
+        console.error("Error fetching profile:", err);
+        toast({
+          title: "Error",
+          description: "Failed to load profile data",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [user, userDetailsForm, profileDetailsForm, toast]);
+
+  // Mutations
+  const updateUserDetailsMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof userDetailsSchema>) => {
+      return await apiRequest(
+        `https://api.livetestdomain.com/api/users/${user?.id}`,
+        {
+          method: "PATCH",
+          data,
+          requireAuth: true,
+        }
+      );
     },
     onSuccess: () => {
       toast({
-        title: "Password Updated",
-        description: "Your password has been updated successfully.",
+        title: "Success",
+        description: "User details updated successfully",
       });
-
-      // Reset the password form
-      passwordForm.reset({
-        password: "",
-        confirmPassword: "",
-      });
-
-      // Refresh user data to ensure everything is in sync
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/me"] });
     },
     onError: (error: Error) => {
       toast({
-        title: "Update Failed",
+        title: "Error",
         description: error.message,
         variant: "destructive",
       });
     },
   });
 
-  const onSubmitProfile = (data: z.infer<typeof userProfileSchema>) => {
-    // Make sure we're logging the data we're submitting for debugging
-    console.log("Submitting profile data:", data);
-
-    // Ensure we're correctly handling the profile image URL
-    const formData = {
-      ...data,
-      // Make sure we're passing the profile_image_url exactly as it was set by the FileUpload component
-      profile_image_url: data.profile_image_url || null,
-    };
-
-    console.log(
-      "Final formData with profile_image_url:",
-      formData.profile_image_url
-    );
-
-    updateProfileMutation.mutate(formData, {
-      onSuccess: (updatedUser) => {
-        console.log("Profile updated successfully, user data:", updatedUser);
-
-        // Add timestamp to image URL to force refresh in UI
-        if (updatedUser.profile_image_url) {
-          // Update the user in cache with timestamped image URL for immediate UI refresh
-          // First, clean any existing timestamp parameter
-          const baseUrl = updatedUser.profile_image_url.split("?")[0];
-          const userWithTimestampedImage = {
-            ...updatedUser,
-            // Apply cleaned URL with new timestamp for proper cache busting
-            profile_image_url: `${baseUrl}?t=${Date.now()}`,
-          };
-          queryClient.setQueryData(["/api/user"], userWithTimestampedImage);
-
-          // Also update user-specific queries if needed
-          if (updatedUser.id) {
-            queryClient.setQueryData(
-              [`/api/users/${updatedUser.id}`],
-              userWithTimestampedImage
-            );
-            queryClient.setQueryData(
-              [`/api/instructors/${updatedUser.id}`],
-              userWithTimestampedImage
-            );
-          }
+  const updateProfileDetailsMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof profileDetailsSchema>) => {
+      return await apiRequest(
+        `https://api.livetestdomain.com/api/profiles/me`,
+        {
+          method: "PATCH",
+          data,
+          requireAuth: true,
         }
+      );
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Profile details updated successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/me"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
-        // Log the timestamp-updated user cache data
-        console.log(
-          "Updated user cache data with timestamped profile image URL"
-        );
+  const updatePasswordMutation = useMutation({
+    mutationFn: async (data: {
+      currentPassword: string;
+      newPassword: string;
+    }) => {
+      return await apiRequest(
+        `https://api.livetestdomain.com/api/change-password`,
+        {
+          method: "POST",
+          data,
+          requireAuth: true,
+        }
+      );
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Password updated successfully",
+      });
+      passwordForm.reset();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
-        // Navigate back to dashboard after successful update
-        setTimeout(() => {
-          navigate("/dashboard");
-        }, 1000); // Short delay to show success message
-      },
+  const onSubmitUserDetails = (data: z.infer<typeof userDetailsSchema>) => {
+    updateUserDetailsMutation.mutate(data);
+  };
+
+  const onSubmitProfileDetails = (
+    data: z.infer<typeof profileDetailsSchema>
+  ) => {
+    updateProfileDetailsMutation.mutate(data);
+  };
+
+  const onSubmitPassword = (data: z.infer<typeof passwordSchema>) => {
+    updatePasswordMutation.mutate({
+      currentPassword: data.currentPassword,
+      newPassword: data.newPassword,
     });
   };
 
-  const onSubmitPassword = (data: z.infer<typeof userPasswordSchema>) => {
-    updatePasswordMutation.mutate({ password: data.password });
-  };
-
-  if (!user) {
+  if (isLoading) {
     return (
-      <div className="container mx-auto px-4 py-12 text-center">
-        <h1 className="text-3xl font-bold mb-4">Authentication Required</h1>
-        <p className="mb-8">Please sign in to edit your profile.</p>
-        <Link href="/auth">
-          <Button>Sign In</Button>
-        </Link>
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="flex items-center mb-6">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => navigate("/dashboard")}
-          className="mr-2"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <h1 className="text-3xl font-bold">Edit Profile</h1>
-      </div>
-
-      {isLoading ? (
-        <div className="py-24 flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="flex items-center gap-4 mb-8">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate("/profile")}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Profile
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Edit Profile</h1>
+            <p className="text-gray-600">Update your account information</p>
+          </div>
         </div>
-      ) : (
-        <Tabs defaultValue="profile" className="w-full">
-          <TabsList className="mb-4">
-            <TabsTrigger value="profile">
-              <UserIcon className="h-4 w-4 mr-2" />
-              Profile
+
+        <Tabs defaultValue="user-details" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger
+              value="user-details"
+              className="flex items-center gap-2"
+            >
+              <UserIcon className="h-4 w-4" />
+              User Details
             </TabsTrigger>
-            <TabsTrigger value="security">
-              <KeyRound className="h-4 w-4 mr-2" />
-              Security
+            <TabsTrigger
+              value="profile-details"
+              className="flex items-center gap-2"
+            >
+              <Users className="h-4 w-4" />
+              Profile Details
+            </TabsTrigger>
+            <TabsTrigger value="password" className="flex items-center gap-2">
+              <KeyRound className="h-4 w-4" />
+              Password
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="profile">
+          {/* User Details Tab */}
+          <TabsContent value="user-details">
             <Card>
               <CardHeader>
-                <CardTitle>Profile Information</CardTitle>
+                <CardTitle>User Details</CardTitle>
                 <CardDescription>
-                  Update your personal information and profile settings
+                  Update your basic account information
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Form {...profileForm}>
+                <Form {...userDetailsForm}>
                   <form
-                    onSubmit={profileForm.handleSubmit(onSubmitProfile)}
+                    onSubmit={userDetailsForm.handleSubmit(onSubmitUserDetails)}
                     className="space-y-4"
                   >
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <FormField
-                        control={profileForm.control}
+                        control={userDetailsForm.control}
                         name="first_name"
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>First Name</FormLabel>
                             <FormControl>
-                              <Input
-                                placeholder="First name"
-                                {...field}
-                                value={field.value || ""}
-                              />
+                              <Input {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
-
                       <FormField
-                        control={profileForm.control}
+                        control={userDetailsForm.control}
                         name="last_name"
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Last Name</FormLabel>
                             <FormControl>
-                              <Input
-                                placeholder="Last name"
-                                {...field}
-                                value={field.value || ""}
-                              />
+                              <Input {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
                     </div>
-
                     <FormField
-                      control={profileForm.control}
+                      control={userDetailsForm.control}
+                      name="username"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Username</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={userDetailsForm.control}
                       name="email"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Email</FormLabel>
                           <FormControl>
-                            <Input
-                              placeholder="user@example.com"
-                              {...field}
-                              value={field.value || ""}
-                            />
+                            <Input type="email" readOnly {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-
-                    <FormField
-                      control={profileForm.control}
-                      name="bio"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Bio</FormLabel>
-                          <FormControl>
-                            <Textarea
-                              placeholder="Tell us about yourself"
-                              {...field}
-                              value={field.value || ""}
-                              className="min-h-32"
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            This bio will be visible on your public profile.
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
+                    <Button
+                      type="submit"
+                      disabled={updateUserDetailsMutation.isPending}
+                      className="w-full"
+                    >
+                      {updateUserDetailsMutation.isPending && (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       )}
-                    />
-
-                    <FormField
-                      control={profileForm.control}
-                      name="profile_image_url"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Profile Image</FormLabel>
-                          <FormControl>
-                            <div className="space-y-2">
-                              <FileUpload
-                                onUploadComplete={(url) => field.onChange(url)}
-                                defaultValue={field.value || ""}
-                                uploadEndpoint="/api/profile/upload"
-                                acceptedTypes="image/*"
-                                label="Profile Image"
-                                buttonText="Choose profile image"
-                              />
-                              {field.value && (
-                                <div className="mt-2">
-                                  <div className="text-sm text-muted-foreground mb-2">
-                                    Current profile image preview:
-                                  </div>
-                                  <div className="w-24 h-24">
-                                    <CachedAvatar
-                                      src={field.value}
-                                      alt={`${user?.first_name || user?.username || "User"}'s Profile`}
-                                      className="w-full h-full border-2 border-primary/30"
-                                      fallbackText={
-                                        user?.first_name?.[0] ||
-                                        user?.username?.[0] ||
-                                        "U"
-                                      }
-                                      forceCacheBusting={true}
-                                    />
-                                  </div>
-                                  <div className="mt-2">
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="sm"
-                                      className="text-xs"
-                                      onClick={(e) => {
-                                        e.preventDefault();
-                                        navigate("/profile-image-debug");
-                                      }}
-                                    >
-                                      Having issues? Use Debug Tool
-                                    </Button>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="flex justify-end">
-                      <Button
-                        type="submit"
-                        className="bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90"
-                        disabled={updateProfileMutation.isPending}
-                      >
-                        {updateProfileMutation.isPending ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Saving...
-                          </>
-                        ) : (
-                          <>
-                            <Save className="h-4 w-4 mr-2" />
-                            Save Changes
-                          </>
-                        )}
-                      </Button>
-                    </div>
+                      Save User Details
+                    </Button>
                   </form>
                 </Form>
               </CardContent>
             </Card>
           </TabsContent>
 
-          <TabsContent value="security">
+          {/* Profile Details Tab */}
+          <TabsContent value="profile-details">
+            <Card>
+              <CardHeader>
+                <CardTitle>Profile Details</CardTitle>
+                <CardDescription>
+                  Update your professional profile information
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Form {...profileDetailsForm}>
+                  <form
+                    onSubmit={profileDetailsForm.handleSubmit(
+                      onSubmitProfileDetails
+                    )}
+                    className="space-y-6"
+                  >
+                    {/* Basic Information */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold">
+                        Basic Information
+                      </h3>
+                      <FormField
+                        control={profileDetailsForm.control}
+                        name="bio"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Bio</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                {...field}
+                                placeholder="Tell us about yourself..."
+                                rows={4}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={profileDetailsForm.control}
+                        name="phone_number"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Phone Number</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="+1234567890" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={profileDetailsForm.control}
+                        name="portfolio"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Portfolio URL</FormLabel>
+                            <FormControl>
+                              <Input
+                                {...field}
+                                placeholder="https://your-portfolio.com"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <Separator />
+
+                    {/* Location Information */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold">Location</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={profileDetailsForm.control}
+                          name="address"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Address</FormLabel>
+                              <FormControl>
+                                <Input {...field} placeholder="123 Main St" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={profileDetailsForm.control}
+                          name="city"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>City</FormLabel>
+                              <FormControl>
+                                <Input {...field} placeholder="New York" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={profileDetailsForm.control}
+                          name="state"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>State</FormLabel>
+                              <FormControl>
+                                <Input {...field} placeholder="NY" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={profileDetailsForm.control}
+                          name="zip_code"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>ZIP Code</FormLabel>
+                              <FormControl>
+                                <Input {...field} placeholder="10001" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <FormField
+                        control={profileDetailsForm.control}
+                        name="travel_distance"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Travel Distance (miles)</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                {...field}
+                                onChange={(e) =>
+                                  field.onChange(Number(e.target.value))
+                                }
+                                placeholder="25"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <Separator />
+
+                    {/* Professional Information */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold">
+                        Professional Information
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={profileDetailsForm.control}
+                          name="years_experience"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Years of Experience</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  {...field}
+                                  onChange={(e) =>
+                                    field.onChange(Number(e.target.value))
+                                  }
+                                  placeholder="5"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={profileDetailsForm.control}
+                          name="session_duration"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Session Duration (minutes)</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  {...field}
+                                  onChange={(e) =>
+                                    field.onChange(Number(e.target.value))
+                                  }
+                                  placeholder="60"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={profileDetailsForm.control}
+                          name="price_min"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Minimum Price ($)</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  {...field}
+                                  onChange={(e) =>
+                                    field.onChange(Number(e.target.value))
+                                  }
+                                  placeholder="50"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={profileDetailsForm.control}
+                          name="price_max"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Maximum Price ($)</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  {...field}
+                                  onChange={(e) =>
+                                    field.onChange(Number(e.target.value))
+                                  }
+                                  placeholder="150"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
+
+                    <Button
+                      type="submit"
+                      disabled={updateProfileDetailsMutation.isPending}
+                      className="w-full"
+                    >
+                      {updateProfileDetailsMutation.isPending && (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      )}
+                      Save Profile Details
+                    </Button>
+                  </form>
+                </Form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Password Tab */}
+          <TabsContent value="password">
             <Card>
               <CardHeader>
                 <CardTitle>Change Password</CardTitle>
-                <CardDescription>
-                  Update your password to keep your account secure
-                </CardDescription>
+                <CardDescription>Update your account password</CardDescription>
               </CardHeader>
               <CardContent>
                 <Form {...passwordForm}>
@@ -504,25 +711,30 @@ function ProfileEditContent() {
                   >
                     <FormField
                       control={passwordForm.control}
-                      name="password"
+                      name="currentPassword"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>New Password</FormLabel>
+                          <FormLabel>Current Password</FormLabel>
                           <FormControl>
-                            <Input
-                              type="password"
-                              placeholder="New password"
-                              {...field}
-                            />
+                            <Input type="password" {...field} />
                           </FormControl>
-                          <FormDescription>
-                            Must be at least 6 characters long.
-                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-
+                    <FormField
+                      control={passwordForm.control}
+                      name="newPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>New Password</FormLabel>
+                          <FormControl>
+                            <Input type="password" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                     <FormField
                       control={passwordForm.control}
                       name="confirmPassword"
@@ -530,48 +742,33 @@ function ProfileEditContent() {
                         <FormItem>
                           <FormLabel>Confirm New Password</FormLabel>
                           <FormControl>
-                            <Input
-                              type="password"
-                              placeholder="Confirm new password"
-                              {...field}
-                            />
+                            <Input type="password" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-
-                    <div className="flex justify-end">
-                      <Button
-                        type="submit"
-                        className="bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90"
-                        disabled={updatePasswordMutation.isPending}
-                      >
-                        {updatePasswordMutation.isPending ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Updating...
-                          </>
-                        ) : (
-                          <>
-                            <Save className="h-4 w-4 mr-2" />
-                            Update Password
-                          </>
-                        )}
-                      </Button>
-                    </div>
+                    <Button
+                      type="submit"
+                      disabled={updatePasswordMutation.isPending}
+                      className="w-full"
+                    >
+                      {updatePasswordMutation.isPending && (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      )}
+                      Update Password
+                    </Button>
                   </form>
                 </Form>
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
-      )}
+      </div>
     </div>
   );
 }
 
-// Export the wrapped component
 export default function ProfileEditPage() {
   return (
     <AuthWrapper>

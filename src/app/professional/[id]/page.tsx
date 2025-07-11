@@ -75,7 +75,7 @@ export default function ProfessionalProfilePage() {
         );
         setProfile(result);
       } catch (err: any) {
-        setError(err?.response?.data?.message || "Failed to load profile");
+        setError(err?.message || "Failed to load profile");
       } finally {
         setLoading(false);
       }

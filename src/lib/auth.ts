@@ -1,7 +1,7 @@
-const TOKEN_KEY = 'auth_token';
+const TOKEN_KEY = "access_token";
 
 export const getAuthToken = (): string | null => {
-  if (typeof window === 'undefined') return null;
+  if (typeof window === "undefined") return null;
   return localStorage.getItem(TOKEN_KEY);
 };
 
@@ -15,4 +15,4 @@ export const removeAuthToken = (): void => {
 
 export const isAuthenticated = (): boolean => {
   return !!getAuthToken();
-}; 
+};

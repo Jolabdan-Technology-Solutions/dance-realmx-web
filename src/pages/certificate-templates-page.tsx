@@ -18,6 +18,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { UserRole } from "@/types/user";
 
 // Define types for certificate templates
 interface CertificateTemplate {
@@ -305,7 +306,10 @@ export default function CertificateTemplatesPage() {
   // Create a new template
   const createMutation = useMutation({
     mutationFn: async (data: TemplateFormValues) => {
-      const res = await apiRequest("POST", "/api/certificate-templates", data);
+      const res = await apiRequest("/api/certificate-templates", {
+        method: "POST",
+        data,
+      });
       return res.json();
     },
     onSuccess: () => {
@@ -328,7 +332,10 @@ export default function CertificateTemplatesPage() {
   // Update an existing template
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: TemplateFormValues }) => {
-      const res = await apiRequest("PUT", `/api/certificate-templates/${id}`, data);
+      const res = await apiRequest(`/api/certificate-templates/${id}`, {
+        method: "PUT",
+        data,
+      });
       return res.json();
     },
     onSuccess: () => {
@@ -352,7 +359,9 @@ export default function CertificateTemplatesPage() {
   // Delete a template
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      await apiRequest("DELETE", `/api/certificate-templates/${id}`);
+      await apiRequest(`/api/certificate-templates/${id}`, {
+        method: "DELETE",
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/certificate-templates"] });
@@ -373,7 +382,9 @@ export default function CertificateTemplatesPage() {
   // Set a template as default
   const setDefaultMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await apiRequest("PUT", `/api/certificate-templates/${id}/set-default`, {});
+      const res = await apiRequest(`/api/certificate-templates/${id}/set-default`, {
+        method: "PUT",
+      });
       return res.json();
     },
     onSuccess: () => {
@@ -423,7 +434,7 @@ export default function CertificateTemplatesPage() {
   const filterTemplates = (templates: CertificateTemplate[]) => {
     if (!user) return [];
     
-    if (user.role === 'admin') {
+    if (user.role.includes(UserRole.ADMIN)) {
       return templates;
     } else {
       return templates.filter(template => template.createdById === user.id);
@@ -436,7 +447,7 @@ export default function CertificateTemplatesPage() {
   
   // Filter templates user can see based on role
   const myTemplates = nonDefaultTemplates.filter(t => t.createdById === user?.id);
-  const otherTemplates = user?.role === 'admin' 
+  const otherTemplates = user?.role.includes(UserRole.ADMIN) 
     ? nonDefaultTemplates.filter(t => t.createdById !== user?.id)
     : [];
 
@@ -513,7 +524,7 @@ export default function CertificateTemplatesPage() {
             <TabsList className="grid grid-cols-3 mb-6">
               <TabsTrigger value="default">Default Template</TabsTrigger>
               <TabsTrigger value="my">My Templates</TabsTrigger>
-              {user?.role === 'admin' && (
+              {user?.role.includes(UserRole.ADMIN) && (
                 <TabsTrigger value="all">All Templates</TabsTrigger>
               )}
             </TabsList>
@@ -711,7 +722,7 @@ export default function CertificateTemplatesPage() {
               )}
             </TabsContent>
             
-            {user?.role === 'admin' && (
+            {user?.role.includes(UserRole.ADMIN) && (
               <TabsContent value="all" className="space-y-4">
                 {otherTemplates.length > 0 ? (
                   otherTemplates.map(template => (

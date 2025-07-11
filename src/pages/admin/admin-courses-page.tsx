@@ -133,7 +133,7 @@
 // //       return res;
 // //     },
 // //     onError: (error: any) => {
-// //       const errorMessage = error.response?.data?.message || error.message;
+// //       const errorMessage = error.message || error.message;
 // //       toast({
 // //         title: "Error fetching courses",
 // //         description: `Failed to load courses: ${errorMessage}`,
@@ -155,7 +155,7 @@
 // //         });
 // //         return res;
 // //       } catch (error: any) {
-// //         const errorMessage = error.response?.data?.message || error.message;
+// //         const errorMessage = error.message || error.message;
 // //         toast({
 // //           title: "Error fetching categories",
 // //           description: `Failed to load categories: ${errorMessage}`,
@@ -166,8 +166,6 @@
 // //     },
 // //   });
 // //   const categories: Category[] = categoriesResponse?.data || [];
-
-
 
 // //    // Handle course editing
 // //   const handleEditClick = (course: Course) => {
@@ -197,7 +195,7 @@
 // //         });
 // //         return res;
 // //       } catch (error: any) {
-// //         const errorMessage = error.response?.data?.message || error.message;
+// //         const errorMessage = error.message || error.message;
 // //         toast({
 // //           title: "Error fetching instructors",
 // //           description: `Failed to load instructors: ${errorMessage}`,
@@ -236,7 +234,7 @@
 // //       queryClient.invalidateQueries({ queryKey: ["/api/courses"] });
 // //     },
 // //     onError: (error: any) => {
-// //       const errorMessage = error.response?.data?.message || error.message;
+// //       const errorMessage = error.message || error.message;
 // //       toast({
 // //         title: "Error",
 // //         description: `Failed to update course visibility: ${errorMessage}`,
@@ -263,7 +261,7 @@
 // //       queryClient.invalidateQueries({ queryKey: ["/api/courses"] });
 // //     },
 // //     onError: (error: any) => {
-// //       const errorMessage = error.response?.data?.message || error.message;
+// //       const errorMessage = error.message || error.message;
 // //       toast({
 // //         title: "Error",
 // //         description: `Failed to delete course: ${errorMessage}`,
@@ -696,7 +694,6 @@
 // //   );
 // // }
 
-
 // import { useState, useMemo } from "react";
 // import { useQuery, useMutation } from "@tanstack/react-query";
 // import { Link } from "wouter";
@@ -832,7 +829,7 @@
 //         });
 //         return res;
 //       } catch (error: any) {
-//         const errorMessage = error.response?.data?.message || error.message;
+//         const errorMessage = error.message || error.message;
 //         toast({
 //           title: "Error fetching courses",
 //           description: `Failed to load courses: ${errorMessage}`,
@@ -858,7 +855,7 @@
 //         });
 //         return res;
 //       } catch (error: any) {
-//         const errorMessage = error.response?.data?.message || error.message;
+//         const errorMessage = error.message || error.message;
 //         toast({
 //           title: "Error fetching categories",
 //           description: `Failed to load categories: ${errorMessage}`,
@@ -883,7 +880,7 @@
 //         });
 //         return res;
 //       } catch (error: any) {
-//         const errorMessage = error.response?.data?.message || error.message;
+//         const errorMessage = error.message || error.message;
 //         toast({
 //           title: "Error fetching instructors",
 //           description: `Failed to load instructors: ${errorMessage}`,
@@ -922,7 +919,7 @@
 //       queryClient.invalidateQueries({ queryKey: ["/api/courses"] });
 //     },
 //     onError: (error: any) => {
-//       const errorMessage = error.response?.data?.message || error.message;
+//       const errorMessage = error.message || error.message;
 //       toast({
 //         title: "Error",
 //         description: `Failed to update course visibility: ${errorMessage}`,
@@ -949,7 +946,7 @@
 //       queryClient.invalidateQueries({ queryKey: ["/api/courses"] });
 //     },
 //     onError: (error: any) => {
-//       const errorMessage = error.response?.data?.message || error.message;
+//       const errorMessage = error.message || error.message;
 //       toast({
 //         title: "Error",
 //         description: `Failed to delete course: ${errorMessage}`,
@@ -1412,7 +1409,6 @@
 //   );
 // }
 
-
 import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
@@ -1546,7 +1542,7 @@ export default function AdminCoursesPage() {
         });
         return res;
       } catch (error: any) {
-        const errorMessage = error.response?.data?.message || error.message;
+        const errorMessage = error.message || error.message;
         toast({
           title: "Error fetching courses",
           description: `Failed to load courses: ${errorMessage}`,
@@ -1572,7 +1568,7 @@ export default function AdminCoursesPage() {
         });
         return res;
       } catch (error: any) {
-        const errorMessage = error.response?.data?.message || error.message;
+        const errorMessage = error.message || error.message;
         toast({
           title: "Error fetching categories",
           description: `Failed to load categories: ${errorMessage}`,
@@ -1585,28 +1581,27 @@ export default function AdminCoursesPage() {
   const categories: Category[] = categoriesResponse?.data || [];
 
   // Fetch instructors
-  const { data: instructorsResponse, isLoading: isLoadingInstructors } = useQuery<
-    ApiResponse<Instructor[]>
-  >({
-    queryKey: ["/api/instructors"],
-    queryFn: async () => {
-      try {
-        const res = await apiRequest("/api/instructors", {
-          method: "GET",
-          requireAuth: true,
-        });
-        return res;
-      } catch (error: any) {
-        const errorMessage = error.response?.data?.message || error.message;
-        toast({
-          title: "Error fetching instructors",
-          description: `Failed to load instructors: ${errorMessage}`,
-          variant: "destructive",
-        });
-        throw error;
-      }
-    },
-  });
+  const { data: instructorsResponse, isLoading: isLoadingInstructors } =
+    useQuery<ApiResponse<Instructor[]>>({
+      queryKey: ["/api/instructors"],
+      queryFn: async () => {
+        try {
+          const res = await apiRequest("/api/instructors", {
+            method: "GET",
+            requireAuth: true,
+          });
+          return res;
+        } catch (error: any) {
+          const errorMessage = error.message || error.message;
+          toast({
+            title: "Error fetching instructors",
+            description: `Failed to load instructors: ${errorMessage}`,
+            variant: "destructive",
+          });
+          throw error;
+        }
+      },
+    });
   const instructors: Instructor[] = instructorsResponse?.data || [];
 
   // Toggle course visibility
@@ -1618,14 +1613,11 @@ export default function AdminCoursesPage() {
       courseId: number;
       visible: boolean;
     }) => {
-      const res = await apiRequest(
-        `/api/courses/${courseId}/visibility`,
-        {
-          method: "PUT",
-          data: { visible },
-          requireAuth: true,
-        }
-      );
+      const res = await apiRequest(`/api/courses/${courseId}/visibility`, {
+        method: "PUT",
+        data: { visible },
+        requireAuth: true,
+      });
       return res;
     },
     onSuccess: () => {
@@ -1636,7 +1628,7 @@ export default function AdminCoursesPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/courses"] });
     },
     onError: (error: any) => {
-      const errorMessage = error.response?.data?.message || error.message;
+      const errorMessage = error.message || error.message;
       toast({
         title: "Error",
         description: `Failed to update course visibility: ${errorMessage}`,
@@ -1663,7 +1655,7 @@ export default function AdminCoursesPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/courses"] });
     },
     onError: (error: any) => {
-      const errorMessage = error.response?.data?.message || error.message;
+      const errorMessage = error.message || error.message;
       toast({
         title: "Error",
         description: `Failed to delete course: ${errorMessage}`,
@@ -1679,7 +1671,9 @@ export default function AdminCoursesPage() {
         searchQuery === "" ||
         course.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (course.short_name &&
-          course.short_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+          course.short_name
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase())) ||
         (course.description &&
           course.description.toLowerCase().includes(searchQuery.toLowerCase()));
 
@@ -1699,15 +1693,27 @@ export default function AdminCoursesPage() {
           (course.visible === false || course.visible === null));
 
       return (
-        matchesSearch && matchesCategory && matchesInstructor && matchesVisibility
+        matchesSearch &&
+        matchesCategory &&
+        matchesInstructor &&
+        matchesVisibility
       );
     });
-  }, [courses, searchQuery, categoryFilter, instructorFilter, visibilityFilter]);
+  }, [
+    courses,
+    searchQuery,
+    categoryFilter,
+    instructorFilter,
+    visibilityFilter,
+  ]);
 
   // Pagination
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentCourses = filteredCourses.slice(indexOfFirstItem, indexOfLastItem);
+  const currentCourses = filteredCourses.slice(
+    indexOfFirstItem,
+    indexOfLastItem
+  );
   const totalPages = Math.ceil(filteredCourses.length / itemsPerPage);
 
   // Handle visibility toggle
@@ -1772,7 +1778,8 @@ export default function AdminCoursesPage() {
     return undefined;
   };
 
-  const isLoading = isLoadingCourses || isLoadingCategories || isLoadingInstructors;
+  const isLoading =
+    isLoadingCourses || isLoadingCategories || isLoadingInstructors;
 
   return (
     <>
@@ -1947,7 +1954,10 @@ export default function AdminCoursesPage() {
                                       alt={getInstructorName(course)}
                                     />
                                     <AvatarFallback className="text-xs">
-                                      {getInstructorName(course).substring(0, 2)}
+                                      {getInstructorName(course).substring(
+                                        0,
+                                        2
+                                      )}
                                     </AvatarFallback>
                                   </Avatar>
                                   <span>{getInstructorName(course)}</span>
@@ -1995,7 +2005,9 @@ export default function AdminCoursesPage() {
                                   )}
                                 </Button>
                                 {/* Fixed: Navigate to edit page with course ID */}
-                                <Link href={`/instructor/courses/${course.id}/edit`}>
+                                <Link
+                                  href={`/instructor/courses/${course.id}/edit`}
+                                >
                                   <Button
                                     variant="outline"
                                     size="icon"
@@ -2086,9 +2098,7 @@ export default function AdminCoursesPage() {
               onClick={confirmDelete}
               disabled={deleteCourseMutation.isPending}
             >
-              {deleteCourseMutation.isPending
-                ? "Deleting..."
-                : "Delete Course"}
+              {deleteCourseMutation.isPending ? "Deleting..." : "Delete Course"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2096,4 +2106,3 @@ export default function AdminCoursesPage() {
     </>
   );
 }
-

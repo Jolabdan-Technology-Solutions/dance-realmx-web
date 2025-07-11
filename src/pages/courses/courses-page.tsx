@@ -387,7 +387,7 @@ export default function CoursesPage() {
   return (
     <div className="w-full px-4 py-12">
       {/* Hero Banner with Image */}
-      <div className="relative rounded-xl overflow-hidden mb-12 max-w-[95%] mx-auto">
+      <div className="relative  inset-0 bg-black/60 rounded-xl overflow-hidden mb-12 max-w-[95%] mx-auto">
         <img
           src={bannerImage || "/placeholder.svg"}
           alt="Dance Education Courses"

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Link, useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,37 +20,54 @@ import {
   Edit,
   Settings,
   User,
+  Camera,
+  Upload,
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { CachedAvatar } from "@/components/ui/cached-avatar";
+import { useToast } from "@/hooks/use-toast";
 
 interface UserProfile {
   id: number;
+  email: string;
+  username: string;
   first_name: string;
   last_name: string;
-  email: string;
-  bio?: string;
-  phone_number?: string;
-  city?: string;
-  state?: string;
-  zip_code?: string;
-  location?: string;
-  service_category?: string[];
-  dance_style?: string[];
-  years_experience?: number;
-  services?: string[];
-  availability?: Array<{
-    start_date: string;
-    end_date: string;
-    time_slots: string[];
-  }>;
-  portfolio?: string;
-  pricing?: number;
-  is_professional?: boolean;
-  is_verified?: boolean;
   profile_image_url?: string;
+  role: string[];
+  is_active: boolean;
+  subscription_tier: string;
   created_at: string;
   updated_at: string;
+  profile?: {
+    id: number;
+    user_id: number;
+    bio?: string;
+    phone_number?: string;
+    address?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    zip_code?: string;
+    is_professional?: boolean;
+    is_verified?: boolean;
+    service_category?: string[];
+    dance_style?: string[];
+    location?: string;
+    travel_distance?: number;
+    price_min?: number;
+    price_max?: number;
+    session_duration?: number;
+    years_experience?: number;
+    services?: string[];
+    availability?: Array<{
+      start_date: string;
+      end_date: string;
+      time_slots: string[];
+    }>;
+    portfolio?: string;
+    pricing?: number;
+  };
 }
 
 export default function ProfilePage() {
@@ -59,6 +76,10 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -70,7 +91,7 @@ export default function ProfilePage() {
       try {
         setLoading(true);
         const result = await apiRequest(
-          `https://api.livetestdomain.com/api/profiles/${user.id}`,
+          `https://api.livetestdomain.com/api/me`,
           {
             method: "GET",
             requireAuth: true,
@@ -83,18 +104,14 @@ export default function ProfilePage() {
         if (user) {
           setProfile({
             id: user.id,
+            email: user.email || "",
+            username: user.username || "",
             first_name: user.first_name || "",
             last_name: user.last_name || "",
-            email: user.email || "",
-            bio: user.bio || "",
-            phone_number: user.phone_number || "",
-            city: user.city || "",
-            state: user.state || "",
-            zip_code: user.zip_code || "",
-            location: user.location || "",
             profile_image_url: user.profile_image_url || "",
-            is_professional: user.is_professional || false,
-            is_verified: user.is_verified || false,
+            role: user.role || [],
+            is_active: user.is_active || false,
+            subscription_tier: user.subscription_tier || "FREE",
             created_at: user.created_at || new Date().toISOString(),
             updated_at: user.updated_at || new Date().toISOString(),
           });
@@ -106,6 +123,75 @@ export default function ProfilePage() {
 
     fetchProfile();
   }, [user]);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      setUploading(true);
+      setUploadError(null);
+
+      // Get auth token for the request
+      const token = localStorage.getItem("access_token");
+
+      const response = await fetch(
+        `https://api.livetestdomain.com/api/profiles/upload`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            // Don't set Content-Type - browser will set it with boundary for multipart/form-data
+          },
+          body: formData,
+          // requireAuth: true,
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Upload failed:", response.status, errorText);
+        throw new Error(
+          `Upload failed: ${response.status} ${response.statusText}`
+        );
+      }
+
+      const result = await response.json();
+      console.log("Upload response:", result);
+
+      // Handle the response structure - check for image URL in the result
+      const imageUrl =
+        result?.image?.url || result?.profile_image_url || result?.image_url;
+
+      if (imageUrl) {
+        setProfile((prev) =>
+          prev ? { ...prev, profile_image_url: imageUrl } : null
+        );
+        toast({
+          title: "Profile image updated",
+          description: "Your profile image has been updated.",
+        });
+      } else {
+        toast({
+          title: "Upload successful",
+          description: "Image uploaded but URL not found in response.",
+        });
+      }
+    } catch (err: any) {
+      setUploadError("Failed to upload image. Please try again.");
+      console.error("Error uploading image:", err);
+      toast({
+        title: "Upload failed",
+        description: "Failed to upload image. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -225,9 +311,40 @@ export default function ProfilePage() {
                   </span>
                 )}
               </div>
-              {profile?.is_verified && (
-                <div className="absolute -bottom-2 -right-2 bg-green-500 rounded-full p-2">
+
+              {/* Upload Button */}
+              <Button
+                size="sm"
+                variant="secondary"
+                className="absolute -bottom-2 -right-2 bg-white text-gray-700 hover:bg-gray-100 rounded-full p-2 h-8 w-8"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+              >
+                {uploading ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-700"></div>
+                ) : (
+                  <Camera className="h-4 w-4" />
+                )}
+              </Button>
+
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+
+              {profile?.profile?.is_verified && (
+                <div className="absolute -bottom-2 -left-2 bg-green-500 rounded-full p-2">
                   <Award className="h-4 w-4 text-white" />
+                </div>
+              )}
+
+              {uploadError && (
+                <div className="absolute -top-12 left-0 right-0 bg-red-500 text-white text-xs p-2 rounded text-center">
+                  {uploadError}
                 </div>
               )}
             </div>
@@ -243,19 +360,23 @@ export default function ProfilePage() {
                     <div className="flex items-center gap-1">
                       <User className="h-4 w-4" />
                       <span>
-                        {profile?.is_professional ? "Professional" : "User"}
+                        {profile?.profile?.is_professional
+                          ? "Professional"
+                          : "User"}
                       </span>
                     </div>
-                    {profile?.location && (
+                    {profile?.profile?.location && (
                       <div className="flex items-center gap-1">
                         <MapPin className="h-4 w-4" />
-                        <span>{profile.location}</span>
+                        <span>{profile.profile.location}</span>
                       </div>
                     )}
-                    {profile?.years_experience && (
+                    {profile?.profile?.years_experience && (
                       <div className="flex items-center gap-1">
                         <Award className="h-4 w-4" />
-                        <span>{profile.years_experience} years experience</span>
+                        <span>
+                          {profile.profile.years_experience} years experience
+                        </span>
                       </div>
                     )}
                   </div>
@@ -271,15 +392,6 @@ export default function ProfilePage() {
                   >
                     <Edit className="h-4 w-4 mr-2" />
                     Edit Profile
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigate("/settings")}
-                    className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-                  >
-                    <Settings className="h-4 w-4 mr-2" />
-                    Settings
                   </Button>
                 </div>
               </div>
@@ -303,13 +415,14 @@ export default function ProfilePage() {
               </CardHeader>
               <CardContent>
                 <p className="text-gray-700 leading-relaxed">
-                  {profile?.bio || "No bio available. Add one to your profile!"}
+                  {profile?.profile?.bio ||
+                    "No bio available. Add one to your profile!"}
                 </p>
               </CardContent>
             </Card>
 
             {/* Professional Information - Only show if user is a professional */}
-            {profile?.is_professional && (
+            {profile?.profile?.is_professional && (
               <>
                 {/* Services & Specialties */}
                 <Card>
@@ -317,16 +430,16 @@ export default function ProfilePage() {
                     <CardTitle>Services & Specialties</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {profile.service_category &&
-                      profile.service_category.length > 0 && (
+                    {profile.profile.service_category &&
+                      profile.profile.service_category.length > 0 && (
                         <>
                           <div>
                             <h4 className="font-semibold text-gray-800 mb-2">
                               Professional Categories
                             </h4>
                             <div className="flex flex-wrap gap-2">
-                              {profile.service_category.map(
-                                (category, index) => (
+                              {profile.profile.service_category.map(
+                                (category: string, index: number) => (
                                   <Badge
                                     key={index}
                                     variant="secondary"
@@ -342,100 +455,113 @@ export default function ProfilePage() {
                         </>
                       )}
 
-                    {profile.dance_style && profile.dance_style.length > 0 && (
-                      <>
+                    {profile.profile.dance_style &&
+                      profile.profile.dance_style.length > 0 && (
+                        <>
+                          <div>
+                            <h4 className="font-semibold text-gray-800 mb-2">
+                              Dance Styles
+                            </h4>
+                            <div className="flex flex-wrap gap-2">
+                              {profile.profile.dance_style.map(
+                                (style: string, index: number) => (
+                                  <Badge
+                                    key={index}
+                                    variant="outline"
+                                    className="border-purple-200 text-purple-700"
+                                  >
+                                    {style}
+                                  </Badge>
+                                )
+                              )}
+                            </div>
+                          </div>
+                          <Separator />
+                        </>
+                      )}
+
+                    {profile.profile.services &&
+                      profile.profile.services.length > 0 && (
                         <div>
                           <h4 className="font-semibold text-gray-800 mb-2">
-                            Dance Styles
+                            Services Offered
                           </h4>
-                          <div className="flex flex-wrap gap-2">
-                            {profile.dance_style.map((style, index) => (
-                              <Badge
-                                key={index}
-                                variant="outline"
-                                className="border-purple-200 text-purple-700"
-                              >
-                                {style}
-                              </Badge>
-                            ))}
+                          <div className="grid grid-cols-2 gap-2">
+                            {profile.profile.services.map(
+                              (service: string, index: number) => (
+                                <div
+                                  key={index}
+                                  className="flex items-center gap-2 text-sm text-gray-600"
+                                >
+                                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                  {service}
+                                </div>
+                              )
+                            )}
                           </div>
                         </div>
-                        <Separator />
-                      </>
-                    )}
-
-                    {profile.services && profile.services.length > 0 && (
-                      <div>
-                        <h4 className="font-semibold text-gray-800 mb-2">
-                          Services Offered
-                        </h4>
-                        <div className="grid grid-cols-2 gap-2">
-                          {profile.services.map((service, index) => (
-                            <div
-                              key={index}
-                              className="flex items-center gap-2 text-sm text-gray-600"
-                            >
-                              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                              {service}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                      )}
                   </CardContent>
                 </Card>
 
                 {/* Availability */}
-                {profile.availability && profile.availability.length > 0 && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Calendar className="h-5 w-5" />
-                        Availability
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-2">
-                          <Badge
-                            variant="outline"
-                            className="border-green-200 text-green-700"
-                          >
-                            {getAvailabilityPatternName(profile.availability)}
-                          </Badge>
-                        </div>
-
-                        <div className="space-y-3">
-                          {profile.availability.map((range, index) => (
-                            <div
-                              key={index}
-                              className="bg-gray-50 rounded-lg p-4"
+                {profile.profile.availability &&
+                  profile.profile.availability.length > 0 && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Calendar className="h-5 w-5" />
+                          Availability
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-2">
+                            <Badge
+                              variant="outline"
+                              className="border-green-200 text-green-700"
                             >
-                              <div className="font-medium text-gray-800 mb-2">
-                                {formatDateRange(
-                                  range.start_date,
-                                  range.end_date
-                                )}
-                              </div>
-                              <div className="flex flex-wrap gap-2">
-                                {range.time_slots.map((slot, slotIndex) => (
-                                  <Badge
-                                    key={slotIndex}
-                                    variant="outline"
-                                    className="text-sm"
-                                  >
-                                    <Clock className="h-3 w-3 mr-1" />
-                                    {slot}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </div>
-                          ))}
+                              {getAvailabilityPatternName(
+                                profile.profile.availability
+                              )}
+                            </Badge>
+                          </div>
+
+                          <div className="space-y-3">
+                            {profile.profile.availability.map(
+                              (range: any, index: number) => (
+                                <div
+                                  key={index}
+                                  className="bg-gray-50 rounded-lg p-4"
+                                >
+                                  <div className="font-medium text-gray-800 mb-2">
+                                    {formatDateRange(
+                                      range.start_date,
+                                      range.end_date
+                                    )}
+                                  </div>
+                                  <div className="flex flex-wrap gap-2">
+                                    {range.time_slots.map(
+                                      (slot: string, slotIndex: number) => (
+                                        <Badge
+                                          key={slotIndex}
+                                          variant="outline"
+                                          className="text-sm"
+                                        >
+                                          <Clock className="h-3 w-3 mr-1" />
+                                          {slot}
+                                        </Badge>
+                                      )
+                                    )}
+                                  </div>
+                                </div>
+                              )
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
+                      </CardContent>
+                    </Card>
+                  )}
               </>
             )}
           </div>
@@ -443,7 +569,7 @@ export default function ProfilePage() {
           {/* Right Column - Sidebar */}
           <div className="space-y-6">
             {/* Pricing - Only show if user is a professional */}
-            {profile?.is_professional && profile?.pricing && (
+            {profile?.profile?.is_professional && profile?.profile?.pricing && (
               <Card>
                 <CardHeader>
                   <CardTitle>Pricing</CardTitle>
@@ -451,7 +577,7 @@ export default function ProfilePage() {
                 <CardContent>
                   <div className="text-center">
                     <div className="text-3xl font-bold text-green-600 mb-2">
-                      ${profile.pricing.toLocaleString()}
+                      ${profile.profile.pricing.toLocaleString()}
                     </div>
                     <p className="text-gray-600">per session</p>
                   </div>
@@ -465,21 +591,21 @@ export default function ProfilePage() {
                 <CardTitle>Contact Information</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {profile?.phone_number && (
+                {profile?.profile?.phone_number && (
                   <div className="flex items-center gap-3 text-gray-700">
                     <Phone className="h-4 w-4 text-gray-500" />
-                    <span>{profile.phone_number}</span>
+                    <span>{profile.profile.phone_number}</span>
                   </div>
                 )}
                 <div className="flex items-center gap-3 text-gray-700">
                   <Mail className="h-4 w-4 text-gray-500" />
                   <span>{profile?.email}</span>
                 </div>
-                {profile?.portfolio && (
+                {profile?.profile?.portfolio && (
                   <div className="flex items-center gap-3 text-gray-700">
                     <Globe className="h-4 w-4 text-gray-500" />
                     <a
-                      href={profile.portfolio}
+                      href={profile.profile.portfolio}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-600 hover:underline"

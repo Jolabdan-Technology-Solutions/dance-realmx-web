@@ -328,14 +328,14 @@ export default function CurriculumPageImproved() {
   const activeFilters = getActiveFilters()
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className=" mx-auto px-4 py-8 w-11/12 mx-auto">
       <div className="relative rounded-xl overflow-hidden mb-12 w-full mx-auto">
         <img
           src={"/images/moments.png"}
           alt="Dance Education Courses"
           className="w-full h-80 object-cover"
         />
-        <div className="absolute inset-0 bg-black/40 flex flex-col justify-center items-center text-center px-4">
+        <div className="absolute inset-0 bg-black/30 flex flex-col justify-center items-center text-center px-4">
           <h1 className="text-4xl md:text-5xl font-bold mb-4 text-white">
             Explore Our Curriculum
           </h1>

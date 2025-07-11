@@ -557,11 +557,11 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     } catch (error: any) {
       console.log(error);
       console.error("Error submitting booking:", error);
-      setSubmitError(error?.response?.data?.message);
+      setSubmitError(error?.message);
 
       toast({
         title: "Error",
-        description: error?.response?.data?.message,
+        description: error?.message,
         variant: "destructive",
       });
     } finally {
