@@ -785,7 +785,10 @@ export default function CourseDetailPage() {
           <div className="bg-card p-6 rounded-lg shadow-sm">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-semibold">Course Curriculum</h2>
-              <ModuleDialog courseId={courseId} />
+              <div className="flex gap-2">
+                <AddQuizDialog modules={modules || []} />
+                <ModuleDialog courseId={courseId} />
+              </div>
             </div>
 
             {modulesLoading ? (
@@ -3900,6 +3903,376 @@ function LessonQuizDialog({
                 disabled={createLessonQuizMutation.isPending}
               >
                 {createLessonQuizMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  "Create Quiz"
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function AddQuizDialog({ modules }: { modules: Module[] }) {
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [selectedModuleId, setSelectedModuleId] = useState<number | null>(null);
+  const [selectedLessonId, setSelectedLessonId] = useState<number | null>(null);
+  const [questions, setQuestions] = useState<
+    {
+      text: string;
+      options: { text: string; is_correct: boolean }[];
+      answer: number;
+      order: number;
+    }[]
+  >([]);
+
+  // Form for quiz creation
+  const form = useForm<{
+    title: string;
+  }>({
+    resolver: zodResolver(
+      z.object({
+        title: z.string().min(3, "Title must be at least 3 characters"),
+      })
+    ),
+    defaultValues: {
+      title: "",
+    },
+  });
+
+  // Create quiz mutation
+  const createQuizMutation = useMutation({
+    mutationFn: async (values: {
+      title: string;
+      questions: {
+        text: string;
+        options: { text: string; is_correct: boolean }[];
+        answer: number;
+        order: number;
+      }[];
+    }) => {
+      if (!selectedLessonId) throw new Error("No lesson selected");
+      const quizData = {
+        title: values.title,
+        questions: values.questions,
+      };
+      const res = await apiRequest(`/api/lessons/${selectedLessonId}/quizzes`, {
+        method: "POST",
+        data: quizData,
+      });
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/quizzes"] });
+      form.reset();
+      setQuestions([]);
+      setSelectedModuleId(null);
+      setSelectedLessonId(null);
+      toast({
+        title: "Quiz Created",
+        description: "Your quiz has been created successfully.",
+      });
+      setOpen(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error Creating Quiz",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Add a new question
+  const addQuestion = () => {
+    setQuestions([
+      ...questions,
+      {
+        text: "",
+        options: [
+          { text: "", is_correct: false },
+          { text: "", is_correct: false },
+          { text: "", is_correct: false },
+          { text: "", is_correct: false },
+        ],
+        answer: 0,
+        order: questions.length,
+      },
+    ]);
+  };
+
+  // Update a question
+  const updateQuestion = (index: number, field: string, value: any) => {
+    const newQuestions = [...questions];
+    newQuestions[index] = { ...newQuestions[index], [field]: value };
+    setQuestions(newQuestions);
+  };
+
+  // Update an option in a question
+  const updateOption = (
+    questionIndex: number,
+    optionIndex: number,
+    field: string,
+    value: any
+  ) => {
+    const newQuestions = [...questions];
+    const newOptions = [...newQuestions[questionIndex].options];
+    newOptions[optionIndex] = { ...newOptions[optionIndex], [field]: value };
+    // If this option is marked as correct, unmark others
+    if (field === "is_correct" && value === true) {
+      newOptions.forEach((option, idx) => {
+        if (idx !== optionIndex) option.is_correct = false;
+      });
+      newQuestions[questionIndex].answer = optionIndex;
+    }
+    newQuestions[questionIndex].options = newOptions;
+    setQuestions(newQuestions);
+  };
+
+  // Remove a question
+  const removeQuestion = (index: number) => {
+    const newQuestions = [...questions];
+    newQuestions.splice(index, 1);
+    setQuestions(newQuestions);
+  };
+
+  // Form submission handler
+  const onSubmit = (values: { title: string }) => {
+    if (!selectedLessonId) {
+      toast({
+        title: "No Lesson Selected",
+        description: "Please select a module and lesson.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (questions.length === 0) {
+      toast({
+        title: "No Questions Added",
+        description: "Please add at least one question to the quiz.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const invalidQuestions = questions.filter(
+      (q) =>
+        !q.text ||
+        !q.options.some((opt) => opt.is_correct) ||
+        q.options.some((opt) => !opt.text)
+    );
+    if (invalidQuestions.length > 0) {
+      toast({
+        title: "Invalid Questions",
+        description:
+          "Please ensure all questions have content, all options have text, and exactly one correct answer.",
+        variant: "destructive",
+      });
+      return;
+    }
+    createQuizMutation.mutate({
+      title: values.title,
+      questions,
+    });
+  };
+
+  // Lessons for selected module
+  const lessons = modules.find((m) => m.id === selectedModuleId)?.lessons || [];
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline">
+          <PenTool className="mr-2 h-4 w-4" />
+          Add Quiz
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
+        <DialogHeader>
+          <DialogTitle>Add Quiz to Lesson</DialogTitle>
+          <DialogDescription>
+            Select a module and lesson, then create a quiz for that lesson.
+          </DialogDescription>
+        </DialogHeader>
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-6 py-2"
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormItem>
+                <FormLabel>Module</FormLabel>
+                <Select
+                  value={selectedModuleId ? selectedModuleId.toString() : ""}
+                  onValueChange={(val) => {
+                    setSelectedModuleId(val ? parseInt(val) : null);
+                    setSelectedLessonId(null);
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a module" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {modules.map((module) => (
+                      <SelectItem key={module.id} value={module.id.toString()}>
+                        {module.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormItem>
+              <FormItem>
+                <FormLabel>Lesson</FormLabel>
+                <Select
+                  value={selectedLessonId ? selectedLessonId.toString() : ""}
+                  onValueChange={(val) =>
+                    setSelectedLessonId(val ? parseInt(val) : null)
+                  }
+                  disabled={!selectedModuleId}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a lesson" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {lessons.length === 0 ? (
+                      <SelectItem value="none" disabled>
+                        No lessons found in this module. Please add lessons
+                        first.
+                      </SelectItem>
+                    ) : (
+                      lessons.map((lesson) => (
+                        <SelectItem
+                          key={lesson.id}
+                          value={lesson.id.toString()}
+                        >
+                          {lesson.title}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </FormItem>
+            </div>
+            <FormField
+              control={form.control}
+              name="title"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Quiz Title</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g., Lesson Assessment" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-medium">Questions</h3>
+                <Button type="button" variant="outline" onClick={addQuestion}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Question
+                </Button>
+              </div>
+              {questions.length === 0 ? (
+                <div className="text-center py-4 border-2 border-dashed rounded-lg">
+                  <p className="text-muted-foreground">
+                    No questions added yet. Click "Add Question" to begin.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {questions.map((question, qIndex) => (
+                    <div
+                      key={qIndex}
+                      className="border rounded-lg p-4 space-y-4"
+                    >
+                      <div className="flex justify-between items-center">
+                        <h4 className="font-medium">Question {qIndex + 1}</h4>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeQuestion(qIndex)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">
+                            Question
+                          </label>
+                          <Textarea
+                            value={question.text}
+                            onChange={(e) =>
+                              updateQuestion(qIndex, "text", e.target.value)
+                            }
+                            placeholder="Enter your question here"
+                          />
+                        </div>
+                        <div className="space-y-3">
+                          <label className="text-sm font-medium">Options</label>
+                          {question.options.map((option, oIndex) => (
+                            <div
+                              key={oIndex}
+                              className="flex gap-2 items-center"
+                            >
+                              <Input
+                                value={option.text}
+                                onChange={(e) =>
+                                  updateOption(
+                                    qIndex,
+                                    oIndex,
+                                    "text",
+                                    e.target.value
+                                  )
+                                }
+                                placeholder={`Option ${oIndex + 1}`}
+                              />
+                              <div className="flex items-center space-x-2">
+                                <input
+                                  type="radio"
+                                  name={`correct-${qIndex}`}
+                                  checked={option.is_correct}
+                                  onChange={() =>
+                                    updateOption(
+                                      qIndex,
+                                      oIndex,
+                                      "is_correct",
+                                      true
+                                    )
+                                  }
+                                  className="h-4 w-4"
+                                />
+                                <label className="text-sm">Correct</label>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <DialogFooter className="pt-4">
+              <DialogClose asChild>
+                <Button variant="outline" type="button">
+                  Cancel
+                </Button>
+              </DialogClose>
+              <Button
+                type="submit"
+                disabled={createQuizMutation.isPending || !selectedLessonId}
+              >
+                {createQuizMutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Creating...
