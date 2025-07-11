@@ -12,6 +12,7 @@ import {
   HttpStatus,
   Put,
   Logger,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { SubscriptionsService } from './subscriptions.service';
@@ -29,7 +30,8 @@ import { Feature } from '../auth/enums/feature.enum';
 
 interface RequestWithUser extends Request {
   user: {
-    sub: number;
+    id?: number;
+    sub: number | string;
     email: string;
     role: string;
   };
@@ -59,7 +61,23 @@ export class SubscriptionsController {
   @UseGuards(JwtAuthGuard)
   findByUser(@Req() req: RequestWithUser) {
     console.log('findByUser', req.user);
-    return this.subscriptionsService.findByUserId(req.user.sub);
+
+    // Handle both id and sub fields for compatibility
+    const userId = req.user.id || req.user.sub;
+
+    if (!userId) {
+      throw new UnauthorizedException('User ID not found in token');
+    }
+
+    // Convert to number if it's a string
+    const numericUserId =
+      typeof userId === 'string' ? parseInt(userId, 10) : userId;
+
+    if (isNaN(numericUserId)) {
+      throw new UnauthorizedException('Invalid user ID in token');
+    }
+
+    return this.subscriptionsService.findByUserId(numericUserId);
   }
 
   @Get('course-stats')

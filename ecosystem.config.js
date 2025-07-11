@@ -3,7 +3,7 @@ module.exports = {
     {
       name: 'dance-realmx-api',
       script: 'dist/main.js',
-      instances: 2, // or 2 for two instances
+      instances: 1, // or 2 for two instances
       exec_mode: 'cluster',
       env: {
         NODE_ENV: 'production',

@@ -31,6 +31,10 @@ export class PrismaService
     return this.user;
   }
 
+  get profile() {
+    return this.profile;
+  }
+
   get course() {
     return this.course;
   }

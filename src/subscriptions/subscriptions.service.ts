@@ -7,7 +7,12 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
-import { Subscription, SubscriptionTier, UserRole } from '@prisma/client';
+import {
+  StripeAccountStatus,
+  Subscription,
+  SubscriptionTier,
+  UserRole,
+} from '@prisma/client';
 import { SubscriptionStatus } from './enums/subscription-status.enum';
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
@@ -149,28 +154,63 @@ export class SubscriptionsService {
       where: { stripe_session_id: stripeSessionId },
     });
 
-    const user = await this.prisma.user.findUnique({
-      where: { id: subscription.user_id },
-    });
-
     if (!subscription) {
       throw new Error('Subscription not found');
     }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: subscription.user_id },
+    });
 
     if (!user) {
       throw new Error('User not found');
     }
 
-    if (user.subscription_tier === 'free') {
-      await this.prisma.user.update({
-        where: { id: user.id },
-        data: { is_active: true },
-      });
-    } else {
-      await this.prisma.user.update({
-        where: { id: user.id },
-        data: { is_active: true },
-      });
+    // Handle different subscription statuses
+    switch (status) {
+      case SubscriptionStatus.ACTIVE:
+        // Subscription is active - update user status accordingly
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: {
+            is_active: true,
+            stripeAccountStatus: StripeAccountStatus.ACTIVE,
+          },
+        });
+        break;
+
+      case SubscriptionStatus.CANCELLED:
+        // Subscription was cancelled - keep user active but mark account as pending
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: {
+            is_active: true, // Keep user active for now
+            stripeAccountStatus: StripeAccountStatus.PENDING,
+          },
+        });
+        break;
+
+      case SubscriptionStatus.EXPIRED:
+        // Subscription expired - deactivate user and mark account as deauthorized
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: {
+            is_active: false,
+            stripeAccountStatus: StripeAccountStatus.DEAUTHORIZED,
+          },
+        });
+        break;
+
+      default:
+        // For any other status (like PENDING, FAILED), keep user in current state
+        // but mark account as pending
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: {
+            stripeAccountStatus: StripeAccountStatus.PENDING,
+          },
+        });
+        break;
     }
 
     // Then update using the subscription's id

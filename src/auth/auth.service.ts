@@ -44,7 +44,7 @@ export class AuthService {
   private readonly VERIFICATION_TOKEN_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours
   private readonly MAX_RESET_ATTEMPTS = 3;
   private readonly RATE_LIMIT_WINDOW = 60 * 60 * 1000; // 1 hour
-  private readonly ACCESS_TOKEN_EXPIRY = '1h';
+  private readonly ACCESS_TOKEN_EXPIRY = '1d';
   private readonly REFRESH_TOKEN_EXPIRY = '7d';
 
   constructor(
@@ -129,6 +129,12 @@ export class AuthService {
       if (!plan) {
         throw new BadRequestException('Invalid subscription plan');
       }
+
+      this.logger.log(
+        `Using plan: ${plan.name} (${plan.tier}) - ${plan.unlockedRoles}`,
+      );
+      this.logger.debug(`Plan details: ${JSON.stringify(plan)}`);
+
       const roles =
         plan.unlockedRoles && plan.unlockedRoles.length > 0
           ? plan.unlockedRoles
@@ -716,6 +722,8 @@ export class AuthService {
             },
           },
           courses: true,
+          profile: true,
+          // subscription: true,
         },
       });
 
@@ -744,6 +752,7 @@ export class AuthService {
       return {
         ...formattedUser,
         enrolled_courses: enrolledCourses,
+        profile: user.profile,
       };
     } catch (error) {
       this.logger.error(`Get profile error: ${error.message}`, error.stack);

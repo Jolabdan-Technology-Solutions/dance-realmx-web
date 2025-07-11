@@ -8,20 +8,38 @@ export class ProfilesService {
   constructor(private prisma: PrismaService) {}
 
   async findOne(userId: number) /*: any*/ {
-    return this.prisma.profile.findUnique({
-      where: { user_id: userId },
-    });
+    try {
+      const profile = await this.prisma.profile.findUnique({
+        where: { user_id: userId },
+      });
+
+      // If no profile exists, return null instead of throwing an error
+      return profile;
+    } catch (error) {
+      console.error('Error finding profile for user:', userId, error);
+      throw error;
+    }
   }
 
   async update(userId: number, data: any) /*: any*/ {
-    return this.prisma.profile.upsert({
-      where: { user_id: userId },
-      update: data,
-      create: {
-        ...data,
-        user_id: userId,
-      },
-    });
+    console.log('ProfilesService.update called with:', { userId, data });
+
+    try {
+      const result = await this.prisma.profile.upsert({
+        where: { user_id: userId },
+        update: data,
+        create: {
+          ...data,
+          user_id: userId,
+        },
+      });
+
+      console.log('Profile upsert result:', result);
+      return result;
+    } catch (error) {
+      console.error('Profile upsert error:', error);
+      throw error;
+    }
   }
 
   async becomeProfessional(userId: number, profileData: any) {
@@ -52,11 +70,11 @@ export class ProfilesService {
     // This will be replaced with a proper booking system later
     return this.prisma.booking.create({
       data: {
-        professional_id: parseInt(professionalId),
+        instructor_id: parseInt(professionalId),
         user_id: userId,
         status: 'PENDING',
-        start_time: new Date(),
-        end_time: new Date(Date.now() + 60 * 60 * 1000), // 1 hour from now
+        session_start: new Date(),
+        session_end: new Date(Date.now() + 60 * 60 * 1000), // 1 hour from now
       },
     });
   }
@@ -183,6 +201,45 @@ export class ProfilesService {
     });
   }
 
+  // Helper function to check if a professional is available on a specific date with specific time slots
+  private checkAvailabilityMatch(
+    availability: any[],
+    requestedDate: string,
+    requestedTimeSlots: string[],
+  ): boolean {
+    if (!availability || !Array.isArray(availability)) return false;
+
+    const requestedDateObj = new Date(requestedDate);
+    const requestedDateStr = requestedDateObj.toISOString().split('T')[0];
+
+    return availability.some((range: any) => {
+      const rangeStart = new Date(range.start_date);
+      const rangeEnd = new Date(range.end_date);
+      const rangeStartStr = rangeStart.toISOString().split('T')[0];
+      const rangeEndStr = rangeEnd.toISOString().split('T')[0];
+
+      // Check if the requested date falls within this availability range
+      const dateMatch =
+        requestedDateStr >= rangeStartStr && requestedDateStr <= rangeEndStr;
+
+      if (!dateMatch) return false;
+
+      // If no specific time slots are requested, just check date availability
+      if (!requestedTimeSlots || requestedTimeSlots.length === 0) {
+        return true;
+      }
+
+      // Check if the requested time slots are available
+      if (range.time_slots && Array.isArray(range.time_slots)) {
+        return requestedTimeSlots.some((requestedSlot) =>
+          range.time_slots.includes(requestedSlot),
+        );
+      }
+
+      return false;
+    });
+  }
+
   async searchProfessionals(filters: SearchProfessionalsDto) {
     const {
       bio,
@@ -208,6 +265,9 @@ export class ProfilesService {
       date_start,
       date_end,
       time_slot,
+      availability_dates,
+      availability_time_slots,
+      availability_data,
       page = 1,
       pageSize = 10,
       sortBy = 'id',
@@ -215,6 +275,10 @@ export class ProfilesService {
     } = filters;
 
     const where: any = {
+      // Only filter by is_professional if explicitly set to true
+      ...(is_professional === true && { is_professional: true }),
+
+      // Make text searches more flexible with partial matches
       ...(bio && { bio: { contains: bio, mode: 'insensitive' } }),
       ...(phone_number && {
         phone_number: { contains: phone_number, mode: 'insensitive' },
@@ -226,32 +290,50 @@ export class ProfilesService {
       ...(zip_code && {
         zip_code: { contains: zip_code, mode: 'insensitive' },
       }),
-      ...(is_professional !== undefined && { is_professional }),
-      ...(is_verified !== undefined && { is_verified }),
+      ...(location && {
+        location: { contains: location, mode: 'insensitive' },
+      }),
+      ...(portfolio && {
+        portfolio: { contains: portfolio, mode: 'insensitive' },
+      }),
+
+      // Make array searches more flexible - use hasAny instead of hasSome for partial matches
       ...(service_category &&
         service_category.length && {
           service_category: { hasSome: service_category },
         }),
       ...(dance_style &&
         dance_style.length && { dance_style: { hasSome: dance_style } }),
-      ...(location && {
-        location: { contains: location, mode: 'insensitive' },
-      }),
+      ...(services && services.length && { services: { hasSome: services } }),
+
+      // Make numeric ranges more flexible with wider tolerances
       ...(travel_distance !== undefined && {
-        travel_distance: { lte: travel_distance },
+        travel_distance: { lte: travel_distance * 1.5 }, // Allow 50% more distance
       }),
-      ...(price_min !== undefined && { price_min: { gte: price_min } }),
-      ...(price_max !== undefined && { price_max: { lte: price_max } }),
-      ...(pricing !== undefined && { pricing }),
+      ...(price_min !== undefined && {
+        OR: [
+          { price_min: { gte: price_min * 0.8 } }, // Allow 20% less than min
+          { pricing: { gte: price_min * 0.8 } },
+        ],
+      }),
+      ...(price_max !== undefined && {
+        OR: [
+          { price_max: { lte: price_max * 1.2 } }, // Allow 20% more than max
+          { pricing: { lte: price_max * 1.2 } },
+        ],
+      }),
+      ...(pricing !== undefined && {
+        OR: [
+          { pricing: { gte: pricing * 0.8, lte: pricing * 1.2 } }, // Allow 20% range
+          { price_min: { lte: pricing * 1.2 } },
+          { price_max: { gte: pricing * 0.8 } },
+        ],
+      }),
       ...(session_duration !== undefined && {
-        session_duration: { lte: session_duration },
+        session_duration: { lte: session_duration * 1.5 }, // Allow 50% more duration
       }),
       ...(years_experience !== undefined && {
-        years_experience: { gte: years_experience },
-      }),
-      ...(services && services.length && { services: { hasSome: services } }),
-      ...(portfolio && {
-        portfolio: { contains: portfolio, mode: 'insensitive' },
+        years_experience: { gte: years_experience * 0.8 }, // Allow 20% less experience
       }),
     };
 
@@ -265,16 +347,56 @@ export class ProfilesService {
       orderBy: { [sortBy]: sortOrder },
     });
 
-    // Filter by availability if date range is specified
-    if (date_start && date_end) {
+    // Filter by availability if any availability criteria are specified
+    const hasAvailabilityFilter =
+      date_start ||
+      date_end ||
+      availability_dates ||
+      availability_time_slots ||
+      availability_data;
+
+    if (hasAvailabilityFilter) {
       results = results.filter((profile) => {
-        if (!profile.availability) return false;
-        return this.checkDateRangeOverlap(
-          profile.availability as any[],
-          date_start,
-          date_end,
-          time_slot,
-        );
+        // If no availability data, still include the profile (less strict)
+        if (!profile.availability) return true;
+
+        // Handle different availability formats
+        if (date_start && date_end) {
+          return this.checkDateRangeOverlap(
+            profile.availability as any[],
+            date_start,
+            date_end,
+            time_slot,
+          );
+        }
+
+        // Handle availability_data format (from frontend)
+        if (availability_data && availability_data.length > 0) {
+          return availability_data.some((requestedAvail: any) => {
+            const requestedDate = requestedAvail.date;
+            const requestedTimeSlots = requestedAvail.time_slots || [];
+
+            return this.checkAvailabilityMatch(
+              profile.availability as any[],
+              requestedDate,
+              requestedTimeSlots,
+            );
+          });
+        }
+
+        // Handle separate dates and time slots
+        if (availability_dates && availability_dates.length > 0) {
+          const requestedTimeSlots = availability_time_slots || [];
+          return availability_dates.some((requestedDate: string) => {
+            return this.checkAvailabilityMatch(
+              profile.availability as any[],
+              requestedDate,
+              requestedTimeSlots,
+            );
+          });
+        }
+
+        return true;
       });
     }
 
@@ -282,15 +404,46 @@ export class ProfilesService {
     const totalProfiles = await this.prisma.profile.findMany({ where });
     let total = totalProfiles.length;
 
-    if (date_start && date_end) {
+    if (hasAvailabilityFilter) {
       total = totalProfiles.filter((profile) => {
-        if (!profile.availability) return false;
-        return this.checkDateRangeOverlap(
-          profile.availability as any[],
-          date_start,
-          date_end,
-          time_slot,
-        );
+        // If no availability data, still include the profile (less strict)
+        if (!profile.availability) return true;
+
+        // Apply the same availability filtering logic
+        if (date_start && date_end) {
+          return this.checkDateRangeOverlap(
+            profile.availability as any[],
+            date_start,
+            date_end,
+            time_slot,
+          );
+        }
+
+        if (availability_data && availability_data.length > 0) {
+          return availability_data.some((requestedAvail: any) => {
+            const requestedDate = requestedAvail.date;
+            const requestedTimeSlots = requestedAvail.time_slots || [];
+
+            return this.checkAvailabilityMatch(
+              profile.availability as any[],
+              requestedDate,
+              requestedTimeSlots,
+            );
+          });
+        }
+
+        if (availability_dates && availability_dates.length > 0) {
+          const requestedTimeSlots = availability_time_slots || [];
+          return availability_dates.some((requestedDate: string) => {
+            return this.checkAvailabilityMatch(
+              profile.availability as any[],
+              requestedDate,
+              requestedTimeSlots,
+            );
+          });
+        }
+
+        return true;
       }).length;
     }
 

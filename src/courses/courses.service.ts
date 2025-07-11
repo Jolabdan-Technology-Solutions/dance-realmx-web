@@ -538,6 +538,41 @@ export class CoursesService implements OnModuleInit {
     });
   }
 
+  async getLessonsByModule(moduleId: number) {
+    try {
+      // Check if module exists
+      const module = await this.prisma.module.findUnique({
+        where: { id: moduleId },
+      });
+      if (!module) {
+        throw new NotFoundException(`Module with ID ${moduleId} not found`);
+      }
+
+      return await this.prisma.lesson.findMany({
+        where: { module_id: moduleId },
+        orderBy: {
+          order: 'asc',
+        },
+        include: {
+          module: {
+            select: {
+              id: true,
+              title: true,
+              course_id: true,
+            },
+          },
+        },
+      });
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        'Failed to fetch lessons for module',
+      );
+    }
+  }
+
   async purchaseCourse(userId: number, courseId: number) {
     try {
       const course = await this.prisma.course.findUnique({
@@ -1433,5 +1468,107 @@ export class CoursesService implements OnModuleInit {
         'Failed to fetch enrollment details',
       );
     }
+  }
+
+  async findByInstructor(instructorId: number, query: QueryCourseDto) {
+    const {
+      page = 1,
+      limit = 10,
+      search,
+      min_price,
+      max_price,
+      category_ids,
+      tag_ids,
+      min_rating,
+      sort_by = 'created_at',
+      sort_order = 'desc',
+    } = query;
+    const skip = (page - 1) * limit;
+
+    // Build the where clause
+    const where: Prisma.CourseWhereInput = {
+      instructor_id: instructorId,
+      ...(min_price !== undefined && { price: { gte: min_price } }),
+      ...(max_price !== undefined && { price: { lte: max_price } }),
+      ...(category_ids?.length && {
+        categories: { some: { id: { in: category_ids } } },
+      }),
+      ...(tag_ids?.length && {
+        tags: { some: { id: { in: tag_ids } } },
+      }),
+      ...(min_rating && {
+        reviews: { some: { rating: { gte: min_rating } } },
+      }),
+      ...(search && {
+        OR: [
+          { title: { contains: search, mode: Prisma.QueryMode.insensitive } },
+          {
+            description: {
+              contains: search,
+              mode: Prisma.QueryMode.insensitive,
+            },
+          },
+        ],
+      }),
+    };
+
+    // Build the orderBy clause
+    const orderBy: Prisma.CourseOrderByWithRelationInput = {};
+    if (sort_by === 'price') {
+      orderBy.price = sort_order;
+    } else if (sort_by === 'popularity') {
+      orderBy.created_at = sort_order;
+    } else {
+      orderBy.created_at = sort_order;
+    }
+
+    const [total, courses] = await Promise.all([
+      this.prisma.course.count({ where }),
+      this.prisma.course.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy,
+        include: {
+          instructor: true,
+          modules: {
+            include: {
+              lessons: true,
+            },
+          },
+          categories: true,
+          tags: true,
+          reviews: {
+            select: {
+              rating: true,
+            },
+          },
+          _count: {
+            select: {
+              enrollments: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    // Calculate average ratings
+    const coursesWithStats = courses.map((course) => ({
+      ...course,
+      average_rating: course.reviews.length
+        ? course.reviews.reduce((acc, review) => acc + review.rating, 0) /
+          course.reviews.length
+        : 0,
+      enrollment_count: course._count.enrollments,
+    }));
+
+    return {
+      data: coursesWithStats,
+      meta: {
+        total,
+        page,
+        limit,
+      },
+    };
   }
 }

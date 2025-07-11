@@ -34,6 +34,15 @@ export class FeatureGuard implements CanActivate {
       throw new ForbiddenException('User not authenticated.');
     }
 
+    // Always allow ADMIN users
+    if (
+      (Array.isArray(user.role) &&
+        user.role.map((r) => r.toUpperCase()).includes('ADMIN')) ||
+      (!Array.isArray(user.role) && user.role.toUpperCase() === 'ADMIN')
+    ) {
+      return true;
+    }
+
     const userRoles = Array.isArray(user.role)
       ? user.role.map((role) => role.toUpperCase())
       : [user.role.toUpperCase()];

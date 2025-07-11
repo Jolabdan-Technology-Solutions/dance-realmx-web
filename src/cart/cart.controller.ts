@@ -29,8 +29,8 @@ interface CartItem {
 
 interface RequestWithUser extends ExpressRequest {
   user?: {
-    id: number;
-    sub: string;
+    id?: number;
+    sub: number | string;
   };
 }
 
@@ -64,15 +64,23 @@ export class CartController {
     @Request() req: RequestWithUser,
     @Param('id') id: string,
   ): Promise<void> {
-    if (!req.user?.sub) throw new Error('User not found');
-    return this.cartService.removeFromCart(+req.user.sub, +id);
+    const userId = req.user?.id || req.user?.sub;
+    if (!userId) throw new Error('User not found');
+
+    const numericUserId =
+      typeof userId === 'string' ? parseInt(userId, 10) : userId;
+    return this.cartService.removeFromCart(numericUserId, +id);
   }
 
   @Delete()
   @RequireFeature(Feature.USE_CART)
   clearCart(@Request() req: RequestWithUser): Promise<void> {
-    if (!req.user?.sub) throw new Error('User not found');
-    return this.cartService.clearCart(+req.user.sub);
+    const userId = req.user?.id || req.user?.sub;
+    if (!userId) throw new Error('User not found');
+
+    const numericUserId =
+      typeof userId === 'string' ? parseInt(userId, 10) : userId;
+    return this.cartService.clearCart(numericUserId);
   }
 
   @Patch(':id/quantity')
@@ -82,9 +90,13 @@ export class CartController {
     @Param('id') id: string,
     @Body('quantity') quantity: number,
   ): Promise<CartItem> {
-    if (!req.user?.sub) throw new Error('User not found');
+    const userId = req.user?.id || req.user?.sub;
+    if (!userId) throw new Error('User not found');
+
+    const numericUserId =
+      typeof userId === 'string' ? parseInt(userId, 10) : userId;
     return this.cartService.updateCartItemQuantity(
-      +req.user.sub,
+      numericUserId,
       +id,
       quantity,
     );
@@ -95,7 +107,11 @@ export class CartController {
   checkout(
     @Request() req: RequestWithUser,
   ): Promise<{ order: any; clientSecret: string | null }> {
-    if (!req.user?.sub) throw new Error('User not found');
-    return this.cartService.checkout(+req.user.sub);
+    const userId = req.user?.id || req.user?.sub;
+    if (!userId) throw new Error('User not found');
+
+    const numericUserId =
+      typeof userId === 'string' ? parseInt(userId, 10) : userId;
+    return this.cartService.checkout(numericUserId);
   }
 }

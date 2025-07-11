@@ -30,6 +30,13 @@ export class BookingsController {
     return this.bookingsService.findByUserId(+userId);
   }
 
+  @Get('mine')
+  @RequireFeature(Feature.MANAGE_BOOKINGS)
+  findMyBookings(@Req() req: any) {
+    // req.user.id is the authenticated professional's user ID
+    return this.bookingsService.findByProfessional(req.user.id);
+  }
+
   @Get(':id')
   @RequireFeature(Feature.MANAGE_BOOKINGS)
   @ResourceOwner('booking')

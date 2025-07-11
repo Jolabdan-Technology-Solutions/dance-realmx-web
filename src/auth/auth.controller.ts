@@ -143,8 +143,26 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @UseGuards(JwtAuthGuard)
   async getProfile(@Req() req: RequestWithUser) {
-    console.log(req.user);
-    return this.authService.getProfile(req.user.id);
+    console.log('Auth me endpoint - user:', req.user);
+
+    // Handle both id and sub fields for compatibility
+    const userId = req.user.id || req.user.sub;
+
+    if (!userId) {
+      throw new UnauthorizedException('User ID not found in token');
+    }
+
+    // Convert to number if it's a string
+    const numericUserId =
+      typeof userId === 'string' ? parseInt(userId, 10) : userId;
+
+    if (isNaN(numericUserId)) {
+      throw new UnauthorizedException('Invalid user ID in token');
+    }
+
+    const result = await this.authService.getProfile(numericUserId);
+
+    return result;
   }
 
   @Get('analytics/users')

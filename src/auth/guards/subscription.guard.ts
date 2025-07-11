@@ -37,12 +37,16 @@ export class SubscriptionGuard implements CanActivate {
       throw new ForbiddenException('User not authenticated.');
     }
 
-    // Admins and instructors don't need subscriptions
-    if (user.role === Role.ADMIN) {
+    // Always allow ADMIN users
+    if (
+      (Array.isArray(user.role) &&
+        user.role.map((r) => r.toUpperCase()).includes('ADMIN')) ||
+      (!Array.isArray(user.role) && user.role.toUpperCase() === 'ADMIN')
+    ) {
       return true;
     }
-    
-    console.log("user ", user)
+
+    console.log('user ', user);
 
     // Allow if user.is_active is true and subscription_tier is not 'FREE'
     if (
@@ -52,7 +56,6 @@ export class SubscriptionGuard implements CanActivate {
     ) {
       return true;
     }
-
 
     // Check if user has an active subscription in the subscription table
     const activeSubscription = await this.subscriptionsService.findActive(

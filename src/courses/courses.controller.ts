@@ -21,7 +21,7 @@ import {
 } from '@nestjs/common';
 import Stripe from 'stripe';
 import { CoursesService } from './courses.service';
-import { Course, Module, Lesson, UserRole } from '@prisma/client';
+import type { Course, Module, Lesson } from '@prisma/client';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { QueryCourseDto } from './dto/query-course.dto';
@@ -45,6 +45,11 @@ import { Logger } from '@nestjs/common';
 import { FeatureGuard } from '../auth/guards/feature.guard';
 import { RequireFeature } from '../auth/decorators/feature.decorator';
 import { Feature } from '../auth/enums/feature.enum';
+import { CreateModuleDto } from './dto/create-module.dto';
+import { UpdateModuleDto } from './dto/update-module.dto';
+import { CreateLessonDto } from './dto/create-lesson.dto';
+import { UpdateLessonDto } from './dto/update-lesson.dto';
+import { EnrollCourseDto } from './dto/enroll-course.dto';
 
 @Controller('courses')
 export class CoursesController {
@@ -55,7 +60,12 @@ export class CoursesController {
   @Get()
   @ApiOperation({ summary: 'Get all courses' })
   @ApiQuery({ type: QueryCourseDto })
-  @ApiResponse({ status: 200, description: 'Returns all courses' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns all courses',
+    type: 'Course',
+    isArray: true,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   @RequireFeature(Feature.VIEW_COURSES)
@@ -66,7 +76,11 @@ export class CoursesController {
   @Get(':id')
   @ApiOperation({ summary: 'Get a specific course by ID' })
   @ApiParam({ name: 'id', type: 'string', description: 'Course ID' })
-  @ApiResponse({ status: 200, description: 'Returns the course' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns the course',
+    type: 'Course',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 404, description: 'Course not found' })
@@ -79,7 +93,11 @@ export class CoursesController {
   @UseGuards(JwtAuthGuard, FeatureGuard, SubscriptionGuard)
   @ApiOperation({ summary: 'Create a new course' })
   @ApiBody({ type: CreateCourseDto })
-  @ApiResponse({ status: 201, description: 'Course created successfully' })
+  @ApiResponse({
+    status: 201,
+    description: 'Course created successfully',
+    type: 'Course',
+  })
   @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
@@ -92,10 +110,12 @@ export class CoursesController {
   @UseGuards(JwtAuthGuard, FeatureGuard)
   @ApiOperation({ summary: 'Enroll a user in a course' })
   @ApiParam({ name: 'id', type: 'string', description: 'Course ID' })
-  @ApiBody({
-    schema: { type: 'object', properties: { userId: { type: 'number' } } },
+  @ApiBody({ type: EnrollCourseDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Enrollment successful',
+    type: 'Course',
   })
-  @ApiResponse({ status: 201, description: 'Enrollment successful' })
   @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
@@ -103,9 +123,12 @@ export class CoursesController {
   @RequireFeature(Feature.ENROLL_COURSES)
   async enrollCourse(
     @Param('id') courseId: string,
-    @Body() body: { userId: number },
+    @Body() enrollCourseDto: EnrollCourseDto,
   ) {
-    return this.coursesService.purchaseCourse(body.userId, +courseId);
+    return this.coursesService.purchaseCourse(
+      enrollCourseDto.user_id,
+      +courseId,
+    );
   }
 
   @Put(':id')
@@ -113,7 +136,11 @@ export class CoursesController {
   @ApiOperation({ summary: 'Update a course' })
   @ApiParam({ name: 'id', type: 'string', description: 'Course ID' })
   @ApiBody({ type: UpdateCourseDto })
-  @ApiResponse({ status: 200, description: 'Course updated successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Course updated successfully',
+    type: 'Course',
+  })
   @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
@@ -128,7 +155,11 @@ export class CoursesController {
   @UseGuards(JwtAuthGuard, FeatureGuard, SubscriptionGuard)
   @ApiOperation({ summary: 'Delete a course' })
   @ApiParam({ name: 'id', type: 'string', description: 'Course ID' })
-  @ApiResponse({ status: 200, description: 'Course deleted successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Course deleted successfully',
+    type: 'Course',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 404, description: 'Course not found' })
@@ -142,17 +173,12 @@ export class CoursesController {
   @UseGuards(JwtAuthGuard, FeatureGuard)
   @ApiOperation({ summary: 'Create a new module for a course' })
   @ApiParam({ name: 'courseId', type: 'string', description: 'Course ID' })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        title: { type: 'string' },
-        description: { type: 'string' },
-        order: { type: 'number' },
-      },
-    },
+  @ApiBody({ type: CreateModuleDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Module created successfully',
+    type: 'Module',
   })
-  @ApiResponse({ status: 201, description: 'Module created successfully' })
   @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
@@ -160,12 +186,7 @@ export class CoursesController {
   @RequireFeature(Feature.MANAGE_COURSES)
   createModule(
     @Param('courseId') courseId: string,
-    @Body()
-    createModuleDto: {
-      title: string;
-      description: string;
-      order: number;
-    },
+    @Body() createModuleDto: CreateModuleDto,
   ) {
     return this.coursesService.createModule({
       ...createModuleDto,
@@ -177,11 +198,16 @@ export class CoursesController {
   @UseGuards(JwtAuthGuard, FeatureGuard, SubscriptionGuard)
   @ApiOperation({ summary: 'Get all modules for a course' })
   @ApiParam({ name: 'courseId', type: 'string', description: 'Course ID' })
-  @ApiResponse({ status: 200, description: 'Returns all modules' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns all modules',
+    type: 'Module',
+    isArray: true,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 404, description: 'Course not found' })
-  @RequireFeature(Feature.VIEW_COURSES)
+  // @RequireFeature(Feature.VIEW_COURSES)
   @SubscriptionRequired()
   getModules(@Param('courseId') courseId: string) {
     return this.coursesService.getModules(+courseId);
@@ -194,11 +220,12 @@ export class CoursesController {
   @ApiResponse({
     status: 200,
     description: 'Course visibility toggled successfully',
+    type: 'Course',
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 404, description: 'Course not found' })
-  @RequireFeature(Feature.MANAGE_COURSES)
+  // @RequireFeature(Feature.MANAGE_COURSES)
   @ResourceOwner('course')
   toggleVisibility(@Param('id') id: string) {
     return this.coursesService.toggleVisibility(+id);
@@ -208,24 +235,19 @@ export class CoursesController {
   @UseGuards(JwtAuthGuard, FeatureGuard, SubscriptionGuard)
   @ApiOperation({ summary: 'Update a module' })
   @ApiParam({ name: 'id', type: 'string', description: 'Module ID' })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        title: { type: 'string', nullable: true },
-        description: { type: 'string', nullable: true },
-        order: { type: 'number', nullable: true },
-      },
-    },
+  @ApiBody({ type: UpdateModuleDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Module updated successfully',
+    type: 'Module',
   })
-  @ApiResponse({ status: 200, description: 'Module updated successfully' })
   @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @RequireFeature(Feature.MANAGE_COURSES)
+  // @RequireFeature(Feature.MANAGE_COURSES)
   @ResourceOwner('course')
   updateModule(
     @Param('id') id: string,
-    @Body() updateModuleDto: Partial<Module>,
+    @Body() updateModuleDto: UpdateModuleDto,
   ) {
     return this.coursesService.updateModule(+id, updateModuleDto);
   }
@@ -234,7 +256,12 @@ export class CoursesController {
   @UseGuards(JwtAuthGuard, FeatureGuard, SubscriptionGuard)
   @ApiOperation({ summary: 'Delete a module' })
   @ApiParam({ name: 'id', type: 'string', description: 'Module ID' })
-  @RequireFeature(Feature.MANAGE_COURSES)
+  @ApiResponse({
+    status: 200,
+    description: 'Module deleted successfully',
+    type: 'Module',
+  })
+  // @RequireFeature(Feature.MANAGE_COURSES)
   @ResourceOwner('course')
   removeModule(@Param('id') id: string) {
     return this.coursesService.deleteModule(+id);
@@ -244,28 +271,17 @@ export class CoursesController {
   @UseGuards(JwtAuthGuard, FeatureGuard, SubscriptionGuard)
   @ApiOperation({ summary: 'Create a new lesson for a module' })
   @ApiParam({ name: 'moduleId', type: 'string', description: 'Module ID' })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        title: { type: 'string' },
-        content: { type: 'string' },
-        video_url: { type: 'string', nullable: true },
-        order: { type: 'number' },
-      },
-    },
+  @ApiBody({ type: CreateLessonDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Lesson created successfully',
+    type: 'Lesson',
   })
-  @RequireFeature(Feature.MANAGE_COURSES)
+  // @RequireFeature(Feature.MANAGE_COURSES)
   @ResourceOwner('course')
   createLesson(
     @Param('moduleId') moduleId: string,
-    @Body()
-    createLessonDto: {
-      title: string;
-      content: string;
-      video_url?: string;
-      order: number;
-    },
+    @Body() createLessonDto: CreateLessonDto,
   ) {
     return this.coursesService.createLesson({
       ...createLessonDto,
@@ -277,28 +293,17 @@ export class CoursesController {
   @UseGuards(JwtAuthGuard, FeatureGuard, SubscriptionGuard)
   @ApiOperation({ summary: 'Update a lesson' })
   @ApiParam({ name: 'id', type: 'string', description: 'Lesson ID' })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        title: { type: 'string', nullable: true },
-        content: { type: 'string', nullable: true },
-        video_url: { type: 'string', nullable: true },
-        order: { type: 'number', nullable: true },
-      },
-    },
+  @ApiBody({ type: UpdateLessonDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Lesson updated successfully',
+    type: 'Lesson',
   })
-  @RequireFeature(Feature.MANAGE_COURSES)
+  // @RequireFeature(Feature.MANAGE_COURSES)
   @ResourceOwner('course')
   updateLesson(
     @Param('id') id: string,
-    @Body()
-    updateLessonDto: {
-      title?: string;
-      content?: string;
-      video_url?: string;
-      order?: number;
-    },
+    @Body() updateLessonDto: UpdateLessonDto,
   ) {
     return this.coursesService.updateLesson(+id, updateLessonDto);
   }
@@ -307,10 +312,34 @@ export class CoursesController {
   @UseGuards(JwtAuthGuard, FeatureGuard, SubscriptionGuard)
   @ApiOperation({ summary: 'Delete a lesson' })
   @ApiParam({ name: 'id', type: 'string', description: 'Lesson ID' })
-  @RequireFeature(Feature.MANAGE_COURSES)
+  @ApiResponse({
+    status: 200,
+    description: 'Lesson deleted successfully',
+    type: 'Lesson',
+  })
+  // @RequireFeature(Feature.MANAGE_COURSES)
   @ResourceOwner('course')
   removeLesson(@Param('id') id: string) {
     return this.coursesService.deleteLesson(+id);
+  }
+
+  @Get('modules/:moduleId/lessons')
+  @UseGuards(JwtAuthGuard, FeatureGuard, SubscriptionGuard)
+  @ApiOperation({ summary: 'Get all lessons for a module' })
+  @ApiParam({ name: 'moduleId', type: 'string', description: 'Module ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns all lessons for the module',
+    type: 'Lesson',
+    isArray: true,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 404, description: 'Module not found' })
+  // @RequireFeature(Feature.VIEW_COURSES)
+  @SubscriptionRequired()
+  getLessonsByModule(@Param('moduleId') moduleId: string) {
+    return this.coursesService.getLessonsByModule(+moduleId);
   }
 
   @Get('user/:userId/enrolled')
@@ -332,7 +361,7 @@ export class CoursesController {
 
   @Get('enrollment/me')
   @UseGuards(JwtAuthGuard)
-  @RequireFeature(Feature.VIEW_COURSES)
+  // @RequireFeature(Feature.VIEW_COURSES)
   @ApiOperation({ summary: 'Get enrolled courses for the authenticated user' })
   async getMyEnrolledCourses(
     @Req() req: Request & { user: { id: number } },
@@ -426,5 +455,26 @@ export class CoursesController {
     }
 
     return this.coursesService.checkCourseAccess(userId, courseId);
+  }
+
+  @Get('instructor/:instructorId')
+  @ApiOperation({
+    summary: 'Get all courses by instructor with filtering and pagination',
+  })
+  @ApiParam({
+    name: 'instructorId',
+    type: 'number',
+    description: 'Instructor ID',
+  })
+  @ApiQuery({ type: QueryCourseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns all courses for the instructor',
+  })
+  findByInstructor(
+    @Param('instructorId', ParseIntPipe) instructorId: number,
+    @Query() query: QueryCourseDto,
+  ) {
+    return this.coursesService.findByInstructor(instructorId, query);
   }
 }

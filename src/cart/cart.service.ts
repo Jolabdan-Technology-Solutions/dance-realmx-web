@@ -32,7 +32,7 @@ export class CartService {
       where: {
         user_id: userId,
         course_id: dto.type === CartItemType.COURSE ? dto.itemId : null,
-        resource_id: dto.type === CartItemType.SUBSCRIPTION ? dto.itemId : null,
+        resource_id: dto.type === CartItemType.RESOURCE ? dto.itemId : null,
       },
     });
 
@@ -49,7 +49,7 @@ export class CartService {
       data: {
         user_id: userId,
         course_id: dto.type === CartItemType.COURSE ? dto.itemId : null,
-        resource_id: dto.type === CartItemType.SUBSCRIPTION ? dto.itemId : null,
+        resource_id: dto.type === CartItemType.RESOURCE ? dto.itemId : null,
         quantity: 1,
       },
     });

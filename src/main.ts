@@ -35,7 +35,13 @@ async function bootstrap() {
   app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
   app.enableCors({
-    origin: ['http://localhost:5173', 'http://localhost:5174'],
+    origin: [
+      'http://localhost:5173',
+      'http://localhost:5174',
+      'https://api.livetestdomain.com',
+      'https://livetestdomain.com',
+      'https://www.livetestdomain.com',
+    ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: [
       'Content-Type',
@@ -43,6 +49,9 @@ async function bootstrap() {
       'Accept',
       'Origin',
       'X-Requested-With',
+      'Access-Control-Allow-Origin',
+      'Access-Control-Allow-Methods',
+      'Access-Control-Allow-Headers',
     ],
     exposedHeaders: ['Content-Range', 'X-Content-Range'],
     credentials: true,

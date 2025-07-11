@@ -88,9 +88,7 @@ export class BookingsService {
 
       return await this.prisma.booking.findMany({
         where: { user_id: userId },
-        include: {
-          course: true,
-        },
+        include: { user: true },
         orderBy: {
           created_at: 'desc',
         },
@@ -102,7 +100,7 @@ export class BookingsService {
     }
   }
 
-  async findByInstructor(instructorId: number): Promise<Booking[]> {
+  async findByProfessional(instructorId: number): Promise<Booking[]> {
     try {
       const instructor = await this.prisma.user.findUnique({
         where: { id: instructorId },
@@ -115,18 +113,18 @@ export class BookingsService {
       }
 
       return await this.prisma.booking.findMany({
-        where: { instructor_id: instructorId },
+        where: { user_id: instructorId, user: { is_professional: true } },
         include: {
           user: true,
         },
       });
     } catch (error) {
       this.logger.error(
-        `Error in findByInstructor: ${error.message}`,
+        `Error in finding bookings by professional: ${error.message}`,
         error.stack,
       );
       if (error instanceof NotFoundException) throw error;
-      return this.handlePrismaError(error, 'findByInstructor');
+      return this.handlePrismaError(error, 'findByProfessional');
     }
   }
 
