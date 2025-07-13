@@ -280,7 +280,7 @@ export default function CourseDetailPage() {
         method: "PUT",
         data: values,
       });
-      return res.json();
+      return res;
     },
     onSuccess: () => {
       // Invalidate course data
@@ -1155,7 +1155,7 @@ function EnrollStudentDialog({ courseId }: { courseId: number }) {
         `/api/users/search?q=${encodeURIComponent(searchQuery)}&role=student`
       );
       if (!res.ok) throw new Error("Failed to search users");
-      return res.json();
+      return res;
     },
     enabled: searchQuery.length >= 3,
   });
@@ -1165,7 +1165,7 @@ function EnrollStudentDialog({ courseId }: { courseId: number }) {
     mutationFn: async (studentId: number) => {
       const data = { userId: studentId, courseId };
       const res = await apiRequest("POST", "/api/enrollments", data);
-      return res.json();
+      return res;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -1356,7 +1356,7 @@ function CertificatesList({ courseId }: { courseId: number }) {
       const res = await apiRequest(`/api/certificates/${certificateId}`, {
         method: "DELETE",
       });
-      return res.json();
+      return res;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -1612,7 +1612,7 @@ function IssueCertificateDialog({
     queryKey: ["/api/courses", courseId],
     queryFn: async () => {
       const res = await fetch(`/api/courses/${courseId}`);
-      return res.json();
+      return res;
     },
   });
 
@@ -1621,7 +1621,7 @@ function IssueCertificateDialog({
     queryKey: ["/api/certificate-templates"],
     queryFn: async () => {
       const res = await fetch("/api/certificate-templates");
-      return res.json();
+      return res;
     },
   });
 
@@ -1633,7 +1633,7 @@ function IssueCertificateDialog({
       if (res.status === 404) {
         return null;
       }
-      return res.json();
+      return res;
     },
     retry: (failureCount, error: any) => {
       // Don't retry on 404
@@ -1661,7 +1661,7 @@ function IssueCertificateDialog({
         templateId: selectedTemplateId,
       };
       const res = await apiRequest("POST", "/api/certificates", data);
-      return res.json();
+      return res;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -1864,7 +1864,7 @@ function QuizList({ courseId }: { courseId: number }) {
         `/api/courses/${courseId}/quizzes/${quizId}`,
         { method: "DELETE" }
       );
-      return res.json();
+      return res;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -2108,7 +2108,7 @@ function QuizDialog({
       if (!quizId) return [];
       const res = await fetch(`/api/quiz-questions?quizId=${quizId}`);
       if (!res.ok) throw new Error("Failed to fetch quiz questions");
-      return res.json();
+      return res;
     },
     enabled: !!quizId,
     onSuccess: (data) => {
@@ -2134,7 +2134,7 @@ function QuizDialog({
       if (!selectedModuleId) return [];
       const res = await fetch(`/api/lessons?moduleId=${selectedModuleId}`);
       if (!res.ok) throw new Error("Failed to fetch lessons");
-      return res.json();
+      return res;
     },
     enabled: !!selectedModuleId,
   });
@@ -2213,14 +2213,14 @@ function QuizDialog({
             data: quizData,
           }
         );
-        return await quizRes.json();
+        return await quizRes;
       } else {
         // Fallback to the old course-level quiz creation for backward compatibility
         const quizRes = await apiRequest(`/api/courses/${courseId}/quizzes`, {
           method: "POST",
           data: values.quiz,
         });
-        const createdQuiz = await quizRes.json();
+        const createdQuiz = await quizRes;
 
         // Then create all questions
         const questionPromises = values.questions.map((question, index) => {
@@ -2282,7 +2282,7 @@ function QuizDialog({
         method: "PUT",
         data: values.quiz,
       });
-      await quizRes.json();
+      await quizRes;
 
       // Handle questions - create new ones, update existing ones
       const questionPromises = values.questions.map((question, index) => {
@@ -2792,7 +2792,7 @@ function ModuleDialog({
         method: "POST",
         data: values,
       });
-      return res.json();
+      return res;
     },
     onSuccess: () => {
       // Immediate query invalidation for instant UI refresh
@@ -2832,7 +2832,7 @@ function ModuleDialog({
         method: "PUT",
         data: values,
       });
-      return res.json();
+      return res;
     },
     onSuccess: () => {
       // Immediate query invalidation for instant UI refresh
@@ -3123,7 +3123,7 @@ function LessonDialog({
         method: "PUT",
         data: values,
       });
-      return res.json();
+      return res;
     },
     onSuccess: () => {
       // Refresh modules to update the nested lessons data
@@ -3339,7 +3339,7 @@ function ModuleAccordionItem({
       const res = await apiRequest(`/api/modules/${module.id}`, {
         method: "DELETE",
       });
-      return res.json();
+      return res;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -3645,7 +3645,7 @@ function LessonQuizDialog({
         method: "POST",
         data: quizData,
       });
-      return await res.json();
+      return await res;
     },
     onSuccess: () => {
       // Invalidate relevant queries
@@ -3967,7 +3967,7 @@ function AddQuizDialog({ modules }: { modules: Module[] }) {
         method: "POST",
         data: quizData,
       });
-      return await res.json();
+      return await res;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/quizzes"] });
