@@ -448,7 +448,7 @@ export const ComprehensiveRecommendations: React.FC<
         danceStyleProfessionals
       )}
       {renderSection("Professionals available on your date", dateProfessionals)}
-      {renderSection("Professionals near your location", locationProfessionals)}
+      {/* {renderSection("Professionals near your location", locationProfessionals)} */}
       {renderSection(
         "Professionals in your budget range",
         pricingProfessionals

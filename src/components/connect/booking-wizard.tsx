@@ -392,30 +392,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
       });
       return;
     }
-    if (currentStep === 3) {
-      if (formData.availabilityDates.length === 0) {
-        toast({
-          title: "Availability required",
-          description: "Please select at least one available date to continue.",
-          variant: "destructive",
-        });
-        return;
-      }
-      // For book mode, ensure at least one time slot is selected
-      if (mode === "book") {
-        const hasTimeSlots = formData.availabilityDates.some(
-          (avail) => avail.timeSlots.length > 0
-        );
-        if (!hasTimeSlots) {
-          toast({
-            title: "Time slot required",
-            description: "Please select at least one time slot to continue.",
-            variant: "destructive",
-          });
-          return;
-        }
-      }
-    }
+    // Availability step (step 3) is now optional - removed validation
     // If we're at step 0 (user creation/authentication) and user is not logged in
     if (currentStep === 0 && !user) {
       navigate("/auth?returnTo=/connect&mode=" + mode);
@@ -1075,11 +1052,24 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
 
       return (
         <div className="space-y-6">
-          <h3 className="text-xl font-medium text-white">
-            {mode === "book"
-              ? "When would you like to begin?"
-              : "Set your availability"}
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-xl font-medium text-white">
+              {mode === "book"
+                ? "When would you like to begin?"
+                : "Set your availability"}
+            </h3>
+            <span className="text-sm text-gray-300 bg-gray-500/20 px-2 py-1 rounded">
+              Optional
+            </span>
+          </div>
+
+          <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
+            <p className="text-blue-200 text-sm">
+              {mode === "book"
+                ? "Select your preferred dates and times to help professionals match your schedule. You can skip this step and discuss timing later."
+                : "Set your availability to help clients know when you're available. You can skip this step and update it later."}
+            </p>
+          </div>
 
           {mode === "get-booked" && (
             <div className="space-y-4">
@@ -1800,42 +1790,56 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                 Previous
               </Button>
 
-              {currentStep < 5 ? (
-                <Button
-                  onClick={handleNext}
-                  className="bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600 shadow-lg shadow-blue-500/25"
-                  disabled={isSubmitting}
-                >
-                  Next
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              ) : !submitSuccess ? (
-                <Button
-                  onClick={handleComplete}
-                  disabled={isSubmitting}
-                  className="bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600 shadow-lg shadow-blue-500/25"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {mode === "book"
-                        ? "Submitting..."
-                        : "Creating Profile..."}
-                    </>
-                  ) : mode === "book" ? (
-                    "Submit Booking Request"
-                  ) : (
-                    "Create Professional Profile"
-                  )}
-                </Button>
-              ) : (
-                <Button
-                  onClick={() => navigate("/connect/book")}
-                  className="bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600 shadow-lg shadow-blue-500/25"
-                >
-                  Start New Search
-                </Button>
-              )}
+              <div className="flex gap-2">
+                {/* Skip button for availability step */}
+                {currentStep === 3 && (
+                  <Button
+                    variant="outline"
+                    onClick={handleNext}
+                    disabled={isSubmitting}
+                    className="bg-gray-500/20 border-gray-400/30 text-gray-300 hover:bg-gray-500/30 backdrop-blur-sm"
+                  >
+                    Skip Availability
+                  </Button>
+                )}
+
+                {currentStep < 5 ? (
+                  <Button
+                    onClick={handleNext}
+                    className="bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600 shadow-lg shadow-blue-500/25"
+                    disabled={isSubmitting}
+                  >
+                    Next
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                ) : !submitSuccess ? (
+                  <Button
+                    onClick={handleComplete}
+                    disabled={isSubmitting}
+                    className="bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600 shadow-lg shadow-blue-500/25"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        {mode === "book"
+                          ? "Submitting..."
+                          : "Creating Profile..."}
+                      </>
+                    ) : mode === "book" ? (
+                      "Submit Booking Request"
+                    ) : (
+                      "Create Professional Profile"
+                    )}
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => navigate("/connect/book")}
+                    className="bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600 shadow-lg shadow-blue-500/25"
+                  >
+                    Start New Search
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </div>
