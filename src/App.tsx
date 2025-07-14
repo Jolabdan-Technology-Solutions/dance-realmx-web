@@ -149,6 +149,9 @@ const SimpleCheckoutPage = createLazyComponent(
 const PaymentSuccessPage = createLazyComponent(
   () => import("./pages/payment-success")
 );
+const CancelPaymentPage = createLazyComponent(
+  () => import("./pages/cancel-payment")
+);
 const MyPurchasesPage = createLazyComponent(
   () => import("./pages/my-purchases")
 );
@@ -335,6 +338,7 @@ const Pages = {
   StripeCheckout: withLayout(StripeCheckoutPage),
   SimpleCheckout: withLayout(SimpleCheckoutPage),
   PaymentSuccess: withLayout(PaymentSuccessPage),
+  CancelPayment: withLayout(CancelPaymentPage),
   MyPurchases: withLayout(MyPurchasesPage),
 
   // Dashboard Pages
@@ -569,6 +573,7 @@ function Router() {
         <Route path="/checkout/stripe" component={Pages.StripeCheckout} />
         <Route path="/simple-checkout" component={Pages.SimpleCheckout} />
         <Route path="/payment-success" component={Pages.PaymentSuccess} />
+        <Route path="/cancel-payment" component={Pages.CancelPayment} />
         <ProtectedRoute path="/my-purchases" component={Pages.MyPurchases} />
 
         {/* Main dashboard entry route - will redirect based on user role */}
