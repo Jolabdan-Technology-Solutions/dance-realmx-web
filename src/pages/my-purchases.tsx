@@ -49,12 +49,27 @@ export default function MyPurchasesPage() {
     retry: 2,
     queryFn: async () => {
       try {
-        const response = await apiRequest("/api/cart/orders", {
+        const orders = await apiRequest("/api/cart/orders", {
           method: "GET",
           requireAuth: true,
         });
-        console.log("Purchases response:", response);
-        return response;
+        // Flatten orderItems into PurchasedResource[]
+        const resources = orders.flatMap((order: any) =>
+          (order.orderItems || []).map((item: any) => ({
+            id: item.id,
+            resourceId: item.resource_id,
+            resourceTitle: item.resource?.title || "Untitled Resource",
+            resourceDescription: item.resource?.description || "",
+            orderId: order.id.toString(),
+            orderDate: order.created_at,
+            totalAmount: order.total,
+            downloadUrl: item.resource?.downloadUrl || "#",
+            fileType: item.resource?.fileType || null,
+            thumbnailUrl: item.resource?.thumbnailUrl || "",
+            status: order.status,
+          }))
+        );
+        return resources;
       } catch (err: any) {
         throw new Error(err?.message || "Failed to fetch purchases");
       }
