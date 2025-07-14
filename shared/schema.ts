@@ -167,6 +167,16 @@ export interface Resource {
   isApproved: boolean;
 }
 
+export interface ResourceReview {
+  id: string;
+  resource_id: string;
+  user_id: string;
+  rating: number;
+  comment?: string;
+  created_at?: string;
+  createdAt?: string;
+}
+
 export interface SubscriptionPlan {
   id: number;
   name: string;

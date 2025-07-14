@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useLocation } from "wouter";
 import Navbar from "../components/layout/navbar";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
@@ -33,6 +34,7 @@ const FORMAT_OPTIONS = [
 ];
 
 export default function CurriculumPageSimple() {
+  const [, navigate] = useLocation();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
@@ -276,7 +278,10 @@ export default function CurriculumPageSimple() {
                 </CardHeader>
 
                 <CardContent className="p-4 flex flex-col flex-grow">
-                  <CardTitle className="text-lg font-semibold mb-2 line-clamp-2 leading-tight">
+                  <CardTitle
+                    className="text-lg font-semibold mb-2 line-clamp-2 leading-tight"
+                    onClick={() => navigate(`/curriculum/${resource.id}`)}
+                  >
                     {resource.title}
                   </CardTitle>
                   <div className="flex items-center gap-2 mb-2">

@@ -99,9 +99,7 @@ const BookingPage = lazy(() => import("@/pages/booking-page"));
 const MyBookingsPage = lazy(() => import("@/pages/my-bookings-page"));
 
 // Curriculum Resource Module
-const CurriculumInfoPage = lazy(
-  () => import("@/pages/curriculum/curriculum-info-wrapper")
-);
+const CurriculumInfoPage = lazy(() => import("@/pages/curriculum/[id]/page"));
 
 const CurriculumPage = lazy(() => import("@/pages/curriculum-page-simple"));
 // const CurriculumInfoPage = lazy(
@@ -474,17 +472,17 @@ function Router() {
 
         {/* Curriculum Resource Module */}
 
-        <GuestRoute
+        {/* <GuestRoute
           path="/curriculum/:resourceId"
           component={Pages.CurriculumInfoPage}
-        />
+        /> */}
 
         <GuestRoute path="/curriculum" component={Pages.Curriculum} />
-        <Route path="/curriculum/:id" component={Pages.Curriculum} />
-        <GuestRoute
+        <Route path="/curriculum/:id" component={Pages.CurriculumInfoPage} />
+        {/* <GuestRoute
           path="/curriculum/:resourceId"
           component={Pages.ResourceDetails}
-        />
+        /> */}
         <GuestRoute path="/sellers/:sellerId" component={Pages.SellerStore} />
         <GuestRoute
           path="/seller-store/:sellerId"
