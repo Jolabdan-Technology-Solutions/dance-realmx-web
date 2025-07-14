@@ -4,6 +4,7 @@ import ResourceDetails from "@/components/curriculum/resource-details";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { Link } from "wouter";
+import CurriculumInfoPage from "./curriculumInfo-page";
 
 const CurriculumDetailsPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -29,7 +30,7 @@ const CurriculumDetailsPage = () => {
       </div>
 
       {resourceId > 0 ? (
-        <ResourceDetails resourceId={resourceId} />
+        <CurriculumInfoPage resourceId={resourceId} />
       ) : (
         <div className="text-center py-12">
           <h1 className="text-2xl font-bold mb-4">Resource Not Found</h1>

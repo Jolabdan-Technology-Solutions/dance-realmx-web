@@ -63,28 +63,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Event Listener for Updates
   // -----------------------
   useEffect(() => {
-    const onProfileImageUpdate = () => {
-      console.log("Profile image updated - refetching user");
+    const onProfileImageUpdate = (event: CustomEvent) => {
+      console.log("=== Profile Image Update Event Received ===");
+      console.log("Event details:", event.detail);
+      console.log("Current user before refetch:", {
+        id: user?.id,
+        profile_image_url: user?.profile_image_url,
+        username: user?.username,
+      });
+
+      // Force immediate refetch
       refetch();
     };
 
     const onAuthRefresh = () => {
-      console.log("Auth refresh triggered");
+      console.log("=== Auth Refresh Event Received ===");
+      console.log("Current user before refresh:", {
+        id: user?.id,
+        profile_image_url: user?.profile_image_url,
+        username: user?.username,
+      });
+
+      // Invalidate queries and refetch
       queryClient.invalidateQueries({ queryKey: ["/api/me"] });
-      setTimeout(() => refetch(), 100);
+
+      // Add a delay to ensure invalidation is processed
+      setTimeout(() => {
+        console.log("Refetching user data after invalidation");
+        refetch();
+      }, 100);
     };
 
-    document.addEventListener("profile-image-updated", onProfileImageUpdate);
+    document.addEventListener(
+      "profile-image-updated",
+      onProfileImageUpdate as EventListener
+    );
     document.addEventListener("auth-refresh-required", onAuthRefresh);
 
     return () => {
       document.removeEventListener(
         "profile-image-updated",
-        onProfileImageUpdate
+        onProfileImageUpdate as EventListener
       );
       document.removeEventListener("auth-refresh-required", onAuthRefresh);
     };
-  }, [refetch]);
+  }, [refetch, user, queryClient]);
 
   // -----------------------
   // Login Mutation

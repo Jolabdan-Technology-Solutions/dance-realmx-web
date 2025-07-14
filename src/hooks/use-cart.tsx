@@ -81,7 +81,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
         requireAuth: true,
       });
       if (!response.ok) throw new Error("Failed to add item to cart");
-      return response.json();
+
+      if (response) {
+        toast({
+          title: "Added to cart",
+          description: `${payload.type} has been added to your cart.`,
+        });
+      }
+      return response;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/cart"] });

@@ -125,206 +125,136 @@ export function FileUpload({
   };
 
   const handleUpload = async () => {
-    if (files.length === 0) return;
+    if (files.length === 0) {
+      setError("No files selected");
+      return;
+    }
 
     setIsUploading(true);
-    setError(null);
-    console.log("Starting file upload to endpoint:", uploadEndpoint);
+    setError("");
 
     try {
+      console.log("=== File Upload Started ===");
+      console.log(
+        "Files to upload:",
+        files.map((f) => ({
+          name: f.name,
+          size: f.size,
+          type: f.type,
+        }))
+      );
+      console.log("Upload endpoint:", uploadEndpoint);
+
       const formData = new FormData();
 
-      // Handle single vs multiple file uploads
-      if (!multiple) {
-        // Single file upload (use the first file)
-        const file = files[0];
-        formData.append("file", file); // IMPORTANT: This field name must be 'file'
-
-        // Add type information for server-side validation
-        formData.append("entity_type", "user");
-
-        // Add metadata based on upload endpoint
-        if (uploadEndpoint.includes("/profile")) {
-          formData.append("type", "profile-image");
-        } else {
-          // For resource uploads, include resource type
-          formData.append("type", "resource");
-        }
-
-        // Log details about the upload
-        console.log("Uploading file:", {
-          name: file.name,
-          type: file.type,
-          size: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
-          endpoint: uploadEndpoint,
-          lastModified: new Date(file.lastModified).toISOString(),
-        });
-
-        // For profile images, we need additional handling
-        if (uploadEndpoint.includes("/profile")) {
-          console.log(
-            "This is a profile image upload - ensuring proper content type"
-          );
-
-          // Make sure we're only uploading images for profile
-          if (!file.type.startsWith("image/")) {
-            throw new Error(
-              "Profile images must be image files (JPG, PNG, etc.)"
-            );
-          }
-        }
-      } else {
-        // Multiple file upload
+      if (multiple) {
         files.forEach((file, index) => {
-          // For multiple files, we'll use a different field name pattern
-          formData.append(`file${index}`, file);
+          console.log(`Adding file ${index + 1} to form data:`, {
+            name: file.name,
+            size: file.size,
+            type: file.type,
+          });
+          formData.append("files", file);
         });
-
-        // Add flags to indicate this is a multi-file upload
-        formData.append("multiple_files", "true");
-        formData.append("file_count", files.length.toString());
-
-        // Add metadata for the upload
-        formData.append("entity_type", "resource");
-        formData.append("type", "resource");
-
-        // Log details about the multi-upload
-        console.log("Uploading multiple files:", {
-          count: files.length,
-          totalSize: `${(files.reduce((total, f) => total + f.size, 0) / 1024 / 1024).toFixed(2)}MB`,
-          endpoint: uploadEndpoint,
+      } else {
+        console.log("Adding single file to form data:", {
+          name: files[0].name,
+          size: files[0].size,
+          type: files[0].type,
         });
+        formData.append("file", files[0]);
       }
 
-      console.log(`Making upload request to ${uploadEndpoint}...`);
-      // Log the formData contents for debugging
-      console.log("FormData entries being sent:");
-
-      // Array.from is compatible with older browsers
-      try {
-        const entries = Array.from(formData.entries());
-        entries.forEach((pair) => {
-          const key = pair[0];
-          const value = pair[1];
-          if (value instanceof File) {
-            console.log(`- ${key}: File[${value.name}, ${value.size} bytes]`);
-          } else {
-            console.log(`- ${key}: ${value}`);
-          }
-        });
-      } catch (err) {
-        console.log("Could not iterate formData entries:", err);
+      // Get auth token
+      const token = localStorage.getItem("access_token");
+      if (!token) {
+        console.error("Upload failed: No auth token found");
+        throw new Error("Authentication required. Please log in again.");
       }
 
-      // Make a native fetch request for more control over the upload process
+      console.log("Making upload request...");
       const response = await fetch(uploadEndpoint, {
         method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
         body: formData,
-        // Don't set Content-Type header; browser will set with boundary for multipart/form-data
-        credentials: "same-origin", // Include session cookies
       });
 
+      console.log("Upload response status:", response.status);
+      console.log(
+        "Upload response headers:",
+        Object.fromEntries(response.headers.entries())
+      );
+
       if (!response.ok) {
-        console.error(
-          "Upload failed with status:",
-          response.status,
-          response.statusText
-        );
+        let errorMessage = `Upload failed: ${response.status} ${response.statusText}`;
 
-        // Try to get more detailed error information
         try {
-          const errorText = await response.text();
-          console.error("Error response text:", errorText);
-
-          let errorData;
-          try {
-            errorData = JSON.parse(errorText);
-            console.error("Error response data:", errorData);
-          } catch (parseError) {
-            console.error("Error response is not JSON:", errorText);
-            errorData = { error: errorText };
-          }
-
-          throw new Error(
-            errorData.message ||
-              errorData.error ||
-              `Upload failed: ${response.statusText}`
-          );
+          const errorData = await response.json();
+          console.error("Upload error response:", errorData);
+          errorMessage = errorData.message || errorData.error || errorMessage;
         } catch (parseError) {
-          throw new Error(
-            `Upload failed with status ${response.status}: ${response.statusText}`
-          );
+          console.error("Failed to parse error response:", parseError);
+          const errorText = await response.text();
+          console.error("Raw error response:", errorText);
         }
+
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
-      console.log("Upload successful, received response:", data);
+      console.log("Upload response data:", data);
 
-      // Handle the response differently for multiple files vs. single file
-      if (multiple && data.urls) {
+      if (multiple) {
         // Handle multiple file upload response
-        console.log(
-          "Multiple file upload successful, received URLs:",
-          data.urls
-        );
+        if (!Array.isArray(data)) {
+          console.error(
+            "Expected array response for multiple files, got:",
+            typeof data
+          );
+          throw new Error("Invalid response format for multiple files");
+        }
 
-        // Ensure all URLs are absolute and add cache busting
-        const timestamp = Date.now();
-        const processedUrls: string[] = [];
-        const filesMetadata: FileMetadata[] = [];
-
-        // Process each URL in the response
-        data.urls.forEach((url: string, index: number) => {
-          // Ensure the URL is absolute
-          let baseUrl = url.split("?")[0]; // Remove any query parameters
-
-          // If it's a relative URL, convert to absolute
-          if (
-            baseUrl.startsWith("/") &&
-            !baseUrl.startsWith("//") &&
-            typeof window !== "undefined"
-          ) {
-            baseUrl = `${window.location.origin}${baseUrl}`;
+        const urls = data.map((item, index) => {
+          const url = item.url || item.image_url || item.file_url;
+          if (!url) {
+            console.error(`No URL found for file ${index + 1}:`, item);
+            throw new Error(`No URL found for file ${index + 1}`);
           }
-
-          // Add a cache-busting parameter
-          const cacheBustedUrl = `${baseUrl}?t=${timestamp}`;
-          processedUrls.push(baseUrl); // We'll use the non-cache-busted URL for the callback
-
-          // Create metadata for this file
-          filesMetadata.push({
-            size: data.sizes?.[index] || 0,
-            name:
-              data.original_names?.[index] ||
-              baseUrl.split("/").pop() ||
-              `file-${index}`,
-            type:
-              data.mimetypes?.[index] ||
-              files[index]?.type ||
-              "application/octet-stream",
-          });
+          return url;
         });
 
-        // Update the previews with the processed URLs
-        setPreviews(processedUrls);
+        console.log("Multiple file URLs:", urls);
+        setPreviews(urls);
 
-        // Call the parent component's callback with all URLs and metadata
-        onUploadComplete(processedUrls, filesMetadata);
+        const fileMetadataArray: FileMetadata[] = data.map((item, index) => ({
+          size: item.size || files[index]?.size || 0,
+          name: item.original_name || files[index]?.name || `file-${index + 1}`,
+          type:
+            item.mimetype || files[index]?.type || "application/octet-stream",
+        }));
 
-        // Emit a generic event for multiple file upload completion
-        const multiUploadEvent = new CustomEvent("files-upload-complete", {
+        onUploadComplete(urls, fileMetadataArray);
+
+        // Dispatch event for multiple uploads
+        const multiUploadEvent = new CustomEvent("file-upload-complete", {
           detail: {
-            urls: processedUrls,
-            timestamp: timestamp,
-            count: processedUrls.length,
+            urls: urls,
+            fileIds: data.map((item) => item.fileId || null),
+            fileTypes: files.map((file) => file.type),
+            fileNames: files.map((file) => file.name),
           },
         });
         document.dispatchEvent(multiUploadEvent);
       } else {
         // Handle single file upload response
+        console.log("Processing single file upload response");
+
         // Get the URL from the response (could be returned with various property names)
         const responseUrl =
           data.url || data.image_url || data.file_url || data.profile_image_url;
+
         if (!responseUrl) {
           console.error("No URL found in response:", data);
           throw new Error("No URL found in upload response");
@@ -356,15 +286,24 @@ export function FileUpload({
 
         // Create file metadata
         const fileMetadata: FileMetadata = {
-          size: data.size || 0,
+          size: data.size || data.uploadInfo?.size || files[0]?.size || 0,
           name:
-            data.original_name || baseUrl.split("/").pop() || "uploaded-file",
-          type: data.mimetype || files[0]?.type || "application/octet-stream",
+            data.uploadInfo?.originalName ||
+            data.original_name ||
+            baseUrl.split("/").pop() ||
+            "uploaded-file",
+          type:
+            data.uploadInfo?.mimetype ||
+            data.mimetype ||
+            files[0]?.type ||
+            "application/octet-stream",
         };
 
         // Special handling for profile image uploads
         if (uploadEndpoint.includes("/profile")) {
+          console.log("=== Profile Image Upload Processing ===");
           console.log("Profile image updated, refreshing user data");
+          console.log("User data from response:", data.user);
 
           // Dispatch an event to notify other components about the profile update
           const profileUpdateEvent = new CustomEvent("profile-image-updated", {
@@ -373,16 +312,23 @@ export function FileUpload({
               cacheBustedUrl: cacheBustedUrl,
               timestamp: timestamp,
               fileId: data.fileId || null,
+              userData: data.user,
             },
           });
+          console.log(
+            "FileUpload - Dispatching profile-image-updated event:",
+            profileUpdateEvent.detail
+          );
           document.dispatchEvent(profileUpdateEvent);
 
           // Force refresh the Auth context by emitting another event
           const authRefreshEvent = new CustomEvent("auth-refresh-required");
+          console.log("FileUpload - Dispatching auth-refresh-required event");
           document.dispatchEvent(authRefreshEvent);
 
           // Add a slight delay to ensure the server has processed everything
           setTimeout(() => {
+            console.log("Calling onUploadComplete for profile image");
             onUploadComplete(baseUrl, fileMetadata);
           }, 200);
         } else {
@@ -390,8 +336,8 @@ export function FileUpload({
           console.log(
             "Sending URL to parent component:",
             baseUrl,
-            "with size:",
-            data.size
+            "with metadata:",
+            fileMetadata
           );
           onUploadComplete(baseUrl, fileMetadata);
         }
@@ -409,10 +355,31 @@ export function FileUpload({
         });
         document.dispatchEvent(singleUploadEvent);
       }
+
+      console.log("=== File Upload Completed Successfully ===");
     } catch (err) {
+      console.error("=== File Upload Failed ===");
+      console.error("Upload error details:", {
+        message: (err as Error).message,
+        stack: (err as Error).stack,
+        name: (err as Error).name,
+      });
+
       const errorMessage = (err as Error).message || "Failed to upload file";
       setError(errorMessage);
-      console.error("Upload error:", errorMessage, err);
+
+      // Show user-friendly error message
+      if (errorMessage.includes("Authentication required")) {
+        setError("Please log in again to upload files");
+      } else if (errorMessage.includes("File too large")) {
+        setError("File is too large. Please choose a smaller file.");
+      } else if (errorMessage.includes("Invalid file type")) {
+        setError("File type not supported. Please choose a different file.");
+      } else if (errorMessage.includes("No file uploaded")) {
+        setError("Please select a file to upload.");
+      } else {
+        setError(`Upload failed: ${errorMessage}`);
+      }
     } finally {
       setIsUploading(false);
     }

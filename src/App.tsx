@@ -99,12 +99,14 @@ const BookingPage = lazy(() => import("@/pages/booking-page"));
 const MyBookingsPage = lazy(() => import("@/pages/my-bookings-page"));
 
 // Curriculum Resource Module
-const CurriculumPage = lazy(
-  () => import("@/pages/curriculum/curriculum-page-simple")
+const CurriculumInfoPage = lazy(
+  () => import("@/pages/curriculum/curriculum-info-wrapper")
 );
-// const CurriculumPageCombined = lazy(
-//   // () => import("@/pages/curriculum/curriculum-page-combined")
-// );
+
+const CurriculumPage = lazy(() => import("@/pages/curriculum-page-simple"));
+// const CurriculumInfoPage = lazy(
+//   () => import("@/pages/curriculum/curriculumInfo-page")
+// )
 const ResourceDetailsPage = lazy(
   () => import("@/pages/curriculum/curriculum-details-page")
 );
@@ -133,6 +135,12 @@ const SubscriptionSuccessPage = createLazyComponent(
 const CartPage = createLazyComponent(() => import("./pages/cart-page"));
 const CheckoutPage = createLazyComponent(
   () => import("./pages/checkout-page-new")
+);
+const CheckoutCompletePage = createLazyComponent(
+  () => import("./pages/checkout-page-complete")
+);
+const CheckoutSuccessPage = createLazyComponent(
+  () => import("./pages/checkout-success")
 );
 const StripeCheckoutPage = createLazyComponent(
   () => import("./pages/checkout/stripe")
@@ -193,6 +201,10 @@ const getBooked = createLazyComponent(
 
 const bookProfessional = createLazyComponent(
   () => import("./pages/instructor/book-professional-page")
+);
+
+const InstructorCoursesPage = lazy(
+  () => import("@/pages/instructor/instructor-detail-page")
 );
 
 // Admin Pages
@@ -311,6 +323,7 @@ const Pages = {
   SellerStore: withLayout(SellerStorePage),
   SellerDashboard: withLayout(SellerDashboardPage),
   SellerPayments: withLayout(SellerPaymentsPage),
+  CurriculumInfoPage: withLayout(CurriculumInfoPage),
 
   // Subscription Module
   Subscription: withLayout(SubscriptionPage),
@@ -319,6 +332,8 @@ const Pages = {
   // Shopping Cart and Checkout Module
   Cart: withLayout(CartPage),
   Checkout: withLayout(CheckoutPage),
+  CheckoutComplete: withLayout(CheckoutCompletePage),
+  CheckoutSuccess: withLayout(CheckoutSuccessPage),
   StripeCheckout: withLayout(StripeCheckoutPage),
   SimpleCheckout: withLayout(SimpleCheckoutPage),
   PaymentSuccess: withLayout(PaymentSuccessPage),
@@ -343,6 +358,7 @@ const Pages = {
   IssueCertificate: withLayout(IssueCertificatePage),
   CourseEdit: withLayout(CourseEditPages),
   instructorModulePage: withLayout(instructorModulePage),
+  InstructorCourses: withLayout(InstructorCoursesPage),
 
   // Admin Pages
   AdminDashboard: withAdminLayout(AdminDashboardPage),
@@ -457,8 +473,14 @@ function Router() {
         <ProtectedRoute path="/my-bookings" component={Pages.MyBookings} />
 
         {/* Curriculum Resource Module */}
-        <GuestRoute path="/curriculum" component={Pages.Curriculum} />
 
+        <GuestRoute
+          path="/curriculum/:resourceId"
+          component={Pages.CurriculumInfoPage}
+        />
+
+        <GuestRoute path="/curriculum" component={Pages.Curriculum} />
+        <Route path="/curriculum/:id" component={Pages.Curriculum} />
         <GuestRoute
           path="/curriculum/:resourceId"
           component={Pages.ResourceDetails}
@@ -538,6 +560,14 @@ function Router() {
         {/* Shopping Cart and Checkout Module */}
         <Route path="/cart" component={Pages.Cart} />
         <ProtectedRoute path="/checkout" component={Pages.Checkout} />
+        <ProtectedRoute
+          path="/checkout-complete"
+          component={Pages.CheckoutComplete}
+        />
+        <ProtectedRoute
+          path="/checkout/success"
+          component={Pages.CheckoutSuccess}
+        />
         <Route path="/checkout/stripe" component={Pages.StripeCheckout} />
         <Route path="/simple-checkout" component={Pages.SimpleCheckout} />
         <Route path="/payment-success" component={Pages.PaymentSuccess} />
@@ -614,6 +644,10 @@ function Router() {
         <ProtectedRoute
           path="/instructor/instructor-module-page"
           component={Pages.instructorModulePage}
+        />
+        <Route
+          path="/instructors/:instructorId/courses"
+          component={Pages.InstructorCourses}
         />
 
         {/* Admin Routes */}

@@ -3,6 +3,7 @@ import { useAuth, AuthContext } from "../hooks/use-auth";
 import { Redirect, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+// import { useEffect, useState } from "react";
 import { z } from "zod";
 import { Button } from "../components/ui/button";
 import {
@@ -32,6 +33,7 @@ import {
   CardDescription,
   CardFooter,
 } from "../components/ui/card";
+import { HeroSlider } from "@/components/heroSlider";
 
 // Define form schemas for login only
 const loginSchema = z.object({
@@ -112,6 +114,13 @@ function AuthPageWithAuth() {
     email: "",
     subscription_plan: "free",
   });
+
+  
+const backgroundImages = [
+  "/images/bg1.jpg",
+  "/images/bg2.jpg",
+  "/images/bg3.jpg",
+];
 
   const [selectedPlan, setSelectedPlan] = useState<string>("free");
 
@@ -731,8 +740,15 @@ function AuthPageWithAuth() {
               </Tabs>
             </div>
 
-            {/* Hero Section */}
-            <div className="lg:w-1/2 bg-[#0A141E] p-8 flex flex-col justify-center h-screen max-h-screen sticky top-24">
+            {/* Hero Section
+            <div className="relative lg:w-1/2 p-8 flex flex-col justify-center h-screen max-h-screen sticky top-24">
+            <div className="absolute inset-0 transition-opacity duration-1000 ease-in-out z-0">
+        <img
+          src={backgroundImages[currentImage]}
+          alt="Background"
+          className="w-full h-full object-cover opacity-40"
+        />
+      </div>
               <div className="text-center lg:text-left">
                 <h1 className="text-3xl font-bold mb-4">DanceRealmX</h1>
                 <h2 className="text-2xl font-semibold mb-6">
@@ -791,7 +807,8 @@ function AuthPageWithAuth() {
                   </li>
                 </ul>
               </div>
-            </div>
+            </div> */}
+            <HeroSlider/>
           </div>
         </div>
       </main>
@@ -803,6 +820,8 @@ function AuthPageWithAuth() {
 export default function AuthPage() {
   // Use the hook directly to ensure we get the latest auth state
   const { user, isLoading } = useAuth();
+  
+
 
   // Get return URL from query parameters
   const [returnUrl, setReturnUrl] = useState<string>("/dashboard");

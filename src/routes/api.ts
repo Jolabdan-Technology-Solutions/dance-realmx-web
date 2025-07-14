@@ -1,6 +1,10 @@
 import { Router } from "express";
 import { getUserFeatures, checkFeatureAccess } from "@/controllers/features";
-import { getSubscriptionPlans, createCheckoutSession } from "@/controllers/subscriptions";
+import {
+  getSubscriptionPlans,
+  createCheckoutSession,
+} from "@/controllers/subscriptions";
+import { getQuizzesForCourse } from "@/controllers/quizzes";
 import { authenticate } from "@/middleware/auth";
 
 const router = Router();
@@ -13,4 +17,7 @@ router.get("/features/check/:featureKey", authenticate, checkFeatureAccess);
 router.get("/subscriptions/plans", getSubscriptionPlans);
 router.post("/subscriptions/checkout", authenticate, createCheckoutSession);
 
-export default router; 
+// Quiz routes
+router.get("/courses/:courseId/quizzes", authenticate, getQuizzesForCourse);
+
+export default router;
