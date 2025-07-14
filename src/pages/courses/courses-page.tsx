@@ -542,10 +542,6 @@ export default function CoursesPage() {
                     }
                     alt={course.title}
                     className="w-full h-80 object-cover"
-                    onError={(e) => {
-                      e.currentTarget.src =
-                        "/placeholder.svg?height=192&width=384";
-                    }}
                   />
                   {(course as any).featured && (
                     <div className="absolute top-2 left-2 rounded-full bg-yellow-600 text-white px-2 py-1 text-xs font-bold">
@@ -670,7 +666,7 @@ export default function CoursesPage() {
                   <CardHeader className="p-0">
                     <div className="relative h-48 w-full overflow-hidden">
                       <img
-                        src={getImagePath(category.name) || "/placeholder.svg"}
+                        src={getImagePath(category.name) || ""}
                         alt={`${category.name} Dance`}
                         className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300"
                       />

@@ -51,38 +51,27 @@ export function useCheckout() {
 
   // Checkout cart mutation
   const checkoutMutation = useMutation({
-    mutationFn: async (): Promise<CheckoutResult> => {
-      try {
-        if (!user) {
-          throw new Error("You must be logged in to checkout");
-        }
-
-        const response = await apiRequest("/api/cart/checkout", {
-          method: "POST",
-          requireAuth: true,
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.message || "Checkout failed");
-        }
-
-        return response.client_secret;
-      } catch (error: any) {
-        throw new Error(error?.message || "Checkout failed");
+    mutationFn: async (): Promise<string> => {
+      if (!user) {
+        throw new Error("You must be logged in to checkout");
       }
+      const response = await apiRequest("/api/cart/checkout", {
+        method: "POST",
+        requireAuth: true,
+      });
+      // Assume response.checkoutUrl is the payment URL string
+      if (!response.checkoutUrl) {
+        throw new Error("No payment URL returned from server");
+      }
+      return response.checkoutUrl;
     },
-    onSuccess: (data) => {
+    onSuccess: (checkoutUrl) => {
       setStatus("success");
       setError(null);
-
       // Invalidate cart queries to refresh the cart state
       queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
-
-      toast({
-        title: "Order Created",
-        description: `Order #${data.order.id} has been created successfully`,
-      });
+      // Redirect to payment URL
+      window.location.href = checkoutUrl;
     },
     onError: (err: Error) => {
       setStatus("error");
@@ -90,7 +79,6 @@ export function useCheckout() {
         message: err.message,
         code: "CHECKOUT_FAILED",
       });
-
       toast({
         title: "Checkout Failed",
         description: err.message,
