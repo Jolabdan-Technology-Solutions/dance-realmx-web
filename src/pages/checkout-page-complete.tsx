@@ -29,6 +29,20 @@ import { loadStripeConfig } from "@/lib/stripe-config";
 // Initialize Stripe
 const stripePromise = loadStripe(loadStripeConfig().publishableKey);
 
+type CartItem = {
+  id: number;
+  user_id: number;
+  course_id: number | null;
+  resource_id: number | null;
+  quantity: number;
+  created_at: string;
+  updated_at: string;
+  user?: any;
+  course?: any;
+  resource?: any; // <-- Add this line
+  itemDetails?: any;
+};
+
 export default function CheckoutPageComplete() {
   const [, navigate] = useLocation();
   const { user, isLoading: authLoading } = useAuth();
@@ -143,7 +157,7 @@ export default function CheckoutPageComplete() {
       <div className="px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <Button onClick={() => navigate(-1)} className="mb-4">
+          <Button onClick={() => navigate("/")} className="mb-4">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>
