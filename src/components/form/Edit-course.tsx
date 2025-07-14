@@ -261,10 +261,10 @@ export default function CourseDetailPage() {
         shortName: course.shortName || "",
         description: course.description || "",
         detailedDescription: "",
-        imageUrl: course.imageUrl || "",
+        imageUrl: course.image_url || "",
         price: course.price?.toString() || "",
-        categoryId: course.categoryId,
-        difficultyLevel: course.level || "beginner",
+        categoryId: course.category_id || null,
+        difficultyLevel: course.difficulty_level || "beginner",
         estimatedDuration: course.duration || "",
         visible: course.visible,
         fullVideoUrl: "",
@@ -347,7 +347,7 @@ export default function CourseDetailPage() {
   if (
     course &&
     user &&
-    course.instructorId !== user.id &&
+    course.instructor_id !== user.id &&
     !user?.role.includes("ADMIN")
   ) {
     return (
@@ -1155,7 +1155,7 @@ function EnrollStudentDialog({ courseId }: { courseId: number }) {
         `/api/users/search?q=${encodeURIComponent(searchQuery)}&role=student`
       );
       if (!res.ok) throw new Error("Failed to search users");
-      return res;
+      return res.json();
     },
     enabled: searchQuery.length >= 3,
   });
@@ -1164,7 +1164,10 @@ function EnrollStudentDialog({ courseId }: { courseId: number }) {
   const enrollStudentMutation = useMutation({
     mutationFn: async (studentId: number) => {
       const data = { userId: studentId, courseId };
-      const res = await apiRequest("POST", "/api/enrollments", data);
+      const res = await apiRequest("/api/enrollments", {
+        method: "POST",
+        data: data,
+      });
       return res;
     },
     onSuccess: () => {
@@ -1612,7 +1615,8 @@ function IssueCertificateDialog({
     queryKey: ["/api/courses", courseId],
     queryFn: async () => {
       const res = await fetch(`/api/courses/${courseId}`);
-      return res;
+      if (!res.ok) throw new Error("Failed to fetch course");
+      return res.json();
     },
   });
 
@@ -1621,7 +1625,8 @@ function IssueCertificateDialog({
     queryKey: ["/api/certificate-templates"],
     queryFn: async () => {
       const res = await fetch("/api/certificate-templates");
-      return res;
+      if (!res.ok) throw new Error("Failed to fetch templates");
+      return res.json();
     },
   });
 
@@ -1633,7 +1638,8 @@ function IssueCertificateDialog({
       if (res.status === 404) {
         return null;
       }
-      return res;
+      if (!res.ok) throw new Error("Failed to fetch default template");
+      return res.json();
     },
     retry: (failureCount, error: any) => {
       // Don't retry on 404
@@ -1660,7 +1666,10 @@ function IssueCertificateDialog({
         certificateId: `CERT-${courseId}-${studentId}-${Date.now().toString(36).toUpperCase()}`,
         templateId: selectedTemplateId,
       };
-      const res = await apiRequest("POST", "/api/certificates", data);
+      const res = await apiRequest("/api/certificates", {
+        method: "POST",
+        data: data,
+      });
       return res;
     },
     onSuccess: () => {
@@ -1941,7 +1950,7 @@ function QuizList({ courseId }: { courseId: number }) {
                     Associated Module:
                   </span>
                   <span className="font-medium">
-                    {getModuleName(quiz.moduleId)}
+                    {getModuleName(quiz.moduleId || null)}
                   </span>
                 </div>
                 {quiz.lessonId && (
@@ -2108,13 +2117,13 @@ function QuizDialog({
       if (!quizId) return [];
       const res = await fetch(`/api/quiz-questions?quizId=${quizId}`);
       if (!res.ok) throw new Error("Failed to fetch quiz questions");
-      return res;
+      return res.json();
     },
     enabled: !!quizId,
-    onSuccess: (data) => {
+    onSuccess: (data: QuizQuestion[]) => {
       if (data && data.length > 0) {
         setQuestions(
-          data.map((q) => ({
+          data.map((q: QuizQuestion) => ({
             id: q.id,
             question: q.question,
             options: q.options || [],
@@ -2134,7 +2143,7 @@ function QuizDialog({
       if (!selectedModuleId) return [];
       const res = await fetch(`/api/lessons?moduleId=${selectedModuleId}`);
       if (!res.ok) throw new Error("Failed to fetch lessons");
-      return res;
+      return res.json();
     },
     enabled: !!selectedModuleId,
   });
@@ -2780,8 +2789,8 @@ function ModuleDialog({
     defaultValues: {
       title: existingModule?.title || "",
       description: existingModule?.description || "",
-      course_id: existingModule?.courseId || courseId || 0,
-      order: existingModule?.orderIndex || 0,
+      course_id: existingModule?.course_id || courseId || 0,
+      order: existingModule?.order || 0,
     },
   });
 

@@ -20,4 +20,27 @@ export default defineConfig({
       usePolling: true,
     },
   },
+  build: {
+    outDir: "dist",
+    sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ["react", "react-dom"],
+          ui: [
+            "@radix-ui/react-dialog",
+            "@radix-ui/react-select",
+            "@radix-ui/react-tabs",
+          ],
+        },
+      },
+    },
+  },
+  preview: {
+    port: 4173,
+    host: true,
+  },
+  optimizeDeps: {
+    include: ["react", "react-dom"],
+  },
 });
