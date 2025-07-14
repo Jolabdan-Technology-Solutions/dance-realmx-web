@@ -264,12 +264,35 @@ export const ComprehensiveRecommendations: React.FC<
             )}
 
           {/* Availability */}
-          {professional.availability && (
-            <div>
-              <h3 className="font-semibold text-lg mb-2">Availability</h3>
-              <p className="text-gray-700">{professional.availability}</p>
-            </div>
-          )}
+          {professional.availability &&
+            Array.isArray(professional.availability) &&
+            professional.availability.length > 0 && (
+              <div>
+                <h3 className="font-semibold text-lg mb-2">Availability</h3>
+                <ul className="space-y-2">
+                  {professional.availability.map((slot: any, idx: number) => (
+                    <li key={idx} className="border rounded p-2">
+                      <div className="font-medium">
+                        {slot.start_date === slot.end_date
+                          ? slot.start_date
+                          : `${slot.start_date} to ${slot.end_date}`}
+                      </div>
+                      {slot.time_slots && slot.time_slots.length > 0 ? (
+                        <ul className="ml-4 list-disc">
+                          {slot.time_slots.map((time: string, tIdx: number) => (
+                            <li key={tIdx}>{time}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <div className="ml-4 text-sm text-muted-foreground">
+                          No available slots
+                        </div>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
           {/* Action Buttons */}
           <div className="flex gap-2 pt-4 border-t">
