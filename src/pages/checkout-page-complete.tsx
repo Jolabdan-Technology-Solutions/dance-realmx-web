@@ -139,11 +139,11 @@ export default function CheckoutPageComplete() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gray-50 pt-4 pb-8">
       <div className="px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
+          <Button onClick={() => navigate(-1)} className="mb-4">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>
@@ -183,14 +183,14 @@ export default function CheckoutPageComplete() {
                     >
                       <div className="flex-1">
                         <h4 className="font-medium">
-                          {item.title || item.details?.title}
+                          {item.title || item.resource?.title}
                         </h4>
-                        <p className="text-sm text-gray-600">
-                          {item.type === "course" ? "Course" : "Resource"}
+                        <p className="text-sm text-gray-300 py-1">
+                          {item?.resource?.type}
                         </p>
-                        {item.quantity > 1 && (
-                          <p className="text-sm text-gray-500">
-                            Quantity: {item.quantity}
+                        {item.quantity && (
+                          <p className="text-sm text-white">
+                            Quantity: {item?.quantity}
                           </p>
                         )}
                       </div>
@@ -198,8 +198,8 @@ export default function CheckoutPageComplete() {
                         <p className="font-medium">
                           {formatCurrency(
                             parseFloat(
-                              item.price || item.details?.price || "0"
-                            ) * item.quantity
+                              item.price || item.resource?.price || "0"
+                            ) * item?.quantity
                           )}
                         </p>
                       </div>
