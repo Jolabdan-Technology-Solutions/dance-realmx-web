@@ -52,21 +52,25 @@ export function useCheckout() {
   // Checkout cart mutation
   const checkoutMutation = useMutation({
     mutationFn: async (): Promise<CheckoutResult> => {
-      if (!user) {
-        throw new Error("You must be logged in to checkout");
+      try {
+        if (!user) {
+          throw new Error("You must be logged in to checkout");
+        }
+
+        const response = await apiRequest("/api/cart/checkout", {
+          method: "POST",
+          requireAuth: true,
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || "Checkout failed");
+        }
+
+        return response.client_secret;
+      } catch (error: any) {
+        throw new Error(error?.message || "Checkout failed");
       }
-
-      const response = await apiRequest("/api/cart/checkout", {
-        method: "POST",
-        requireAuth: true,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || "Checkout failed");
-      }
-
-      return response.json();
     },
     onSuccess: (data) => {
       setStatus("success");
@@ -151,8 +155,8 @@ export function useCheckout() {
     setError(null);
 
     try {
-      const result = await checkoutMutation.mutateAsync();
-      return result;
+      const clientSecret = await checkoutMutation.mutateAsync();
+      return clientSecret;
     } catch (err) {
       // Error is handled by mutation
       return null;

@@ -38,6 +38,7 @@ export default function CheckoutPageComplete() {
     itemCount,
     isLoading: cartLoading,
   } = useCart();
+
   const {
     status: checkoutStatus,
     error: checkoutError,
@@ -139,7 +140,7 @@ export default function CheckoutPageComplete() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
           <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
@@ -185,7 +186,7 @@ export default function CheckoutPageComplete() {
                           {item.title || item.details?.title}
                         </h4>
                         <p className="text-sm text-gray-600">
-                          {item.itemType === "course" ? "Course" : "Resource"}
+                          {item.type === "course" ? "Course" : "Resource"}
                         </p>
                         {item.quantity > 1 && (
                           <p className="text-sm text-gray-500">
