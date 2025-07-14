@@ -15,8 +15,7 @@ export type CartItem = {
   id: number;
   title: string;
   price: string;
-  itemType: "course" | "resource";
-  itemId: number;
+  type: string;
   quantity: number;
   imageUrl?: string;
   details?: any;
@@ -146,8 +145,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         try {
           for (const item of guestCart.items) {
             await addItemMutation.mutateAsync({
-              type: "RESOURCE",
-              itemId: item.itemId,
+              type: item.type,
+              itemId: item.id,
             });
           }
           // Clear guest cart after successful merge
@@ -204,8 +203,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const addItem = (item: Omit<CartItem, "id"> & { id?: number }) => {
     if (isAuthenticated) {
       addItemMutation.mutate({
-        type: "RESOURCE",
-        itemId: item.itemId,
+        type: item.type,
+        itemId: item.id,
       });
       toast({
         title: "Item Added",
@@ -216,8 +215,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         id: item.id || Date.now(),
         title: item.title,
         price: item.price,
-        itemType: item.itemType,
-        itemId: item.itemId,
+        type: item.type,
         quantity: item.quantity,
         imageUrl: item.imageUrl,
       });

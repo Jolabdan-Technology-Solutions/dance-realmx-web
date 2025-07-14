@@ -257,17 +257,13 @@ export default function CurriculumPageSimple() {
             {filteredResources.map((resource) => (
               <Card
                 key={resource.id}
-                className="bg-gray-900 border border-gray-800 text-white flex flex-col md:flex-row h-full"
+                className="bg-gray-900 border border-gray-800 text-white flex flex-col md:flex-row"
               >
                 <CardHeader className="p-0 relative">
-                  <div className="relative aspect-[4/3] overflow-hidden bg-gray-800">
+                  <div className="relative  overflow-hidden bg-gray-800 h-60 lg:96">
                     <img
-                      src={
-                        resource.thumbnailUrl ||
-                        resource.imageUrl ||
-                        "/placeholder.svg?height=300&width=400"
-                      }
-                      className="w-full h-full object-cover"
+                      src={resource.thumbnailUrl || resource.imageUrl}
+                      className="w-full h-full object-cover aspect-video"
                       alt={`thumbnail ${resource?.title}`}
                     />
                   </div>
@@ -328,29 +324,29 @@ export default function CurriculumPageSimple() {
                       </span>
                     )}
                   </div>
-                  <div className="flex gap-2 mt-auto">
-                    <Button
-                      onClick={() => addToCart(resource)}
-                      size="sm"
-                      className="bg-green-600 hover:bg-green-700 text-white"
-                    >
-                      Add to cart
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-gray-600 text-white"
-                    >
-                      Wish List
-                    </Button>
-                    <a
-                      href={resource.sellerUrl || "#"}
-                      className="text-xs text-blue-400 hover:underline ml-2"
-                    >
-                      More from this seller
-                    </a>
-                  </div>
                 </CardContent>
+                <div className="flex gap-2 items-center p-4 mt-auto">
+                  <Button
+                    onClick={() => addToCart(resource)}
+                    size="sm"
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    Add to cart
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-gray-600 text-white"
+                  >
+                    Wish List
+                  </Button>
+                  <a
+                    href={resource.sellerUrl || "#"}
+                    className="text-xs text-blue-400 hover:underline ml-2"
+                  >
+                    More from this seller
+                  </a>
+                </div>
               </Card>
             ))}
           </div>
