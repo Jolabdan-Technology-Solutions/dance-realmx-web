@@ -102,21 +102,21 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       href: "/admin/resource-categories",
       icon: <Package className="h-5 w-5" />,
     },
-    {
-      title: "Bookings",
-      href: "/admin/bookings",
-      icon: <Calendar className="h-5 w-5" />,
-    },
-    {
-      title: "Subscription Plans",
-      href: "/admin/subscription-plans",
-      icon: <CreditCard className="h-5 w-5" />,
-    },
-    {
-      title: "Documentation",
-      href: "/admin/documentation",
-      icon: <BookMarked className="h-5 w-5" />,
-    },
+    // {
+    //   title: "Bookings",
+    //   href: "/admin/bookings",
+    //   icon: <Calendar className="h-5 w-5" />,
+    // },
+    // {
+    //   title: "Subscription Plans",
+    //   href: "/admin/subscription-plans",
+    //   icon: <CreditCard className="h-5 w-5" />,
+    // },
+    // {
+    //   title: "Documentation",
+    //   href: "/admin/documentation",
+    //   icon: <BookMarked className="h-5 w-5" />,
+    // },
   ];
 
   const curriculumOfficerNavItems = [
@@ -221,16 +221,16 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       href: "/instructor/availability",
       icon: <Calendar className="h-5 w-5" />,
     },
-    {
-      title: "Bookings",
-      href: "/instructor/bookings",
-      icon: <Calendar className="h-5 w-5" />,
-    },
-    {
-      title: "Messages",
-      href: "/instructor/messages",
-      icon: <MessageSquare className="h-5 w-5" />,
-    },
+    // {
+    // //   title: "Bookings",
+    // //   href: "/instructor/bookings",
+    // //   icon: <Calendar className="h-5 w-5" />,
+    // // },
+    // // {
+    //   title: "Messages",
+    //   href: "/instructor/messages",
+    //   icon: <MessageSquare className="h-5 w-5" />,
+    // },
     {
       title: "Settings",
       href: "/instructor/settings",

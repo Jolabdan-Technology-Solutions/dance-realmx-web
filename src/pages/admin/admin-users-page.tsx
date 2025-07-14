@@ -1185,7 +1185,7 @@ export default function AdminUsersPage() {
                       <TableRow>
                         <TableHead>User</TableHead>
                         <TableHead>Email</TableHead>
-                        <TableHead>Role</TableHead>
+                        {/* <TableHead>Role</TableHead> */}
                         <TableHead>Subscription</TableHead>
                         <TableHead>Created</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
@@ -1232,7 +1232,7 @@ export default function AdminUsersPage() {
                                 "—"
                               )}
                             </TableCell>
-                            <TableCell>{getRoleBadge(user)}</TableCell>
+                            {/* <TableCell>{getRoleBadge(user)}</TableCell> */}
                             <TableCell>
                               {getSubscriptionBadge(user.subscription_tier)}
                             </TableCell>

@@ -103,9 +103,7 @@ const CurriculumInfoPage = lazy(
   () => import("@/pages/curriculum/curriculum-info-wrapper")
 );
 
-const CurriculumPage = lazy(
-  () => import("@/pages/curriculum/curriculum-page-simple")
-);
+const CurriculumPage = lazy(() => import("@/pages/curriculum-page-simple"));
 // const CurriculumInfoPage = lazy(
 //   () => import("@/pages/curriculum/curriculumInfo-page")
 // )

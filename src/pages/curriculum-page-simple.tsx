@@ -1,8 +1,7 @@
-import { useState, useEffect } from "react";
-import { Link } from "wouter";
-import { Filter } from "lucide-react";
-import { Button } from "../components/ui/button";
+import { useState, useEffect, useRef } from "react";
+import Navbar from "../components/layout/navbar";
 import { Input } from "../components/ui/input";
+import { Button } from "../components/ui/button";
 import {
   Card,
   CardContent,
@@ -18,21 +17,21 @@ import { useToast } from "../hooks/use-toast";
 import { useCart } from "../hooks/use-cart";
 import { useGuestCart } from "../hooks/use-guest-cart";
 import { api } from "../lib/api";
-import { Checkbox } from "../components/ui/checkbox";
 import { ResourceDetailsModal } from "../components/curriculum/resource-details-modal";
 
-// Define filter types
-type FilterState = {
-  priceRange: string[];
-  danceStyles: string[];
-  ageRanges: string[];
-  difficultyLevel: string[];
-  sellers: string[];
-  resourceFormat: string[];
-  showFilters: boolean;
-};
+// Filter options (could be fetched from API in real app)
+const AGE_OPTIONS = ["Preschool", "5-7", "8-12", "13-18", "18+"];
+const STYLE_OPTIONS = ["Ballet", "Hip Hop", "Contemporary", "Jazz", "Tap"];
+const PRICE_OPTIONS = ["Free", "$0-10", "$10-20", "$20-30", "$30+"];
+const FORMAT_OPTIONS = [
+  "Video",
+  "PDF",
+  "Audio",
+  "Interactive",
+  "Lesson Plan",
+  "Choreography",
+];
 
-// A simplified version of the curriculum page to use as a fallback
 export default function CurriculumPageSimple() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
@@ -42,66 +41,45 @@ export default function CurriculumPageSimple() {
   const [selectedResource, setSelectedResource] = useState<any>(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
 
-  // Initialize filter state
-  const [filters, setFilters] = useState<FilterState>({
-    price: [],
-    danceStyle: [],
-    ageRange: [],
-    difficultyLevel: [],
-    seller: [],
-    resourceFormat: [],
-    showFilters: false,
+  // Filter state
+  const [filters, setFilters] = useState({
+    age: "",
+    style: "",
+    price: "",
+    format: "",
   });
+  // Dropdown open state
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  // All filters modal state
+  const [showAllFilters, setShowAllFilters] = useState(false);
 
-  // Use try-catch to handle the case when AuthContext is not available
+  // Cart logic
   let user = null;
   try {
     const auth = useAuth();
     user = auth.user;
-  } catch (error) {
-    // If AuthContext is not available, user remains null (guest mode)
-    console.log("Auth context not available, using guest mode");
-  }
-
-  // Get the appropriate cart hook based on authentication status
+  } catch {}
   const authCart = useCart();
   const guestCart = useGuestCart();
-
   const addToAuthCart = (item: any) => authCart.addItem(item);
   const addToGuestCart = (item: any) => guestCart.addItem(item);
+  const addToCart = (resource: any) => {
+    if (user) {
+      addToAuthCart(resource);
+    } else {
+      addToGuestCart(resource);
+    }
+  };
 
-  // Fetch resources from API
+  // Fetch resources
   useEffect(() => {
-    const fetchResources = async (): Promise<void> => {
+    const fetchResources = async () => {
       try {
         setLoading(true);
         setError(false);
-
-        console.log("DEBUG CURRICULUM CLIENT: Starting resource fetch");
-
-        // Fetch resources from the API
         const response = await api.get("/api/resources");
-
-        console.log(
-          "DEBUG CURRICULUM CLIENT: Resources fetched successfully:",
-          response.data
-        );
-
-        if (response.data) {
-          setResources(response.data);
-        } else {
-          setError(true);
-          toast({
-            title: "Error",
-            description: "Failed to load resources. Please try again later.",
-            variant: "destructive",
-          });
-        }
+        setResources(response.data || []);
       } catch (error) {
-        console.error(
-          "DEBUG CURRICULUM CLIENT: Error fetching resources:",
-          error
-        );
         setError(true);
         toast({
           title: "Error",
@@ -112,518 +90,307 @@ export default function CurriculumPageSimple() {
         setLoading(false);
       }
     };
-
     fetchResources();
-  }, [searchTerm, filters, toast]);
+  }, [toast]);
 
-  const toggleFilter = (
-    type: keyof Omit<FilterState, "showFilters">,
-    value: string
-  ) => {
-    setFilters((prev) => {
-      const currentValues = prev[type];
-      const newValues = currentValues.includes(value)
-        ? currentValues.filter((v) => v !== value)
-        : [...currentValues, value];
-
-      return {
-        ...prev,
-        [type]: newValues,
-      };
-    });
-  };
-
-  const clearFilters = () => {
-    setFilters({
-      priceRange: [],
-      danceStyles: [],
-      ageRanges: [],
-      difficultyLevel: [],
-      sellers: [],
-      resourceFormat: [],
-      showFilters: false,
-    });
-  };
-
-  const isPriceInRange = (price: string, range: string): boolean => {
-    const [min, max] = range.split("-").map(Number);
-    const priceNum = parseFloat(price);
-    return priceNum >= min && priceNum <= max;
-  };
-
-  const addToCart = (resource: any) => {
-    if (user) {
-      addToAuthCart(resource);
-    } else {
-      addToGuestCart(resource);
+  // Filtering logic
+  const filteredResources = resources.filter((resource) => {
+    const matchesSearch =
+      !searchTerm ||
+      resource.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      resource.description?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesAge = !filters.age || resource.ageRange === filters.age;
+    const matchesStyle =
+      !filters.style || resource.danceStyle === filters.style;
+    // Price filter logic (mock, adjust as needed)
+    let matchesPrice = true;
+    if (filters.price) {
+      if (filters.price === "Free")
+        matchesPrice = resource.price === 0 || resource.price === "0";
+      else if (filters.price === "$0-10")
+        matchesPrice = resource.price > 0 && resource.price <= 10;
+      else if (filters.price === "$10-20")
+        matchesPrice = resource.price > 10 && resource.price <= 20;
+      else if (filters.price === "$20-30")
+        matchesPrice = resource.price > 20 && resource.price <= 30;
+      else if (filters.price === "$30+") matchesPrice = resource.price > 30;
     }
+    const matchesFormat = !filters.format || resource.format === filters.format;
+    return (
+      matchesSearch &&
+      matchesAge &&
+      matchesStyle &&
+      matchesPrice &&
+      matchesFormat
+    );
+  });
 
-    toast({
-      title: "Added to cart",
-      description: `${resource.title} has been added to your cart.`,
-    });
+  // Dropdown close on outside click
+  const dropdownRefs = {
+    age: useRef<HTMLDivElement>(null),
+    style: useRef<HTMLDivElement>(null),
+    price: useRef<HTMLDivElement>(null),
+    format: useRef<HTMLDivElement>(null),
   };
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      Object.entries(dropdownRefs).forEach(([key, ref]) => {
+        if (ref.current && !ref.current.contains(event.target as Node)) {
+          if (openDropdown === key) setOpenDropdown(null);
+        }
+      });
+    }
+    if (openDropdown)
+      document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [openDropdown]);
 
-  const handleRetry = () => {
-    setError(false);
-    setLoading(true);
-    // The useEffect will trigger a new fetch
-  };
+  // Remove filter
+  const removeFilter = (key: keyof typeof filters) =>
+    setFilters((prev) => ({ ...prev, [key]: "" }));
+
+  // Dropdown render helper
+  function renderDropdown(key: string, options: string[]) {
+    return (
+      <div
+        ref={dropdownRefs[key as keyof typeof dropdownRefs]}
+        className="relative inline-block"
+      >
+        <Button
+          variant="outline"
+          className={`rounded-full border-gray-600 text-white bg-black hover:bg-gray-800 ${filters[key as keyof typeof filters] ? "ring-2 ring-blue-400" : ""}`}
+          onClick={() => setOpenDropdown(openDropdown === key ? null : key)}
+        >
+          {key.charAt(0).toUpperCase() + key.slice(1)}
+        </Button>
+        {openDropdown === key && (
+          <div className="absolute z-30 mt-2 w-40 bg-gray-900 border border-gray-700 rounded shadow-lg">
+            {options.map((option) => (
+              <div
+                key={option}
+                className={`px-4 py-2 cursor-pointer hover:bg-gray-800 ${filters[key as keyof typeof filters] === option ? "bg-blue-700 text-white" : "text-gray-200"}`}
+                onClick={() => {
+                  setFilters((prev) => ({ ...prev, [key]: option }));
+                  setOpenDropdown(null);
+                }}
+              >
+                {option}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* Search and Filter Section */}
-      <div className="mb-8">
-        <div className="flex flex-col md:flex-row gap-4 mb-4">
-          <div className="flex-1">
-            <Input
-              type="text"
-              placeholder="Search curriculum resources..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full"
-            />
-          </div>
+    <div className="min-h-screen bg-black text-white">
+      <div className="container mx-auto px-4 py-8">
+        {/* Search Bar */}
+        <div className="flex flex-col md:flex-row items-center gap-4 mb-6">
+          <Input
+            type="text"
+            placeholder="Search curriculum resources..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full bg-gray-900 text-white border-gray-700 placeholder-gray-400"
+          />
+        </div>
+        {/* Filter Pills */}
+        <div className="flex justify-between mb-4">
+          {renderDropdown("age", AGE_OPTIONS)}
+          {renderDropdown("style", STYLE_OPTIONS)}
+          {renderDropdown("price", PRICE_OPTIONS)}
+          {renderDropdown("format", FORMAT_OPTIONS)}
           <Button
             variant="outline"
-            onClick={() =>
-              setFilters((prev) => ({
-                ...prev,
-                showFilters: !prev.showFilters,
-              }))
-            }
+            className="rounded-full border-gray-600 text-white bg-black hover:bg-gray-800"
+            onClick={() => setShowAllFilters(true)}
           >
-            <Filter className="mr-2 h-4 w-4" />
-            Filters
+            All filters
           </Button>
         </div>
-
-        {/* Filter Options */}
-        {filters.showFilters && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg text-black">
-            {/* Price Range */}
-            <div>
-              <h3 className="font-semibold mb-2">Price Range</h3>
-              {["0-10", "10-20", "20-30", "30+"].map((range) => (
-                <div key={range} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`price-${range}`}
-                    checked={filters.priceRange.includes(range)}
-                    onCheckedChange={() => toggleFilter("priceRange", range)}
-                  />
-                  <label htmlFor={`price-${range}`}>${range}</label>
-                </div>
-              ))}
-            </div>
-
-            {/* Dance Styles */}
-            <div>
-              <h3 className="font-semibold mb-2">Dance Style</h3>
-              {["Ballet", "Hip Hop", "Contemporary", "Jazz", "Tap"].map(
-                (style) => (
-                  <div key={style} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`style-${style}`}
-                      checked={filters.danceStyles.includes(style)}
-                      onCheckedChange={() => toggleFilter("danceStyles", style)}
+        {/* Active Filters as removable pills */}
+        <div className="flex flex-wrap gap-2 mb-6">
+          {Object.entries(filters).map(
+            ([key, value]) =>
+              value && (
+                <span
+                  key={key}
+                  className="flex items-center bg-blue-700 text-white rounded-full px-3 py-1 text-sm"
+                >
+                  {key.charAt(0).toUpperCase() + key.slice(1)}: {value}
+                  <button
+                    className="ml-2 text-white hover:text-gray-300"
+                    onClick={() => removeFilter(key as keyof typeof filters)}
+                  >
+                    ×
+                  </button>
+                </span>
+              )
+          )}
+        </div>
+        {/* Results Count and Sort */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
+          <span className="text-lg font-semibold">
+            {loading ? "Loading..." : `${filteredResources.length} results`}
+          </span>
+          <div className="flex items-center gap-2 mt-2 md:mt-0">
+            <span className="text-sm">Sort by:</span>
+            <select className="bg-black border border-gray-700 text-white rounded px-2 py-1">
+              <option>Relevance</option>
+              <option>Price: Low to High</option>
+              <option>Price: High to Low</option>
+            </select>
+          </div>
+        </div>
+        {/* Resource Cards Grid */}
+        {loading ? (
+          <ResourcePlaceholderGrid />
+        ) : error ? (
+          <ResourceErrorCard
+            message="Failed to load resources. Please try again later."
+            retryFn={() => setError(false)}
+          />
+        ) : (
+          <div className="grid gap-6">
+            {filteredResources.map((resource) => (
+              <Card
+                key={resource.id}
+                className="bg-gray-900 border border-gray-800 text-white flex flex-col md:flex-row h-full"
+              >
+                <CardHeader className="p-0 relative">
+                  <div className="relative aspect-[4/3] overflow-hidden bg-gray-800">
+                    <img
+                      src={
+                        resource.thumbnailUrl ||
+                        resource.imageUrl ||
+                        "/placeholder.svg?height=300&width=400"
+                      }
+                      className="w-full h-full object-cover"
+                      alt={`thumbnail ${resource?.title}`}
                     />
-                    <label htmlFor={`style-${style}`}>{style}</label>
                   </div>
-                )
-              )}
-            </div>
+                  {/* Sale badge example */}
+                  {resource.salePrice && (
+                    <span className="absolute top-2 right-2 bg-red-600 text-white text-xs px-2 py-1 rounded">
+                      Sale
+                    </span>
+                  )}
+                </CardHeader>
 
-            {/* Age Ranges */}
-            <div>
-              <h3 className="font-semibold mb-2">Age Range</h3>
-              {["5-7", "8-12", "13-18", "18+"].map((range) => (
-                <div key={range} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`age-${range}`}
-                    checked={filters.ageRanges.includes(range)}
-                    onCheckedChange={() => toggleFilter("ageRanges", range)}
-                  />
-                  <label htmlFor={`age-${range}`}>{range}</label>
-                </div>
-              ))}
-            </div>
-
-            {/* Difficulty Levels */}
-            <div>
-              <h3 className="font-semibold mb-2">Difficulty Level</h3>
-              {["Beginner", "Intermediate", "Advanced"].map((level) => (
-                <div key={level} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`level-${level}`}
-                    checked={filters.difficultyLevel.includes(level)}
-                    onCheckedChange={() =>
-                      toggleFilter("difficultyLevels", level)
-                    }
-                  />
-                  <label htmlFor={`level-${level}`}>{level}</label>
-                </div>
-              ))}
+                <CardContent className="p-4 flex flex-col flex-grow">
+                  <CardTitle className="text-lg font-semibold mb-2 line-clamp-2 leading-tight">
+                    {resource.title}
+                  </CardTitle>
+                  <div className="flex items-center gap-2 mb-2">
+                    {/* Seller info and link */}
+                    <span className="text-xs text-gray-400">by </span>
+                    <a
+                      href={resource.sellerUrl || "#"}
+                      className="text-blue-400 hover:underline text-xs"
+                    >
+                      {resource.sellerName || "Seller"}
+                    </a>
+                  </div>
+                  <p className="text-sm text-gray-300 mb-2 line-clamp-2 flex-grow">
+                    {resource.description}
+                  </p>
+                  <div className="flex flex-wrap gap-2 text-xs mb-2">
+                    <span className="bg-gray-800 px-2 py-1 rounded">
+                      Age: {resource.ageRange || "All"}
+                    </span>
+                    <span className="bg-gray-800 px-2 py-1 rounded">
+                      Style: {resource.danceStyle || "-"}
+                    </span>
+                  </div>
+                  {/* Star rating placeholder */}
+                  <div className="flex items-center gap-1 mb-2">
+                    <span className="text-yellow-400">★</span>
+                    <span className="text-xs">{resource.rating || "4.9"}</span>
+                    <span className="text-xs text-gray-400">
+                      ({resource.ratingCount || "8K"})
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 mb-2">
+                    {resource.salePrice ? (
+                      <>
+                        <span className="text-xl font-bold text-red-400">
+                          ${resource.salePrice}
+                        </span>
+                        <span className="text-sm line-through text-gray-500">
+                          ${resource.price}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-xl font-bold">
+                        ${resource.price}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex gap-2 mt-auto">
+                    <Button
+                      onClick={() => addToCart(resource)}
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      Add to cart
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-gray-600 text-white"
+                    >
+                      Wish List
+                    </Button>
+                    <a
+                      href={resource.sellerUrl || "#"}
+                      className="text-xs text-blue-400 hover:underline ml-2"
+                    >
+                      More from this seller
+                    </a>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+        {/* Resource Details Modal */}
+        {selectedResource && (
+          <ResourceDetailsModal
+            resource={selectedResource}
+            open={detailsModalOpen}
+            onOpenChange={setDetailsModalOpen}
+          />
+        )}
+        {/* All Filters Modal (placeholder) */}
+        {showAllFilters && (
+          <div className="fixed inset-0 z-40 flex items-center justify-center bg-black bg-opacity-70">
+            <div className="bg-gray-900 border border-gray-700 rounded-lg p-8 w-full max-w-lg relative">
+              <button
+                className="absolute top-2 right-2 text-white text-2xl"
+                onClick={() => setShowAllFilters(false)}
+              >
+                ×
+              </button>
+              <h2 className="text-xl font-bold mb-4">All Filters</h2>
+              {/* Place all filter dropdowns here for advanced filtering */}
+              <div className="flex flex-col gap-4">
+                {renderDropdown("age", AGE_OPTIONS)}
+                {renderDropdown("style", STYLE_OPTIONS)}
+                {renderDropdown("price", PRICE_OPTIONS)}
+                {renderDropdown("format", FORMAT_OPTIONS)}
+              </div>
+              <Button
+                className="mt-6 w-full bg-blue-700 hover:bg-blue-800"
+                onClick={() => setShowAllFilters(false)}
+              >
+                Apply Filters
+              </Button>
             </div>
           </div>
         )}
       </div>
-
-      {/* Resources Grid */}
-      {loading ? (
-        <ResourcePlaceholderGrid />
-      ) : error ? (
-        <ResourceErrorCard
-          message="Failed to load resources. Please try again later."
-          retryFn={handleRetry}
-        />
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredResources.map((resource) => (
-            <Card key={resource.id} className="overflow-hidden">
-              <CardHeader className="p-0">
-                <div className="relative aspect-video">
-                  <img
-                    src={resource.thumbnailUrl}
-                    className="w-full h-auto"
-                    alt={`thumbnail ${resource?.title}`}
-                  />
-                </div>
-              </CardHeader>
-              <CardContent className="p-4">
-                <CardTitle className="text-lg font-semibold mb-2">
-                  {resource.title}
-                </CardTitle>
-                <p className="text-sm text-gray-600 mb-4">
-                  {resource.description}
-                </p>
-                <div className="flex items-center justify-between">
-                  <span className="text-lg font-bold">${resource.price}</span>
-                  <Button
-                    onClick={() => addToCart("RESOURCE")}
-                    className="ml-2"
-                  >
-                    Add to Cart
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {/* Resource Details Modal */}
-      {selectedResource && (
-        <ResourceDetailsModal
-          resource={selectedResource}
-          open={detailsModalOpen}
-          onOpenChange={setDetailsModalOpen}
-        />
-      )}
     </div>
   );
 }
-
-
-// import { useState, useEffect } from "react";
-// import { Link } from "wouter";
-// import { Filter } from "lucide-react";
-// import { Button } from "../components/ui/button";
-// import { Input } from "../components/ui/input";
-// import {
-//   Card,
-//   CardContent,
-//   CardHeader,
-//   CardTitle,
-// } from "../components/ui/card";
-// import {
-//   ResourcePlaceholderGrid,
-//   ResourceErrorCard,
-// } from "../components/ui/resource-placeholder";
-// import { useAuth } from "../hooks/use-auth";
-// import { useToast } from "../hooks/use-toast";
-// import { useCart } from "../hooks/use-cart";
-// import { useGuestCart } from "../hooks/use-guest-cart";
-// import { api } from "../lib/api";
-// import { Checkbox } from "../components/ui/checkbox";
-// import { ResourceDetailsModal } from "../components/curriculum/resource-details-modal";
-
-// // Define filter types
-// type FilterState = {
-//   priceRange: string[];
-//   danceStyles: string[];
-//   ageRanges: string[];
-//   difficultyLevel: string[];
-//   sellers: string[];
-//   resourceFormat: string[];
-//   showFilters: boolean;
-// };
-
-// // A simplified version of the curriculum page to use as a fallback
-// export default function CurriculumPageSimple() {
-//   const { toast } = useToast();
-//   const [searchTerm, setSearchTerm] = useState("");
-//   const [loading, setLoading] = useState(true);
-//   const [error, setError] = useState(false);
-//   const [resources, setResources] = useState<any[]>([]);
-//   const [selectedResource, setSelectedResource] = useState<any>(null);
-//   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
-
-//   // Initialize filter state
-//   const [filters, setFilters] = useState<FilterState>({
-//     price: [],
-//     danceStyle: [],
-//     ageRange: [],
-//     difficultyLevel: [],
-//     seller: [],
-//     resourceFormat: [],
-//     showFilters: false,
-//   });
-
-//   // Use try-catch to handle the case when AuthContext is not available
-//   let user = null;
-//   try {
-//     const auth = useAuth();
-//     user = auth.user;
-//   } catch (error) {
-//     // If AuthContext is not available, user remains null (guest mode)
-//     console.log("Auth context not available, using guest mode");
-//   }
-
-//   // Get the appropriate cart hook based on authentication status
-//   const authCart = useCart();
-//   const guestCart = useGuestCart();
-
-//   const addToAuthCart = (item: any) => authCart.addItem(item);
-//   const addToGuestCart = (item: any) => guestCart.addItem(item);
-
-//   // Fetch resources from API
-//   useEffect(() => {
-//     const fetchResources = async (): Promise<void> => {
-//       try {
-//         setLoading(true);
-//         setError(false);
-
-//         console.log("DEBUG CURRICULUM CLIENT: Starting resource fetch");
-
-//         // Fetch resources from the API
-//         const response = await api.get("/api/resources");
-
-//         console.log(
-//           "DEBUG CURRICULUM CLIENT: Resources fetched successfully:",
-//           response.data
-//         );
-
-//         if (response.data) {
-//           setResources(response.data);
-//         } else {
-//           setError(true);
-//           toast({
-//             title: "Error",
-//             description: "Failed to load resources. Please try again later.",
-//             variant: "destructive",
-//           });
-//         }
-//       } catch (error) {
-//         console.error(
-//           "DEBUG CURRICULUM CLIENT: Error fetching resources:",
-//           error
-//         );
-//         setError(true);
-//         toast({
-//           title: "Error",
-//           description: "Failed to load resources. Please try again later.",
-//           variant: "destructive",
-//         });
-//       } finally {
-//         setLoading(false);
-//       }
-//     };
-
-//     fetchResources();
-//   }, [searchTerm, filters, toast]);
-
-//   const toggleFilter = (
-//     type: keyof Omit<FilterState, "showFilters">,
-//     value: string
-//   ) => {
-//     setFilters((prev) => {
-//       const currentValues = prev[type];
-//       const newValues = currentValues.includes(value)
-//         ? currentValues.filter((v) => v !== value)
-//         : [...currentValues, value];
-
-//       return {
-//         ...prev,
-//         [type]: newValues,
-//       };
-//     });
-//   };
-
-//   const clearFilters = () => {
-//     setFilters({
-//       priceRange: [],
-//       danceStyles: [],
-//       ageRanges: [],
-//       difficultyLevel: [],
-//       sellers: [],
-//       resourceFormat: [],
-//       showFilters: false,
-//     });
-//   };
-
-//   const isPriceInRange = (price: string, range: string): boolean => {
-//     const [min, max] = range.split("-").map(Number);
-//     const priceNum = parseFloat(price);
-//     return priceNum >= min && priceNum <= max;
-//   };
-
-//   const addToCart = (resource: any) => {
-//     if (user) {
-//       addToAuthCart(resource);
-//     } else {
-//       addToGuestCart(resource);
-//     }
-
-//     toast({
-//       title: "Added to cart",
-//       description: `${resource.title} has been added to your cart.`,
-//     });
-//   };
-
-//   const handleRetry = () => {
-//     setError(false);
-//     setLoading(true);
-//     // The useEffect will trigger a new fetch
-//   };
-
-//   // Filter resources based on search term and filters
-//   // const filteredResources = resources.filter((resource) => {
-//   //   // Search term filter
-//   //   const matchesSearch =
-//   //     searchTerm === "" ||
-//   //     resource.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-//   //     resource.description.toLowerCase().includes(searchTerm.toLowerCase());
-
-//   //   // Price range filter
-//   //   const matchesPrice =
-//   //     filters.priceRange.length === 0 ||
-//   //     filters.priceRange.some((range) => isPriceInRange(resource.price, range));
-
-//   //   // Dance style filter
-//   //   const matchesDanceStyle =
-//   //     filters.danceStyles.length === 0 ||
-//   //     filters.danceStyles.includes(resource.danceStyle);
-
-//   //   // Age range filter
-//   //   const matchesAgeRange =
-//   //     filters.ageRanges.length === 0 ||
-//   //     filters.ageRanges.includes(resource.ageRange);
-
-//   //   // Difficulty level filter
-//   //   const matchesDifficulty =
-//   //     filters.difficultyLevel.length === 0 ||
-//   //     filters.difficultyLevel.includes(resource.difficultyLevel);
-
-//   //   // Seller filter
-//   //   const matchesSeller =
-//   //     filters.sellers.length === 0 ||
-//   //     filters.sellers.includes(resource.sellerId.toString());
-
-//   //   return (
-//   //     matchesSearch &&
-//   //     matchesPrice &&
-//   //     matchesDanceStyle &&
-//   //     matchesAgeRange &&
-//   //     matchesDifficulty &&
-//   //     matchesSeller
-//   //   );
-//   // });
-
-//   return (
-//     <div className="container mx-auto px-4 py-8">
-//       <div>
-        
-//       </div>
-//       {/* Search and Filter Section */}
-//       <div className="mb-8">
-//         <div className="flex flex-col md:flex-row gap-4 mb-4">
-//           <div className="flex-1">
-//             <Input
-//               type="text"
-//               placeholder="Search curriculum resources..."
-//               value={searchTerm}
-//               onChange={(e) => setSearchTerm(e.target.value)}
-//               className="w-full"
-//             />
-//           </div>
-//           <Button
-//             variant="outline"
-//             onClick={() =>
-//               setFilters((prev) => ({
-//                 ...prev,
-//                 showFilters: !prev.showFilters,
-//               }))
-//             }
-//           >
-//             <Filter className="mr-2 h-4 w-4" />
-//             Filters
-//           </Button>
-//         </div>
-
-        
-//       </div>
-
-//       {/* Resources Grid */}
-//       {loading ? (
-//         <ResourcePlaceholderGrid />
-//       ) : error ? (
-//         <ResourceErrorCard
-//           message="Failed to load resources. Please try again later."
-//           retryFn={handleRetry}
-//         />
-//       ) : (
-//         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-//           {filteredResources.map((resource) => (
-//             <Card key={resource.id} className="overflow-hidden">
-//               <CardHeader className="p-0">
-//                 <div className="relative aspect-video">
-//                   <img
-//                     src={resource.thumbnailUrl}
-//                     className="w-full h-auto"
-//                     alt={`thumbnail ${resource?.title}`}
-//                   />
-//                 </div>
-//               </CardHeader>
-//               <CardContent className="p-4">
-//                 <CardTitle className="text-lg font-semibold mb-2">
-//                   {resource.title}
-//                 </CardTitle>
-//                 <p className="text-sm text-gray-600 mb-4">
-//                   {resource.description}
-//                 </p>
-//                 <div className="flex items-center justify-between">
-//                   <span className="text-lg font-bold">${resource.price}</span>
-//                   <Button
-//                     onClick={() => addToCart("RESOURCE")}
-//                     className="ml-2"
-//                   >
-//                     Add to Cart
-//                   </Button>
-//                 </div>
-//               </CardContent>
-//             </Card>
-//           ))}
-//         </div>
-//       )}
-
-//       {/* Resource Details Modal */}
-//       {selectedResource && (
-//         <ResourceDetailsModal
-//           resource={selectedResource}
-//           open={detailsModalOpen}
-//           onOpenChange={setDetailsModalOpen}
-//         />
-//       )}
-//     </div>
-//   );
-// }
