@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -156,12 +156,22 @@ interface BookingWizardProps {
   user: any | null;
 }
 
+// Helper to get step from URL
+const getStepFromUrl = () => {
+  if (typeof window !== "undefined") {
+    const params = new URLSearchParams(window.location.search);
+    const step = parseInt(params.get("step") || "0", 10);
+    return isNaN(step) ? 0 : step;
+  }
+  return 0;
+};
+
 export const BookingWizard: React.FC<BookingWizardProps> = ({
   mode,
   onComplete,
   user,
 }) => {
-  const [currentStep, setCurrentStep] = useState(0);
+  const [currentStep, setCurrentStep] = useState(getStepFromUrl());
   const [formData, setFormData] = useState({
     service_category: [] as string[],
     dance_style: [] as string[],
@@ -498,13 +508,13 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
           }
         );
       }
-      setData(result.results);
+      setData(result);
       console.log("data:", data);
-      console.log("result.results.length:", result.results.length);
+      console.log("result.results.length:", result.length);
       console.log("showRecommendations before:", showRecommendations);
 
       // If no results found, show recommendations
-      if (result.results.length === 0) {
+      if (result.length === 0) {
         setShowRecommendations(true);
         setSubmitSuccess(true); // Set success to true even with no results so we can show recommendations
         console.log("No results found, setting showRecommendations to true");
@@ -697,6 +707,16 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
       console.error("Error fetching professional data:", error);
     }
   };
+
+  // Sync currentStep to URL
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      params.set("step", currentStep.toString());
+      const newUrl = window.location.pathname + "?" + params.toString();
+      window.history.replaceState({}, "", newUrl);
+    }
+  }, [currentStep]);
 
   // Render steps based on current step and mode
   const renderStep = () => {
@@ -1831,12 +1851,21 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                       "Create Professional Profile"
                     )}
                   </Button>
-                ) : (
+                ) : mode === "book" ? (
                   <Button
-                    onClick={() => navigate("/connect/book")}
+                    onClick={() =>
+                      navigate(`/connect/book?step=${currentStep}`)
+                    }
                     className="bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600 shadow-lg shadow-blue-500/25"
                   >
                     Start New Search
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => navigate(`/profile?step=${currentStep}`)}
+                    className="bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600 shadow-lg shadow-blue-500/25"
+                  >
+                    Go to profile
                   </Button>
                 )}
               </div>

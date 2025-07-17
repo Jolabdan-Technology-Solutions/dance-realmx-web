@@ -672,7 +672,7 @@ const ResourceDetails = ({ resourceId }: ResourceDetailsProps) => {
 
             {/* More from this seller */}
             {sellerResources && sellerResources.length > 0 && (
-              <Card>
+              <Card id="more-from-seller">
                 <CardHeader>
                   <CardTitle>More from this seller</CardTitle>
                 </CardHeader>

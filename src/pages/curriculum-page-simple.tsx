@@ -279,7 +279,7 @@ export default function CurriculumPageSimple() {
 
                 <CardContent className="p-4 flex flex-col flex-grow">
                   <CardTitle
-                    className="text-lg font-semibold mb-2 line-clamp-2 leading-tight"
+                    className="text-lg cursor-pointer font-semibold mb-2 line-clamp-2 leading-tight"
                     onClick={() => navigate(`/curriculum/${resource.id}`)}
                   >
                     {resource.title}
@@ -346,7 +346,11 @@ export default function CurriculumPageSimple() {
                     Wish List
                   </Button>
                   <a
-                    href={resource.sellerUrl || "#"}
+                    href={
+                      resource.id
+                        ? `/curriculum/${resource.id}#more-from-seller`
+                        : "#"
+                    }
                     className="text-xs text-blue-400 hover:underline ml-2"
                   >
                     More from this seller
@@ -356,14 +360,7 @@ export default function CurriculumPageSimple() {
             ))}
           </div>
         )}
-        {/* Resource Details Modal */}
-        {selectedResource && (
-          <ResourceDetailsModal
-            resource={selectedResource}
-            open={detailsModalOpen}
-            onOpenChange={setDetailsModalOpen}
-          />
-        )}
+
         {/* All Filters Modal (placeholder) */}
         {showAllFilters && (
           <div className="fixed inset-0 z-40 flex items-center justify-center bg-black bg-opacity-70">
