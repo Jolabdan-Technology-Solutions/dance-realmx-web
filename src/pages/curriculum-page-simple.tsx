@@ -289,12 +289,12 @@ export default function CurriculumPageSimple() {
                     <span className="text-xs text-gray-400">by </span>
                     <a
                       href={resource.sellerUrl || "#"}
-                      className="text-blue-400 hover:underline text-xs"
+                      className="text-blue-400 hover:underline text-xs "
                     >
-                      {resource.sellerName || "Seller"}
+                      {resource.seller.username || "Seller"}
                     </a>
                   </div>
-                  <p className="text-sm text-gray-300 mb-2 line-clamp-2 flex-grow">
+                  <p className="text-sm text-gray-300 mb-2 line-clamp-2">
                     {resource.description}
                   </p>
                   <div className="flex flex-wrap gap-2 text-xs mb-2">
@@ -330,7 +330,7 @@ export default function CurriculumPageSimple() {
                     )}
                   </div>
                 </CardContent>
-                <div className="flex gap-2 items-center p-4 mt-auto">
+                <div className="flex gap-2 items-center p-4 mt-auto w-fit">
                   <Button
                     onClick={() => addToCart(resource)}
                     size="sm"
@@ -338,20 +338,14 @@ export default function CurriculumPageSimple() {
                   >
                     Add to cart
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="border-gray-600 text-white"
-                  >
-                    Wish List
-                  </Button>
+
                   <a
                     href={
                       resource.id
                         ? `/curriculum/${resource.id}#more-from-seller`
                         : "#"
                     }
-                    className="text-xs text-blue-400 hover:underline ml-2"
+                    className="text-xs text-blue-400 hover:underline ml-2 w-fit"
                   >
                     More from this seller
                   </a>
