@@ -1407,8 +1407,8 @@ export class CoursesService implements OnModuleInit {
               title: true,
               description: true,
               price: true,
-              duration_hours: true,
-              level: true,
+              duration: true,
+              difficulty_level: true,
               image_url: true,
               instructor: {
                 select: {
@@ -1454,7 +1454,7 @@ export class CoursesService implements OnModuleInit {
           updated_at: enrollment.updated_at,
         },
         course: enrollment.course,
-        payment: enrollment.payments[0] || null,
+        payment: null, // Payment info not available in this query
       };
       console.log('Returning response:', response);
       return response;
@@ -1569,6 +1569,69 @@ export class CoursesService implements OnModuleInit {
         page,
         limit,
       },
+    };
+  }
+
+  async getCourseQuizzes(courseId: number) {
+    // First check if the course exists
+    const course = await this.prisma.course.findUnique({
+      where: { id: courseId },
+    });
+
+    if (!course) {
+      throw new NotFoundException(`Course with ID ${courseId} not found`);
+    }
+
+    // Get all modules for the course with their lessons and quizzes
+    const modules = await this.prisma.module.findMany({
+      where: { course_id: courseId },
+      include: {
+        lessons: {
+          include: {
+            quizzes: {
+              include: {
+                questions: {
+                  include: {
+                    options: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { order: 'asc' },
+    });
+
+    // Flatten quizzes and attach lesson/module context
+    const quizzesWithContext: any[] = [];
+    for (const module of modules) {
+      for (const lesson of module.lessons) {
+        for (const quiz of lesson.quizzes) {
+          quizzesWithContext.push({
+            ...quiz,
+            lesson: {
+              id: lesson.id,
+              title: lesson.title,
+              order: lesson.order,
+            },
+            module: {
+              id: module.id,
+              title: module.title,
+              order: module.order,
+            },
+          });
+        }
+      }
+    }
+
+    return {
+      course: {
+        id: course.id,
+        title: course.title,
+      },
+      quizzes: quizzesWithContext,
+      total: quizzesWithContext.length,
     };
   }
 }

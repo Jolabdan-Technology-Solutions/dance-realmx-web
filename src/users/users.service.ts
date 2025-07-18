@@ -7,11 +7,24 @@ import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { User, UserRole } from '@prisma/client';
 
+export interface UserResponse {
+  id: number;
+  email: string;
+  username: string;
+  first_name: string | null;
+  last_name: string | null;
+  role: UserRole[];
+  profile_image_url: string | null;
+  created_at: Date;
+  updated_at: Date;
+  subscription_tier: string | null;
+}
+
 @Injectable()
 export class UsersService {
   constructor(private prisma: PrismaService) {}
 
-  async findAll(): Promise<User[]> {
+  async findAll(): Promise<UserResponse[]> {
     return this.prisma.user.findMany({
       select: {
         id: true,
@@ -28,7 +41,7 @@ export class UsersService {
     });
   }
 
-  async findOne(id: number): Promise<User | null> {
+  async findOne(id: number): Promise<UserResponse | null> {
     return this.prisma.user.findUnique({
       where: { id },
       select: {
@@ -66,7 +79,7 @@ export class UsersService {
     });
   }
 
-  async update(id: number, data: Partial<User>): Promise<User> {
+  async update(id: number, data: Partial<User>): Promise<UserResponse> {
     // If password is being updated, hash it
     if (data.password) {
       const saltRounds = 12;
@@ -93,7 +106,7 @@ export class UsersService {
     return user;
   }
 
-  async delete(id: number): Promise<User> {
+  async delete(id: number): Promise<UserResponse> {
     return this.prisma.user.delete({
       where: { id },
       select: {
@@ -106,7 +119,7 @@ export class UsersService {
         profile_image_url: true,
         created_at: true,
         updated_at: true,
-        // Exclude password from results
+        subscription_tier: true,
       },
     });
   }

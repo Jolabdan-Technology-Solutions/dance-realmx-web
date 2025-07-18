@@ -8,6 +8,8 @@ import {
   Patch,
   UseGuards,
   Request,
+  Query,
+  BadRequestException,
 } from '@nestjs/common';
 import { CartService } from './cart.service';
 import { AddToCartDto } from './dto/add-to-cart.dto';
@@ -20,8 +22,8 @@ import { Feature } from '../auth/enums/feature.enum';
 interface CartItem {
   id: number;
   user_id: number;
-  course_id?: number;
-  resource_id?: number;
+  course_id: number | null;
+  resource_id: number | null;
   quantity: number;
   created_at: Date;
   updated_at: Date;
@@ -56,6 +58,19 @@ export class CartController {
   ): Promise<{ items: CartItem[]; total: number }> {
     if (!req.user?.id) throw new Error('User not found');
     return this.cartService.getCart(req.user.id);
+  }
+
+  @Get('orders')
+  async getUserOrders(@Request() req: RequestWithUser) {
+    const userId = req.user?.id || req.user?.sub;
+    if (!userId) throw new Error('User not found');
+    return this.cartService.getUserOrders(+userId);
+  }
+
+  @Get('confirm-payment')
+  async confirmPayment(@Query('session_id') sessionId: string) {
+    if (!sessionId) throw new BadRequestException('Missing session_id');
+    return this.cartService.confirmPayment(sessionId);
   }
 
   @Delete(':id')
@@ -106,7 +121,7 @@ export class CartController {
   @RequireFeature(Feature.MAKE_PAYMENTS)
   checkout(
     @Request() req: RequestWithUser,
-  ): Promise<{ order: any; clientSecret: string | null }> {
+  ): Promise<{ order: any; checkoutUrl: string | null }> {
     const userId = req.user?.id || req.user?.sub;
     if (!userId) throw new Error('User not found');
 

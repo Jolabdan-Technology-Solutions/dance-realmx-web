@@ -477,4 +477,23 @@ export class CoursesController {
   ) {
     return this.coursesService.findByInstructor(instructorId, query);
   }
+
+  @Get(':courseId/quizzes')
+  @UseGuards(JwtAuthGuard, FeatureGuard, SubscriptionGuard)
+  @ApiOperation({ summary: 'Get all quizzes for a course' })
+  @ApiParam({ name: 'courseId', type: 'string', description: 'Course ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns all quizzes for the course',
+    type: 'Quiz',
+    isArray: true,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 404, description: 'Course not found' })
+  @RequireFeature(Feature.VIEW_COURSES)
+  @SubscriptionRequired()
+  getCourseQuizzes(@Param('courseId') courseId: string) {
+    return this.coursesService.getCourseQuizzes(+courseId);
+  }
 }

@@ -22,7 +22,7 @@ export class AuthMiddleware implements NestMiddleware {
       const user = await this.prisma.user.findUnique({
         where: { id: parseInt(token) },
         include: {
-          subscription: true,
+          subscriptions: true,
         },
       });
 
@@ -35,4 +35,4 @@ export class AuthMiddleware implements NestMiddleware {
 
     next();
   }
-} 
+}

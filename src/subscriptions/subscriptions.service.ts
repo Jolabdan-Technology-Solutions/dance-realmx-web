@@ -9,9 +9,10 @@ import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 import {
   StripeAccountStatus,
-  Subscription,
+  Subscription as PrismaSubscription,
   SubscriptionTier,
   UserRole,
+  SubscriptionFrequency,
 } from '@prisma/client';
 import { SubscriptionStatus } from './enums/subscription-status.enum';
 import { ConfigService } from '@nestjs/config';
@@ -35,7 +36,7 @@ export class SubscriptionsService {
     });
   }
 
-  async findAll(): Promise<Subscription[]> {
+  async findAll(): Promise<PrismaSubscription[]> {
     return this.prisma.subscription.findMany({
       include: {
         user: true,
@@ -66,13 +67,13 @@ export class SubscriptionsService {
     }
   }
 
-  async findByUser(userId: number): Promise<Subscription[]> {
+  async findByUser(userId: number): Promise<PrismaSubscription[]> {
     return this.prisma.subscription.findMany({
       where: { user_id: userId },
     });
   }
 
-  async findActive(userId: number): Promise<Subscription | null> {
+  async findActive(userId: number): Promise<PrismaSubscription | null> {
     return this.prisma.subscription.findFirst({
       where: {
         user_id: userId,
@@ -84,7 +85,7 @@ export class SubscriptionsService {
     });
   }
 
-  async findById(id: number): Promise<Subscription | null> {
+  async findById(id: number): Promise<PrismaSubscription | null> {
     return this.prisma.subscription.findUnique({
       where: { id },
       include: {
@@ -93,7 +94,7 @@ export class SubscriptionsService {
     });
   }
 
-  async findByUserId(userId: number): Promise<Subscription[]> {
+  async findByUserId(userId: number): Promise<PrismaSubscription[]> {
     return this.prisma.subscription.findMany({
       where: { user_id: userId },
       orderBy: {
@@ -104,12 +105,13 @@ export class SubscriptionsService {
 
   async create(data: {
     user_id: number;
-    tier: SubscriptionTier;
+    plan_id: number;
+    frequency: SubscriptionFrequency;
     stripe_subscription_id: string;
     current_period_start: Date;
     current_period_end: Date;
     status: SubscriptionStatus;
-  }): Promise<Subscription> {
+  }): Promise<PrismaSubscription> {
     const subscription = await this.prisma.subscription.create({
       data,
       include: {
@@ -126,7 +128,7 @@ export class SubscriptionsService {
       await this.mailService.sendSubscriptionConfirmation(
         user.email,
         user.first_name || user.username,
-        data.tier,
+        'Subscription',
         data.current_period_start,
         data.current_period_end,
       );
@@ -135,7 +137,10 @@ export class SubscriptionsService {
     return subscription;
   }
 
-  async update(id: number, data: Partial<Subscription>): Promise<Subscription> {
+  async update(
+    id: number,
+    data: Partial<PrismaSubscription>,
+  ): Promise<PrismaSubscription> {
     return this.prisma.subscription.update({
       where: { id },
       data,
@@ -148,7 +153,7 @@ export class SubscriptionsService {
   async updateStatus(
     stripeSessionId: string,
     status: SubscriptionStatus,
-  ): Promise<Subscription> {
+  ): Promise<PrismaSubscription> {
     // First find the subscription by stripe_session_id
     const subscription = await this.prisma.subscription.findFirst({
       where: { stripe_session_id: stripeSessionId },
@@ -220,7 +225,7 @@ export class SubscriptionsService {
     });
   }
 
-  async delete(id: number): Promise<Subscription> {
+  async delete(id: number) {
     return this.prisma.subscription.delete({
       where: { id },
     });
@@ -261,6 +266,9 @@ export class SubscriptionsService {
 
     if (existingPendingSubscription) {
       // Retrieve the existing session
+      if (!existingPendingSubscription.stripe_session_id) {
+        throw new Error('No session ID found for pending subscription');
+      }
       const session = await this.stripe.checkout.sessions.retrieve(
         existingPendingSubscription.stripe_session_id,
       );
@@ -423,7 +431,7 @@ export class SubscriptionsService {
     });
   }
 
-  async getActiveSubscription(userId: number): Promise<Subscription | null> {
+  async getActiveSubscription(userId: number) {
     return this.prisma.subscription.findFirst({
       where: {
         user_id: userId,

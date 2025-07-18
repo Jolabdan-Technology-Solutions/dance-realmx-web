@@ -10,7 +10,7 @@ import {
   HttpStatus,
   BadRequestException,
 } from '@nestjs/common';
-import { UsersService } from './users.service';
+import { UsersService, UserResponse } from './users.service';
 import { User } from '@prisma/client';
 
 @Controller('users')

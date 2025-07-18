@@ -15,6 +15,7 @@ import { LoginDto } from './dto/login.dto';
 import { CreateUserDto } from './dto/register.dto';
 import { ResetPasswordDto, ChangePasswordDto } from './dto/password.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
+import { UserRole } from '@prisma/client';
 
 export interface LoginResponse {
   user: {
@@ -151,7 +152,7 @@ export class AuthService {
           last_name: createUserDto.last_name,
           frequency: createUserDto.frequency,
           subscription_tier: plan.tier,
-          role: roles,
+          role: roles as UserRole[],
           profile_image_url: createUserDto.profile_image_url,
           auth_provider: createUserDto.auth_provider,
           is_active: false, // Require email verification
@@ -281,11 +282,7 @@ export class AuthService {
       const user = await this.prisma.user.findUnique({
         where: { id: userId },
         include: {
-          role_mappings: {
-            include: {
-              role: true,
-            },
-          },
+          role_mappings: true,
         },
       });
 
@@ -344,7 +341,7 @@ export class AuthService {
         },
       });
 
-      if (recentAttempts >= this.MAX_RESET_ATTEMPTS) {
+      if (recentAttempts.length >= this.MAX_RESET_ATTEMPTS) {
         this.logger.warn(
           `Rate limit exceeded for password reset: ${normalizedEmail}`,
         );
@@ -588,7 +585,6 @@ export class AuthService {
           where: { id: user.id },
           data: {
             email_verified: true,
-            email_verified_at: new Date(),
             is_active: true,
             updated_at: new Date(),
           },

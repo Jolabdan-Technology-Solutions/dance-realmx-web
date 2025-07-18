@@ -100,6 +100,8 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
           last_name: user.lastName,
           profile_image_url: user.picture,
           auth_provider: 'GOOGLE',
+          password: '', // OAuth users don't need password
+          role: ['GUEST_USER'],
         },
       });
 

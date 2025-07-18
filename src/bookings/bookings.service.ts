@@ -60,7 +60,7 @@ export class BookingsService {
         where: { id },
         include: {
           user: true,
-          course: true,
+          instructor: true,
         },
       });
 
@@ -113,7 +113,7 @@ export class BookingsService {
       }
 
       return await this.prisma.booking.findMany({
-        where: { user_id: instructorId, user: { is_professional: true } },
+        where: { instructor_id: instructorId },
         include: {
           user: true,
         },
@@ -130,8 +130,10 @@ export class BookingsService {
 
   async create(data: {
     user_id: number;
-    course_id: number;
-    booking_date: Date;
+    instructor_id: number;
+    course_id?: number;
+    session_start: Date;
+    session_end: Date;
     status: BookingStatus;
   }): Promise<Booking> {
     try {
@@ -144,22 +146,22 @@ export class BookingsService {
         throw new NotFoundException(`User with ID ${data.user_id} not found`);
       }
 
-      // Validate course exists
-      const course = await this.prisma.course.findUnique({
-        where: { id: data.course_id },
+      // Validate instructor exists
+      const instructor = await this.prisma.user.findUnique({
+        where: { id: data.instructor_id },
       });
 
-      if (!course) {
+      if (!instructor) {
         throw new NotFoundException(
-          `Course with ID ${data.course_id} not found`,
+          `Instructor with ID ${data.instructor_id} not found`,
         );
       }
 
       // Check for existing booking at the same time
       const existingBooking = await this.prisma.booking.findFirst({
         where: {
-          course_id: data.course_id,
-          booking_date: data.booking_date,
+          instructor_id: data.instructor_id,
+          session_start: data.session_start,
           status: {
             not: BookingStatus.CANCELLED,
           },
@@ -175,7 +177,7 @@ export class BookingsService {
       const booking = await this.prisma.booking.create({
         data,
         include: {
-          course: true,
+          instructor: true,
         },
       });
 
@@ -183,10 +185,10 @@ export class BookingsService {
       try {
         await this.mailService.sendBookingConfirmation(
           user.email,
-          user.name,
-          course.instructor.name,
-          data.booking_date,
-          data.booking_date.toLocaleTimeString(),
+          user.first_name || user.username,
+          instructor.first_name || instructor.username,
+          data.session_start,
+          data.session_start.toLocaleTimeString(),
           60,
           'Dance Realm Studio',
         );
@@ -251,7 +253,7 @@ export class BookingsService {
         where: { id },
         data: { status },
         include: {
-          course: true,
+          instructor: true,
         },
       });
     } catch (error) {

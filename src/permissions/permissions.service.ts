@@ -51,14 +51,14 @@ export class PermissionsService {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: {
-        userRoleMapping: true,
+        role_mappings: true,
       },
     });
 
     if (!user) return false;
 
     // Check if user has any role with the required permission
-    for (const roleMapping of user.userRoleMapping) {
+    for (const roleMapping of user.role_mappings) {
       if (await this.roleHasPermission(roleMapping.role, permission)) {
         return true;
       }

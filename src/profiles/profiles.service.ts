@@ -65,20 +65,7 @@ export class ProfilesService {
     return { message: 'User is now a professional and profile updated.' };
   }
 
-  async bookProfessional(professionalId: string, userId: number) {
-    // For now, just create a booking record
-    // This will be replaced with a proper booking system later
-    return this.prisma.booking.create({
-      data: {
-        instructor_id: parseInt(professionalId),
-        user_id: userId,
-        status: 'PENDING',
-        session_start: new Date(),
-        session_end: new Date(Date.now() + 60 * 60 * 1000), // 1 hour from now
-      },
-    });
-  }
-
+  
   async getProfessionals() {
     return this.prisma.profile.findMany({
       where: {
@@ -161,11 +148,11 @@ export class ProfilesService {
     });
   }
 
-  async findProfessionalsByPricing(min: number, max: number) {
+  async findProfessionalsByPricing(max: number) {
     return this.prisma.profile.findMany({
       where: {
         is_professional: true,
-        pricing: { gte: min, lte: max },
+        pricing: { gte: 0, lte: max },
       },
       include: { user: true },
     });

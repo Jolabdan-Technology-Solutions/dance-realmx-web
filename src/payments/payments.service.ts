@@ -90,7 +90,7 @@ export class PaymentsService {
         stripe_payment_intent_id: paymentIntent.id,
         stripe_customer_id: customerId,
         amount,
-        type,
+        reference_type: type as PaymentType,
         reference_id,
         status: PaymentStatus.PENDING,
         metadata: {
@@ -337,9 +337,15 @@ export class PaymentsService {
     // Implement subscription purchase logic
   }
 
-  async createOneTimeCheckoutSession(dto: { itemId: number; type: 'COURSE' | 'RESOURCE'; email: string }) {
+  async createOneTimeCheckoutSession(dto: {
+    itemId: number;
+    type: 'COURSE' | 'RESOURCE';
+    email: string;
+  }) {
     // Lookup user
-    const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
     if (!user) throw new NotFoundException('User not found');
     let item, priceId, amount;
     if (dto.type === 'COURSE') {
@@ -347,20 +353,25 @@ export class PaymentsService {
       priceId = item?.stripePriceId;
       amount = item?.price;
     } else if (dto.type === 'RESOURCE') {
-      item = await this.prisma.resource.findUnique({ where: { id: dto.itemId } });
+      item = await this.prisma.resource.findUnique({
+        where: { id: dto.itemId },
+      });
       priceId = item?.stripePriceId;
       amount = item?.price;
     } else {
       throw new BadRequestException('Invalid type');
     }
-    if (!item || !priceId) throw new NotFoundException('Item or Stripe price not found');
+    if (!item || !priceId)
+      throw new NotFoundException('Item or Stripe price not found');
 
     const session = await this.stripe.checkout.sessions.create({
       mode: 'payment',
       payment_method_types: ['card'],
       customer_email: user.email,
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: this.configService.get('FRONTEND_URL') + '/purchase/success?session_id={CHECKOUT_SESSION_ID}',
+      success_url:
+        this.configService.get('FRONTEND_URL') +
+        '/purchase/success?session_id={CHECKOUT_SESSION_ID}',
       cancel_url: this.configService.get('FRONTEND_URL') + '/purchase/cancel',
       metadata: { userId: user.id, itemId: item.id, type: dto.type },
     });

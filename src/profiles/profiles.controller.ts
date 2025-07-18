@@ -280,10 +280,19 @@ export class ProfilesController {
   }
 
   @Post(':id/book')
-  @UseGuards(FeatureGuard)
+  @UseGuards(RolesGuard)
+  @Roles(Role.BOOKING_USER)
   // @RequireFeature(Feature.CONTACT_BOOK)
-  async bookProfessional(@Param('id') id: string, @Req() req: { user: User }) {
-    return this.profilesService.bookProfessional(id, req.user.id);
+  async bookProfessional(
+    @Param('id') id: string,
+    @Req() req: { user: User },
+    @Body() bookingDto: any,
+  ) {
+    return this.profilesService.bookProfessionalById(
+      id,
+      req.user.id,
+      bookingDto,
+    );
   }
 
   @Get('professionals')
@@ -330,8 +339,8 @@ export class ProfilesController {
   }
 
   @Get('professionals/by-pricing')
-  async findByPricing(@Query('min') min: number, @Query('max') max: number) {
-    return this.profilesService.findProfessionalsByPricing(min, max);
+  async findByPricing(@Query('price_max') price_max: number) {
+    return this.profilesService.findProfessionalsByPricing(price_max);
   }
 
   @Post('professionals/search')

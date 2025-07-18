@@ -281,6 +281,7 @@ export class ResourcesService implements OnModuleInit {
         data: {
           ...createResourceDto,
           sellerId: userId,
+          price: createResourceDto.price || 0,
         },
       });
     } catch (error) {

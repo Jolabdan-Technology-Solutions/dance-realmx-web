@@ -471,7 +471,8 @@ export class AnalyticsService {
     // Get payments for these courses
     const payments = await this.prisma.payment.findMany({
       where: {
-        course_id: { in: instructorCourses.map((c) => c.id) },
+        reference_id: { in: instructorCourses.map((c) => c.id) },
+        reference_type: 'COURSE',
         created_at: { gte: startDate, lte: endDate },
         status: 'COMPLETED',
       },
@@ -523,7 +524,8 @@ export class AnalyticsService {
     // Get payments for this course
     const payments = await this.prisma.payment.findMany({
       where: {
-        course_id: courseId,
+        reference_id: courseId,
+        reference_type: 'COURSE',
         created_at: { gte: startDate, lte: endDate },
         status: 'COMPLETED',
       },

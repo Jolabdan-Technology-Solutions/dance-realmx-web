@@ -50,7 +50,9 @@ export class BookingsController {
     @Body()
     createBookingDto: {
       course_id: number;
-      booking_date: Date;
+      instructor_id: number;
+      session_start: Date;
+      session_end: Date;
       status: BookingStatus;
     },
     @Req() req: any,

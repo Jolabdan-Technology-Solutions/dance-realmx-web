@@ -72,7 +72,7 @@ export class FeatureFlagsService implements OnModuleInit {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: {
-        userRoleMapping: true,
+        role_mappings: true,
       },
     });
 
@@ -80,7 +80,7 @@ export class FeatureFlagsService implements OnModuleInit {
 
     const enabledFeatures = new Set<string>();
 
-    for (const roleMapping of user.userRoleMapping) {
+    for (const roleMapping of user.role_mappings) {
       const roleFeatures = this.roleFeatureFlags.get(roleMapping.role) || [];
       if (roleFeatures.includes('*')) {
         await this.cacheManager.set(cacheKey, ['*'], this.CACHE_TTL);
@@ -105,7 +105,7 @@ export class FeatureFlagsService implements OnModuleInit {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: {
-        userRoleMapping: true,
+        role_mappings: true,
       },
     });
 
@@ -113,7 +113,7 @@ export class FeatureFlagsService implements OnModuleInit {
 
     const enabledFeatures = new Set<string>();
 
-    for (const roleMapping of user.userRoleMapping) {
+    for (const roleMapping of user.role_mappings) {
       const roleFeatures = this.roleFeatureFlags.get(roleMapping.role) || [];
       if (roleFeatures.includes('*')) {
         await this.cacheManager.set(cacheKey, ['*'], this.CACHE_TTL);

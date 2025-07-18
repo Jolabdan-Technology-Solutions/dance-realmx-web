@@ -126,7 +126,8 @@ export class InstructorService {
     // Get payments for these courses
     const payments = await this.prisma.payment.findMany({
       where: {
-        course_id: { in: instructorCourses.map((c) => c.id) },
+        reference_id: { in: instructorCourses.map((c) => c.id) },
+        reference_type: 'COURSE',
         created_at: { gte: startDate, lte: endDate },
         status: 'COMPLETED',
       },
@@ -178,7 +179,8 @@ export class InstructorService {
     // Get payments for this course
     const payments = await this.prisma.payment.findMany({
       where: {
-        course_id: courseId,
+        reference_id: courseId,
+        reference_type: 'COURSE',
         created_at: { gte: startDate, lte: endDate },
         status: 'COMPLETED',
       },
@@ -244,7 +246,7 @@ export class InstructorService {
       data: {
         ...createInstructorDto,
         password: hashedPassword,
-        role: UserRole.INSTRUCTOR,
+        role: [UserRole.INSTRUCTOR],
       },
     });
   }
@@ -282,7 +284,7 @@ export class InstructorService {
         email: true,
         first_name: true,
         last_name: true,
-        bio: true,
+        profile: true,
         profile_image_url: true,
         created_at: true,
         updated_at: true,

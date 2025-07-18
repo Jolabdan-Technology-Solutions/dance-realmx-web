@@ -1,4 +1,12 @@
-import { Controller, Get, UseGuards, Req, Res, Post, Body } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  UseGuards,
+  Req,
+  Res,
+  Post,
+  Body,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Response } from 'express';
 import { JwtService } from '@nestjs/jwt';
@@ -14,12 +22,17 @@ export class OAuthController {
   ) {}
 
   @Post('login')
-  async login(@Body() body: { email: string; password: string }): Promise<LoginResponse> {
+  async login(
+    @Body() body: { email: string; password: string },
+  ): Promise<LoginResponse> {
     const user = await this.authService.validateUser(body.email, body.password);
     if (!user) {
       throw new Error('Invalid credentials');
     }
-    return this.authService.login(user);
+    return this.authService.login({
+      username: body.email,
+      password: body.password,
+    });
   }
 
   @Get('google')

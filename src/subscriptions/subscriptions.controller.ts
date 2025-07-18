@@ -13,6 +13,7 @@ import {
   Put,
   Logger,
   UnauthorizedException,
+  Headers,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { SubscriptionsService } from './subscriptions.service';
@@ -278,7 +279,7 @@ export class SubscriptionsController {
       if (!user.subscription_tier) {
         await this.prisma.user.update({
           where: { id: user.id },
-          data: { subscription_tier: 'free' },
+          data: { subscription_tier: 'FREE' },
         });
         console.log('Set initial subscription tier to free for user:', user.id);
       }

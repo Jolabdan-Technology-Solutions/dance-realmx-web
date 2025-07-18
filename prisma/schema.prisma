@@ -36,6 +36,7 @@ model User {
   stripeAccountStatus StripeAccountStatus? @default(PENDING)
   frequency           String?
   is_active           Boolean?
+  email_verified      Boolean              @default(false)
   instructor_bookings Booking[]            @relation("InstructorBookings")
   bookings            Booking[]
   courses             Course[]             @relation("InstructorCourses")
@@ -58,6 +59,8 @@ model User {
   CartItem            CartItem[]
   passwordResets      PasswordReset[]
   emailVerifications  EmailVerification[]
+  quizAttempts        QuizAttempt[]
+  orders              Order[]
 }
 
 model PasswordReset {
@@ -68,8 +71,7 @@ model PasswordReset {
   used_at    DateTime?
   user_id    Int
   created_at DateTime  @default(now())
-
-  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user       User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
 
 model EmailVerification {
@@ -80,54 +82,55 @@ model EmailVerification {
   used_at    DateTime?
   user_id    Int
   created_at DateTime  @default(now())
-
-  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user       User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
 
 model Profile {
-  id              Int      @id @default(autoincrement())
-  user_id         Int      @unique
-  bio             String?
-  phone_number    String?
-  address         String?
-  city            String?
-  state           String?
-  country         String?
-  zip_code        String?
-  is_professional Boolean  @default(false)
-  is_verified     Boolean @default(false)
-  user            User     @relation(fields: [user_id], references: [id])
-  service_category   String[]   // Array of service categories
-  dance_style        String[]   // Array of dance styles
-  location           String?
-  travel_distance    Int?       // in miles/km
-  price_min          Int?
-  price_max          Int?
-  session_duration   Int?       // in minutes
-  years_experience   Int?
-  services           String[]   // Array of services offered
-  availability       Json?      // Array of date ranges with time slots: [{start_date, end_date, time_slots}]
-  portfolio          String?
-  pricing            Int?
+  id               Int      @id @default(autoincrement())
+  user_id          Int      @unique
+  bio              String?
+  phone_number     String?
+  address          String?
+  city             String?
+  state            String?
+  country          String?
+  zip_code         String?
+  is_professional  Boolean  @default(false)
+  is_verified      Boolean  @default(false)
+  availability     Json?
+  dance_style      String[]
+  location         String?
+  portfolio        String?
+  price_max        Int?
+  price_min        Int?
+  pricing          Int?
+  service_category String[]
+  services         String[]
+  session_duration Int?
+  travel_distance  Int?
+  years_experience Int?
+  user             User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
 
 model Course {
   id                   Int                 @id @default(autoincrement())
   title                String
-  short_name           String?             @unique
-  duration             String
-  difficulty_level     String
-  detailed_description String
   description          String
   price                Float
   image_url            String?
-  visible              Boolean
   instructor_id        Int
   preview_video_url    String
   video_url            String
   created_at           DateTime            @default(now())
   updated_at           DateTime            @updatedAt
-  instructor           User                @relation("InstructorCourses", fields: [instructor_id], references: [id])
+  detailed_description String
+  difficulty_level     String
+  duration             String
+  short_name           String?             @unique
+  visible              Boolean
+  average_rating       Float?
+  is_published         Boolean             @default(false)
+  instructor           User                @relation("InstructorCourses", fields: [instructor_id], references: [id], onDelete: Cascade)
   enrollments          Enrollment[]
   modules              Module[]
   reviews              Review[]
@@ -135,42 +138,49 @@ model Course {
   categories           Category[]          @relation("CourseCategories")
   tags                 Tag[]               @relation("CourseTags")
   CartItem             CartItem[]
+  resources            Resource[]
+  OrderItem            OrderItem[]
 }
 
 model Module {
-  id          Int      @id @default(autoincrement())
+  id          Int        @id @default(autoincrement())
   title       String
   description String
   course_id   Int
   order       Int
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
+  created_at  DateTime   @default(now())
+  updated_at  DateTime   @updatedAt
   lessons     Lesson[]
-  course      Course   @relation(fields: [course_id], references: [id])
+  course      Course     @relation(fields: [course_id], references: [id])
+  resources   Resource[]
 }
 
 model Lesson {
-  id         Int      @id @default(autoincrement())
+  id         Int        @id @default(autoincrement())
   title      String
   content    String
   video_url  String?
   module_id  Int
   order      Int
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-  module     Module   @relation(fields: [module_id], references: [id])
+  created_at DateTime   @default(now())
+  updated_at DateTime   @updatedAt
+  module     Module     @relation(fields: [module_id], references: [id])
   quizzes    Quiz[]
+  resources  Resource[]
 }
 
 model Enrollment {
-  id         Int      @id @default(autoincrement())
-  user_id    Int
-  course_id  Int
-  status     String   @default("ACTIVE")
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-  course     Course   @relation(fields: [course_id], references: [id])
-  user       User     @relation(fields: [user_id], references: [id])
+  id                    Int       @id @default(autoincrement())
+  user_id               Int
+  course_id             Int
+  status                String    @default("ACTIVE")
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+  completion_percentage Int       @default(0)
+  progress              Int       @default(0)
+  course                Course    @relation(fields: [course_id], references: [id])
+  user                  User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  payments              Payment[]
 
   @@unique([user_id, course_id])
 }
@@ -182,7 +192,7 @@ model Testimonial {
   user_id    Int
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
-  user       User     @relation(fields: [user_id], references: [id])
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
 
 model StripeCustomer {
@@ -191,7 +201,7 @@ model StripeCustomer {
   stripe_customer_id String   @unique
   created_at         DateTime @default(now())
   updated_at         DateTime @updatedAt
-  user               User     @relation(fields: [user_id], references: [id])
+  user               User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
 
 model Subscription {
@@ -207,7 +217,7 @@ model Subscription {
   frequency              SubscriptionFrequency
   stripe_session_id      String?
   status                 SubscriptionStatus    @default(ACTIVE)
-  user                   User                  @relation(fields: [user_id], references: [id])
+  user                   User                  @relation(fields: [user_id], references: [id], onDelete: Cascade)
   plan                   SubscriptionPlan      @relation(fields: [plan_id], references: [id])
 }
 
@@ -220,8 +230,9 @@ model Booking {
   status        String   @default("PENDING")
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
-  instructor    User     @relation("InstructorBookings", fields: [instructor_id], references: [id])
-  user          User     @relation(fields: [user_id], references: [id])
+  course_id     Int?
+  instructor    User     @relation("InstructorBookings", fields: [instructor_id], references: [id], onDelete: Cascade)
+  user          User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
 
 model UserCertification {
@@ -233,7 +244,7 @@ model UserCertification {
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
   course          Course   @relation(fields: [course_id], references: [id])
-  user            User     @relation(fields: [user_id], references: [id])
+  user            User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
 
 model ResourceCategory {
@@ -260,23 +271,32 @@ model Resource {
   thumbnailUrl    String?
   type            String
   url             String
-  seller          User               @relation("SellerResources", fields: [sellerId], references: [id])
+  course_id       Int?
+  lesson_id       Int?
+  module_id       Int?
+  seller          User               @relation("SellerResources", fields: [sellerId], references: [id], onDelete: Cascade)
   purchases       ResourcePurchase[]
   category        ResourceCategory?  @relation(fields: [categoryId], references: [id])
+  course          Course?            @relation(fields: [course_id], references: [id])
+  module          Module?            @relation(fields: [module_id], references: [id])
+  lesson          Lesson?            @relation(fields: [lesson_id], references: [id])
   CartItem        CartItem[]
+  OrderItem       OrderItem[]
 }
 
 model ResourcePurchase {
-  id                       Int      @id @default(autoincrement())
+  id                       Int       @id @default(autoincrement())
   user_id                  Int
   resource_id              Int
   stripe_payment_intent_id String?
-  status                   String   @default("PENDING")
+  status                   String    @default("PENDING")
   amount                   Float
-  created_at               DateTime @default(now())
-  updated_at               DateTime @updatedAt
-  resource                 Resource @relation(fields: [resource_id], references: [id])
-  user                     User     @relation(fields: [user_id], references: [id])
+  created_at               DateTime  @default(now())
+  updated_at               DateTime  @updatedAt
+  completed_at             DateTime?
+  purchased_at             DateTime?
+  resource                 Resource  @relation(fields: [resource_id], references: [id])
+  user                     User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([user_id, resource_id])
 }
@@ -294,7 +314,10 @@ model Payment {
   status                   PaymentStatus @default(PENDING)
   reference_type           PaymentType
   stripe_session_id        String?
-  user                     User          @relation(fields: [user_id], references: [id])
+  completed_at             DateTime?
+  stripe_customer_id       String?
+  user                     User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  enrollment               Enrollment?   @relation(fields: [reference_id], references: [id])
 }
 
 model UserRoleMapping {
@@ -331,7 +354,7 @@ model Notification {
   data       Json?
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
-  user       User     @relation(fields: [user_id], references: [id])
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id])
 }
@@ -344,8 +367,8 @@ model Message {
   read        Boolean  @default(false)
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
-  receiver    User     @relation("ReceivedMessages", fields: [receiver_id], references: [id])
-  sender      User     @relation("SentMessages", fields: [sender_id], references: [id])
+  receiver    User     @relation("ReceivedMessages", fields: [receiver_id], references: [id], onDelete: Cascade)
+  sender      User     @relation("SentMessages", fields: [sender_id], references: [id], onDelete: Cascade)
 
   @@index([sender_id])
   @@index([receiver_id])
@@ -355,10 +378,10 @@ model Category {
   id          Int        @id @default(autoincrement())
   name        String     @unique
   description String?
-  image_url   String?
   parent_id   Int?
   created_at  DateTime   @default(now())
   updated_at  DateTime   @updatedAt
+  image_url   String?
   parent      Category?  @relation("CategoryHierarchy", fields: [parent_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
   children    Category[] @relation("CategoryHierarchy")
   courses     Course[]   @relation("CourseCategories")
@@ -382,7 +405,7 @@ model Review {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
   course     Course   @relation(fields: [course_id], references: [id])
-  user       User     @relation(fields: [user_id], references: [id])
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([user_id, course_id])
 }
@@ -437,7 +460,7 @@ model CartItem {
   quantity    Int       @default(1)
   created_at  DateTime  @default(now())
   updated_at  DateTime  @updatedAt
-  user        User      @relation(fields: [user_id], references: [id])
+  user        User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
   course      Course?   @relation(fields: [course_id], references: [id])
   resource    Resource? @relation(fields: [resource_id], references: [id])
 
@@ -446,55 +469,129 @@ model CartItem {
   @@index([resource_id])
 }
 
+model Order {
+  id                Int         @id @default(autoincrement())
+  user_id           Int
+  total             Float
+  status            String      @default("PENDING")
+  stripe_session_id String?
+  created_at        DateTime    @default(now())
+  updated_at        DateTime    @updatedAt
+  user              User        @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  orderItems        OrderItem[]
+}
+
+model OrderItem {
+  id          Int       @id @default(autoincrement())
+  order_id    Int
+  course_id   Int?
+  resource_id Int?
+  quantity    Int       @default(1)
+  order       Order     @relation(fields: [order_id], references: [id])
+  course      Course?   @relation(fields: [course_id], references: [id])
+  resource    Resource? @relation(fields: [resource_id], references: [id])
+}
+
 model Quiz {
-  id         Int           @id @default(autoincrement())
+  id         Int            @id @default(autoincrement())
   title      String
   lesson_id  Int
-  lesson     Lesson        @relation(fields: [lesson_id], references: [id])
+  created_at DateTime       @default(now())
+  updated_at DateTime       @updatedAt
+  lesson     Lesson         @relation(fields: [lesson_id], references: [id])
   questions  QuizQuestion[]
-  created_at DateTime      @default(now())
-  updated_at DateTime      @updatedAt
+  attempts   QuizAttempt[]
 }
 
 model QuizQuestion {
-  id        Int          @id @default(autoincrement())
-  quiz_id   Int
-  quiz      Quiz         @relation(fields: [quiz_id], references: [id])
-  text      String
-  options   QuizOption[]
-  answer    Int?         // Option index (0-based) or null if not set
-  order     Int?
+  id             Int                 @id @default(autoincrement())
+  quiz_id        Int
+  text           String
+  answer         Int?
+  order          Int?
+  quiz           Quiz                @relation(fields: [quiz_id], references: [id])
+  options        QuizOption[]
+  attemptAnswers QuizAttemptAnswer[]
 }
 
 model QuizOption {
-  id            Int            @id @default(autoincrement())
-  question_id   Int
-  question      QuizQuestion   @relation(fields: [question_id], references: [id])
-  text          String
-  is_correct    Boolean        @default(false)
+  id          Int          @id @default(autoincrement())
+  question_id Int
+  text        String
+  is_correct  Boolean      @default(false)
+  question    QuizQuestion @relation(fields: [question_id], references: [id])
 }
 
 model QuizAttempt {
-  id         Int      @id @default(autoincrement())
+  id         Int                 @id @default(autoincrement())
   user_id    Int
-  user       User     @relation(fields: [user_id], references: [id])
   quiz_id    Int
-  quiz       Quiz     @relation(fields: [quiz_id], references: [id])
   score      Float
   correct    Int
   total      Int
-  created_at DateTime @default(now())
+  created_at DateTime            @default(now())
+  user       User                @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  quiz       Quiz                @relation(fields: [quiz_id], references: [id])
   answers    QuizAttemptAnswer[]
 }
 
 model QuizAttemptAnswer {
-  id           Int      @id @default(autoincrement())
-  attempt_id   Int
-  attempt      QuizAttempt @relation(fields: [attempt_id], references: [id])
-  question_id  Int
-  question     QuizQuestion @relation(fields: [question_id], references: [id])
-  selected     Int
-  is_correct   Boolean
+  id          Int          @id @default(autoincrement())
+  attempt_id  Int
+  question_id Int
+  selected    Int
+  is_correct  Boolean
+  attempt     QuizAttempt  @relation(fields: [attempt_id], references: [id])
+  question    QuizQuestion @relation(fields: [question_id], references: [id])
+}
+
+model comments {
+  id         String   @id(map: "PK_8bf68bc960f2b69e818bdb90dcb") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  content    String
+  createdAt  DateTime @default(now()) @db.Timestamp(6)
+  updatedAt  DateTime @default(now()) @db.Timestamp(6)
+  postId     String?  @db.Uuid
+  userId     String?  @db.Uuid
+  guestName  String?
+  guestEmail String?
+}
+
+model migrations {
+  id        Int    @id(map: "PK_8c82d7f526340ab734260ea46be") @default(autoincrement())
+  timestamp BigInt
+  name      String @db.VarChar
+}
+
+model newsletter_subscriptions {
+  id           String   @id(map: "PK_cfca9a6e4f146a80a6cd2e76f1d") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  email        String   @unique(map: "UQ_57fd53bd8b39fe19d2be8136f64") @db.VarChar
+  isSubscribed Boolean  @default(true)
+  subscribedAt DateTime @default(now()) @db.Timestamp(6)
+}
+
+model posts {
+  id        String   @id(map: "PK_2829ac61eff60fcec60d7274b9e") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  title     String   @db.VarChar
+  content   String
+  published Boolean  @default(false)
+  tags      String?
+  viewCount Int      @default(0)
+  image     String?  @db.VarChar
+  createdAt DateTime @default(now()) @db.Timestamp(6)
+  updatedAt DateTime @default(now()) @db.Timestamp(6)
+  authorId  String?  @db.Uuid
+}
+
+model users {
+  id           String   @id(map: "PK_a3ffb1c0c8416b9fc6f907b7433") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  email        String   @unique(map: "UQ_97672ac88f789774dd47f7c8be3") @db.VarChar
+  password     String   @db.VarChar
+  name         String   @db.VarChar
+  isAdmin      Boolean  @default(false)
+  createdAt    DateTime @default(now()) @db.Timestamp(6)
+  updatedAt    DateTime @default(now()) @db.Timestamp(6)
+  refreshToken String?  @db.VarChar
+  avatar       String?  @db.VarChar
 }
 
 enum UserRole {
@@ -504,12 +601,12 @@ enum UserRole {
   ADMIN
   DIRECTORY_MEMBER
   CERTIFICATION_MANAGER
-  INSTRUCTOR
   INSTRUCTOR_ADMIN
   CURRICULUM_ADMIN
   COURSE_CREATOR_ADMIN
   BOOKING_PROFESSIONAL
   BOOKING_USER
+  INSTRUCTOR
 }
 
 enum SubscriptionTier {
@@ -532,6 +629,7 @@ enum PaymentStatus {
   REFUNDED
   PARTIALLY_REFUNDED
   CANCELED
+  COMPLETED
 }
 
 enum PaymentType {
@@ -551,6 +649,8 @@ enum SubscriptionStatus {
   CANCELED
   FAILED
   PENDING
+  EXPIRED
+  CANCELLED
 }
 
 enum AccountType {

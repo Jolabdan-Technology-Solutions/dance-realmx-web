@@ -129,7 +129,7 @@ export class QuizService {
       };
     });
     const score = (correct / quiz.questions.length) * 100;
-    let attempt = null;
+    let attempt: any = null;
     if (userId) {
       attempt = await this.prisma.quizAttempt.create({
         data: {

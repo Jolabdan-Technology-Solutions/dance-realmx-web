@@ -135,9 +135,13 @@ export class NotificationsService {
   }
 
   async update(id: number, data: Partial<Notification>): Promise<Notification> {
+    const { id: _, user_id: __, data: jsonData, ...updateData } = data;
     return this.prisma.notification.update({
       where: { id },
-      data,
+      data: {
+        ...updateData,
+        data: jsonData as any,
+      },
       include: {
         user: true,
       },

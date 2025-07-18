@@ -11,8 +11,8 @@ export class TenantsService {
       data: {
         name,
         created_at: new Date(),
-        updated_at: new Date()
-      }
+        updated_at: new Date(),
+      },
     });
   }
 
@@ -44,14 +44,14 @@ export class TenantsService {
       where: { id },
       data: {
         ...data,
-        updated_at: new Date()
-      }
+        updated_at: new Date(),
+      },
     });
   }
 
   async remove(id: number) {
     return this.prisma.tenant.delete({
-      where: { id }
+      where: { id },
     });
   }
 
@@ -106,7 +106,7 @@ export class TenantsService {
     return this.prisma.user.findMany({
       where: { tenant_id: tenantId },
       include: {
-        userRoleMapping: true,
+        role_mappings: true,
       },
     });
   }

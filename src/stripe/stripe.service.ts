@@ -55,4 +55,20 @@ export class StripeService {
       this.handleStripeError(error, 'createPaymentIntent');
     }
   }
+
+  async createCheckoutSession(options: Stripe.Checkout.SessionCreateParams) {
+    try {
+      return await this.stripe.checkout.sessions.create(options);
+    } catch (error) {
+      this.handleStripeError(error, 'createCheckoutSession');
+    }
+  }
+
+  async getCheckoutSession(sessionId: string) {
+    try {
+      return await this.stripe.checkout.sessions.retrieve(sessionId);
+    } catch (error) {
+      this.handleStripeError(error, 'getCheckoutSession');
+    }
+  }
 }

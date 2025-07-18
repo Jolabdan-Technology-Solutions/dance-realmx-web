@@ -77,6 +77,8 @@ export class GithubStrategy extends PassportStrategy(Strategy, 'github') {
           username: user.username,
           profile_image_url: user.picture,
           auth_provider: 'GITHUB',
+          password: '', // OAuth users don't need password
+          role: ['GUEST_USER'],
         },
       });
 
