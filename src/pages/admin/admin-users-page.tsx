@@ -1266,7 +1266,7 @@ export default function AdminUsersPage() {
                                 <Button
                                   variant="destructive"
                                   size="icon"
-                                  onClick={() => handleDeleteClick(user.id)}
+                                  onClick={() => handleDeleteClick(user?.id)}
                                   disabled={
                                     deleteUserMutation.isPending ||
                                     user.role.includes(USER_ROLES.ADMIN)

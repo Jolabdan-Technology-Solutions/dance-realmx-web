@@ -92,7 +92,43 @@ export const ProfessionalRecommendations: React.FC<
   });
 
   // Handle different possible data structures and ensure it's always an array
-  const professionals: ProfessionalProfile[] = Array.isArray(professionalsData)
+  // Define a local type for mapped professionals
+  interface MappedProfessional {
+    id: any;
+    userId: any;
+    firstName: any;
+    lastName: any;
+    username: any;
+    email: any;
+    profileImageUrl: any;
+    bio: any;
+    location: any;
+    danceStyles: any[];
+    serviceCategory: any[];
+    pricing: any;
+    rate: string;
+    yearsExperience: any;
+    services: any[];
+    portfolio: any;
+    rating: any;
+    reviewCount: any;
+    sessionDuration: any;
+    priceMin: any;
+    priceMax: any;
+    providerType: any;
+    availability: any[];
+    isVerified: boolean;
+    isProfessional: boolean;
+    phoneNumber: any;
+    address: any;
+    city: any;
+    state: any;
+    country: any;
+    zipCode: any;
+    travelDistance: any;
+  }
+  // Change professionals to use MappedProfessional
+  const professionals: MappedProfessional[] = Array.isArray(professionalsData)
     ? professionalsData
     : professionalsData?.results || [];
 
@@ -147,7 +183,7 @@ export const ProfessionalRecommendations: React.FC<
   };
 
   // Handle booking
-  const handleBook = async (professional: ProfessionalProfile) => {
+  const handleBook = async (professional: MappedProfessional) => {
     try {
       await professionalService.bookProfessional(professional.id, {
         professionalId: professional.id,
@@ -174,15 +210,17 @@ export const ProfessionalRecommendations: React.FC<
   };
 
   // Get avatar fallback
-  const getAvatarFallback = (professional: ProfessionalProfile) => {
+  // Update getAvatarFallback to use MappedProfessional
+  const getAvatarFallback = (professional: MappedProfessional) => {
     if (professional.firstName && professional.lastName) {
       return `${professional.firstName[0]}${professional.lastName[0]}`.toUpperCase();
     }
-    return professional.username.slice(0, 2).toUpperCase();
+    return professional.username?.slice(0, 2).toUpperCase() || "";
   };
 
   // Format price range
-  const formatPriceRange = (professional: ProfessionalProfile) => {
+  // Update formatPriceRange to use MappedProfessional
+  const formatPriceRange = (professional: MappedProfessional) => {
     if (professional.priceMin && professional.priceMax) {
       return `$${professional.priceMin}-$${professional.priceMax}`;
     } else if (professional.priceMin) {
@@ -527,7 +565,7 @@ export const DanceStyleRecommendations: React.FC<
   );
 
   const [loading, setLoading] = useState(false);
-  const [professionals, setProfessionals] = useState<ProfessionalProfile[]>([]);
+  const [professionals, setProfessionals] = useState<MappedProfessional[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -554,44 +592,40 @@ export const DanceStyleRecommendations: React.FC<
           const rawResults = Array.isArray(res) ? res : res?.results || [];
 
           // Map API response to expected UI structure
-          const mappedResults = rawResults.map(
-            (item: any) =>
-              ({
-                id: item.id,
-                userId: item.user_id,
-                firstName: item.user?.first_name,
-                lastName: item.user?.last_name,
-                username: item.user?.username,
-                email: item.user?.email,
-                profileImageUrl: item.user?.profile_image_url,
-                bio: item.bio,
-                location: item.location,
-                danceStyles: item.dance_style || [],
-                serviceCategory: item.service_category || [],
-                pricing: item.pricing,
-                rate: item.pricing?.toString() || "",
-                yearsExperience: item.years_experience,
-                services: item.services || [],
-                portfolio: item.portfolio,
-                rating: item.rating,
-                reviewCount: item.review_count,
-                sessionDuration: item.session_duration,
-                priceMin: item.price_min,
-                priceMax: item.price_max,
-                providerType:
-                  item.service_category?.[0] || "Dance Professional",
-                availability: item.availability || [],
-                isVerified: item.is_verified || false,
-                isProfessional: item.is_professional || false,
-                phoneNumber: item.phone_number,
-                address: item.address,
-                city: item.city,
-                state: item.state,
-                country: item.country,
-                zipCode: item.zip_code,
-                travelDistance: item.travel_distance,
-              }) as ProfessionalProfile
-          );
+          const mappedResults = rawResults.map((item: any) => ({
+            id: item.id,
+            userId: item.user_id,
+            firstName: item.user?.first_name,
+            lastName: item.user?.last_name,
+            username: item.user?.username,
+            email: item.user?.email,
+            profileImageUrl: item.user?.profile_image_url,
+            bio: item.bio,
+            location: item.location,
+            danceStyles: item.dance_style || [],
+            serviceCategory: item.service_category || [],
+            pricing: item.pricing,
+            rate: item.pricing?.toString() || "",
+            yearsExperience: item.years_experience,
+            services: item.services || [],
+            portfolio: item.portfolio,
+            rating: item.rating,
+            reviewCount: item.review_count,
+            sessionDuration: item.session_duration,
+            priceMin: item.price_min,
+            priceMax: item.price_max,
+            providerType: item.service_category?.[0] || "Dance Professional",
+            availability: item.availability || [],
+            isVerified: item.is_verified || false,
+            isProfessional: item.is_professional || false,
+            phoneNumber: item.phone_number,
+            address: item.address,
+            city: item.city,
+            state: item.state,
+            country: item.country,
+            zipCode: item.zip_code,
+            travelDistance: item.travel_distance,
+          }));
 
           setProfessionals(mappedResults);
           console.log(
@@ -708,7 +742,7 @@ export const CategoryRecommendations: React.FC<
   CategoryRecommendationsProps
 > = ({ categories, title = "Professionals based on your category" }) => {
   const [loading, setLoading] = useState(false);
-  const [professionals, setProfessionals] = useState<ProfessionalProfile[]>([]);
+  const [professionals, setProfessionals] = useState<MappedProfessional[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -717,7 +751,7 @@ export const CategoryRecommendations: React.FC<
       setLoading(true);
       setError(null);
       try {
-        const allResults: ProfessionalProfile[] = [];
+        const allResults: MappedProfessional[] = [];
         for (const category of categories) {
           const res = await professionalService.getByCategory(category);
           console.log("CategoryRecommendations - res:", res);
@@ -726,44 +760,40 @@ export const CategoryRecommendations: React.FC<
           const rawResults = Array.isArray(res) ? res : res?.results || [];
 
           // Map API response to expected UI structure
-          const mappedResults = rawResults.map(
-            (item: any) =>
-              ({
-                id: item.id,
-                userId: item.user_id,
-                firstName: item.user?.first_name,
-                lastName: item.user?.last_name,
-                username: item.user?.username,
-                email: item.user?.email,
-                profileImageUrl: item.user?.profile_image_url,
-                bio: item.bio,
-                location: item.location,
-                danceStyles: item.dance_style || [],
-                serviceCategory: item.service_category || [],
-                pricing: item.pricing,
-                rate: item.pricing?.toString() || "",
-                yearsExperience: item.years_experience,
-                services: item.services || [],
-                portfolio: item.portfolio,
-                rating: item.rating,
-                reviewCount: item.review_count,
-                sessionDuration: item.session_duration,
-                priceMin: item.price_min,
-                priceMax: item.price_max,
-                providerType:
-                  item.service_category?.[0] || "Dance Professional",
-                availability: item.availability || [],
-                isVerified: item.is_verified || false,
-                isProfessional: item.is_professional || false,
-                phoneNumber: item.phone_number,
-                address: item.address,
-                city: item.city,
-                state: item.state,
-                country: item.country,
-                zipCode: item.zip_code,
-                travelDistance: item.travel_distance,
-              }) as ProfessionalProfile
-          );
+          const mappedResults = rawResults.map((item: any) => ({
+            id: item.id,
+            userId: item.user_id,
+            firstName: item.user?.first_name,
+            lastName: item.user?.last_name,
+            username: item.user?.username,
+            email: item.user?.email,
+            profileImageUrl: item.user?.profile_image_url,
+            bio: item.bio,
+            location: item.location,
+            danceStyles: item.dance_style || [],
+            serviceCategory: item.service_category || [],
+            pricing: item.pricing,
+            rate: item.pricing?.toString() || "",
+            yearsExperience: item.years_experience,
+            services: item.services || [],
+            portfolio: item.portfolio,
+            rating: item.rating,
+            reviewCount: item.review_count,
+            sessionDuration: item.session_duration,
+            priceMin: item.price_min,
+            priceMax: item.price_max,
+            providerType: item.service_category?.[0] || "Dance Professional",
+            availability: item.availability || [],
+            isVerified: item.is_verified || false,
+            isProfessional: item.is_professional || false,
+            phoneNumber: item.phone_number,
+            address: item.address,
+            city: item.city,
+            state: item.state,
+            country: item.country,
+            zipCode: item.zip_code,
+            travelDistance: item.travel_distance,
+          }));
 
           allResults.push(...mappedResults);
         }
@@ -874,7 +904,7 @@ export const CityRecommendations: React.FC<CityRecommendationsProps> = ({
   title = "Professionals in your city",
 }) => {
   const [loading, setLoading] = useState(false);
-  const [professionals, setProfessionals] = useState<ProfessionalProfile[]>([]);
+  const [professionals, setProfessionals] = useState<MappedProfessional[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -891,44 +921,40 @@ export const CityRecommendations: React.FC<CityRecommendationsProps> = ({
           const rawResults = Array.isArray(res) ? res : res?.results || [];
 
           // Map API response to expected UI structure
-          const mappedResults = rawResults.map(
-            (item: any) =>
-              ({
-                id: item.id,
-                userId: item.user_id,
-                firstName: item.user?.first_name,
-                lastName: item.user?.last_name,
-                username: item.user?.username,
-                email: item.user?.email,
-                profileImageUrl: item.user?.profile_image_url,
-                bio: item.bio,
-                location: item.location,
-                danceStyles: item.dance_style || [],
-                serviceCategory: item.service_category || [],
-                pricing: item.pricing,
-                rate: item.pricing?.toString() || "",
-                yearsExperience: item.years_experience,
-                services: item.services || [],
-                portfolio: item.portfolio,
-                rating: item.rating,
-                reviewCount: item.review_count,
-                sessionDuration: item.session_duration,
-                priceMin: item.price_min,
-                priceMax: item.price_max,
-                providerType:
-                  item.service_category?.[0] || "Dance Professional",
-                availability: item.availability || [],
-                isVerified: item.is_verified || false,
-                isProfessional: item.is_professional || false,
-                phoneNumber: item.phone_number,
-                address: item.address,
-                city: item.city,
-                state: item.state,
-                country: item.country,
-                zipCode: item.zip_code,
-                travelDistance: item.travel_distance,
-              }) as ProfessionalProfile
-          );
+          const mappedResults = rawResults.map((item: any) => ({
+            id: item.id,
+            userId: item.user_id,
+            firstName: item.user?.first_name,
+            lastName: item.user?.last_name,
+            username: item.user?.username,
+            email: item.user?.email,
+            profileImageUrl: item.user?.profile_image_url,
+            bio: item.bio,
+            location: item.location,
+            danceStyles: item.dance_style || [],
+            serviceCategory: item.service_category || [],
+            pricing: item.pricing,
+            rate: item.pricing?.toString() || "",
+            yearsExperience: item.years_experience,
+            services: item.services || [],
+            portfolio: item.portfolio,
+            rating: item.rating,
+            reviewCount: item.review_count,
+            sessionDuration: item.session_duration,
+            priceMin: item.price_min,
+            priceMax: item.price_max,
+            providerType: item.service_category?.[0] || "Dance Professional",
+            availability: item.availability || [],
+            isVerified: item.is_verified || false,
+            isProfessional: item.is_professional || false,
+            phoneNumber: item.phone_number,
+            address: item.address,
+            city: item.city,
+            state: item.state,
+            country: item.country,
+            zipCode: item.zip_code,
+            travelDistance: item.travel_distance,
+          }));
 
           setProfessionals(mappedResults);
         }
@@ -1035,7 +1061,7 @@ export const StateRecommendations: React.FC<StateRecommendationsProps> = ({
   title = "Professionals in your state",
 }) => {
   const [loading, setLoading] = useState(false);
-  const [professionals, setProfessionals] = useState<ProfessionalProfile[]>([]);
+  const [professionals, setProfessionals] = useState<MappedProfessional[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -1052,44 +1078,40 @@ export const StateRecommendations: React.FC<StateRecommendationsProps> = ({
           const rawResults = Array.isArray(res) ? res : res?.results || [];
 
           // Map API response to expected UI structure
-          const mappedResults = rawResults.map(
-            (item: any) =>
-              ({
-                id: item.id,
-                userId: item.user_id,
-                firstName: item.user?.first_name,
-                lastName: item.user?.last_name,
-                username: item.user?.username,
-                email: item.user?.email,
-                profileImageUrl: item.user?.profile_image_url,
-                bio: item.bio,
-                location: item.location,
-                danceStyles: item.dance_style || [],
-                serviceCategory: item.service_category || [],
-                pricing: item.pricing,
-                rate: item.pricing?.toString() || "",
-                yearsExperience: item.years_experience,
-                services: item.services || [],
-                portfolio: item.portfolio,
-                rating: item.rating,
-                reviewCount: item.review_count,
-                sessionDuration: item.session_duration,
-                priceMin: item.price_min,
-                priceMax: item.price_max,
-                providerType:
-                  item.service_category?.[0] || "Dance Professional",
-                availability: item.availability || [],
-                isVerified: item.is_verified || false,
-                isProfessional: item.is_professional || false,
-                phoneNumber: item.phone_number,
-                address: item.address,
-                city: item.city,
-                state: item.state,
-                country: item.country,
-                zipCode: item.zip_code,
-                travelDistance: item.travel_distance,
-              }) as ProfessionalProfile
-          );
+          const mappedResults = rawResults.map((item: any) => ({
+            id: item.id,
+            userId: item.user_id,
+            firstName: item.user?.first_name,
+            lastName: item.user?.last_name,
+            username: item.user?.username,
+            email: item.user?.email,
+            profileImageUrl: item.user?.profile_image_url,
+            bio: item.bio,
+            location: item.location,
+            danceStyles: item.dance_style || [],
+            serviceCategory: item.service_category || [],
+            pricing: item.pricing,
+            rate: item.pricing?.toString() || "",
+            yearsExperience: item.years_experience,
+            services: item.services || [],
+            portfolio: item.portfolio,
+            rating: item.rating,
+            reviewCount: item.review_count,
+            sessionDuration: item.session_duration,
+            priceMin: item.price_min,
+            priceMax: item.price_max,
+            providerType: item.service_category?.[0] || "Dance Professional",
+            availability: item.availability || [],
+            isVerified: item.is_verified || false,
+            isProfessional: item.is_professional || false,
+            phoneNumber: item.phone_number,
+            address: item.address,
+            city: item.city,
+            state: item.state,
+            country: item.country,
+            zipCode: item.zip_code,
+            travelDistance: item.travel_distance,
+          }));
 
           setProfessionals(mappedResults);
         }
@@ -1198,7 +1220,7 @@ export const PricingRecommendations: React.FC<PricingRecommendationsProps> = ({
   title = "Professionals in your budget range",
 }) => {
   const [loading, setLoading] = useState(false);
-  const [professionals, setProfessionals] = useState<ProfessionalProfile[]>([]);
+  const [professionals, setProfessionals] = useState<MappedProfessional[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -1215,44 +1237,40 @@ export const PricingRecommendations: React.FC<PricingRecommendationsProps> = ({
           const rawResults = Array.isArray(res) ? res : res?.results || [];
 
           // Map API response to expected UI structure
-          const mappedResults = rawResults.map(
-            (item: any) =>
-              ({
-                id: item.id,
-                userId: item.user_id,
-                firstName: item.user?.first_name,
-                lastName: item.user?.last_name,
-                username: item.user?.username,
-                email: item.user?.email,
-                profileImageUrl: item.user?.profile_image_url,
-                bio: item.bio,
-                location: item.location,
-                danceStyles: item.dance_style || [],
-                serviceCategory: item.service_category || [],
-                pricing: item.pricing,
-                rate: item.pricing?.toString() || "",
-                yearsExperience: item.years_experience,
-                services: item.services || [],
-                portfolio: item.portfolio,
-                rating: item.rating,
-                reviewCount: item.review_count,
-                sessionDuration: item.session_duration,
-                priceMin: item.price_min,
-                priceMax: item.price_max,
-                providerType:
-                  item.service_category?.[0] || "Dance Professional",
-                availability: item.availability || [],
-                isVerified: item.is_verified || false,
-                isProfessional: item.is_professional || false,
-                phoneNumber: item.phone_number,
-                address: item.address,
-                city: item.city,
-                state: item.state,
-                country: item.country,
-                zipCode: item.zip_code,
-                travelDistance: item.travel_distance,
-              }) as ProfessionalProfile
-          );
+          const mappedResults = rawResults.map((item: any) => ({
+            id: item.id,
+            userId: item.user_id,
+            firstName: item.user?.first_name,
+            lastName: item.user?.last_name,
+            username: item.user?.username,
+            email: item.user?.email,
+            profileImageUrl: item.user?.profile_image_url,
+            bio: item.bio,
+            location: item.location,
+            danceStyles: item.dance_style || [],
+            serviceCategory: item.service_category || [],
+            pricing: item.pricing,
+            rate: item.pricing?.toString() || "",
+            yearsExperience: item.years_experience,
+            services: item.services || [],
+            portfolio: item.portfolio,
+            rating: item.rating,
+            reviewCount: item.review_count,
+            sessionDuration: item.session_duration,
+            priceMin: item.price_min,
+            priceMax: item.price_max,
+            providerType: item.service_category?.[0] || "Dance Professional",
+            availability: item.availability || [],
+            isVerified: item.is_verified || false,
+            isProfessional: item.is_professional || false,
+            phoneNumber: item.phone_number,
+            address: item.address,
+            city: item.city,
+            state: item.state,
+            country: item.country,
+            zipCode: item.zip_code,
+            travelDistance: item.travel_distance,
+          }));
 
           setProfessionals(mappedResults);
         }
@@ -1359,7 +1377,7 @@ export const DateRecommendations: React.FC<DateRecommendationsProps> = ({
   title = "Professionals available on your date",
 }) => {
   const [loading, setLoading] = useState(false);
-  const [professionals, setProfessionals] = useState<ProfessionalProfile[]>([]);
+  const [professionals, setProfessionals] = useState<MappedProfessional[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -1376,44 +1394,40 @@ export const DateRecommendations: React.FC<DateRecommendationsProps> = ({
           const rawResults = Array.isArray(res) ? res : res?.results || [];
 
           // Map API response to expected UI structure
-          const mappedResults = rawResults.map(
-            (item: any) =>
-              ({
-                id: item.id,
-                userId: item.user_id,
-                firstName: item.user?.first_name,
-                lastName: item.user?.last_name,
-                username: item.user?.username,
-                email: item.user?.email,
-                profileImageUrl: item.user?.profile_image_url,
-                bio: item.bio,
-                location: item.location,
-                danceStyles: item.dance_style || [],
-                serviceCategory: item.service_category || [],
-                pricing: item.pricing,
-                rate: item.pricing?.toString() || "",
-                yearsExperience: item.years_experience,
-                services: item.services || [],
-                portfolio: item.portfolio,
-                rating: item.rating,
-                reviewCount: item.review_count,
-                sessionDuration: item.session_duration,
-                priceMin: item.price_min,
-                priceMax: item.price_max,
-                providerType:
-                  item.service_category?.[0] || "Dance Professional",
-                availability: item.availability || [],
-                isVerified: item.is_verified || false,
-                isProfessional: item.is_professional || false,
-                phoneNumber: item.phone_number,
-                address: item.address,
-                city: item.city,
-                state: item.state,
-                country: item.country,
-                zipCode: item.zip_code,
-                travelDistance: item.travel_distance,
-              }) as ProfessionalProfile
-          );
+          const mappedResults = rawResults.map((item: any) => ({
+            id: item.id,
+            userId: item.user_id,
+            firstName: item.user?.first_name,
+            lastName: item.user?.last_name,
+            username: item.user?.username,
+            email: item.user?.email,
+            profileImageUrl: item.user?.profile_image_url,
+            bio: item.bio,
+            location: item.location,
+            danceStyles: item.dance_style || [],
+            serviceCategory: item.service_category || [],
+            pricing: item.pricing,
+            rate: item.pricing?.toString() || "",
+            yearsExperience: item.years_experience,
+            services: item.services || [],
+            portfolio: item.portfolio,
+            rating: item.rating,
+            reviewCount: item.review_count,
+            sessionDuration: item.session_duration,
+            priceMin: item.price_min,
+            priceMax: item.price_max,
+            providerType: item.service_category?.[0] || "Dance Professional",
+            availability: item.availability || [],
+            isVerified: item.is_verified || false,
+            isProfessional: item.is_professional || false,
+            phoneNumber: item.phone_number,
+            address: item.address,
+            city: item.city,
+            state: item.state,
+            country: item.country,
+            zipCode: item.zip_code,
+            travelDistance: item.travel_distance,
+          }));
 
           setProfessionals(mappedResults);
         }
@@ -1519,7 +1533,7 @@ export const LocationRecommendations: React.FC<
   LocationRecommendationsProps
 > = ({ location, title = "Professionals near your location" }) => {
   const [loading, setLoading] = useState(false);
-  const [professionals, setProfessionals] = useState<ProfessionalProfile[]>([]);
+  const [professionals, setProfessionals] = useState<MappedProfessional[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -1536,44 +1550,40 @@ export const LocationRecommendations: React.FC<
           const rawResults = Array.isArray(res) ? res : res?.results || [];
 
           // Map API response to expected UI structure
-          const mappedResults = rawResults.map(
-            (item: any) =>
-              ({
-                id: item.id,
-                userId: item.user_id,
-                firstName: item.user?.first_name,
-                lastName: item.user?.last_name,
-                username: item.user?.username,
-                email: item.user?.email,
-                profileImageUrl: item.user?.profile_image_url,
-                bio: item.bio,
-                location: item.location,
-                danceStyles: item.dance_style || [],
-                serviceCategory: item.service_category || [],
-                pricing: item.pricing,
-                rate: item.pricing?.toString() || "",
-                yearsExperience: item.years_experience,
-                services: item.services || [],
-                portfolio: item.portfolio,
-                rating: item.rating,
-                reviewCount: item.review_count,
-                sessionDuration: item.session_duration,
-                priceMin: item.price_min,
-                priceMax: item.price_max,
-                providerType:
-                  item.service_category?.[0] || "Dance Professional",
-                availability: item.availability || [],
-                isVerified: item.is_verified || false,
-                isProfessional: item.is_professional || false,
-                phoneNumber: item.phone_number,
-                address: item.address,
-                city: item.city,
-                state: item.state,
-                country: item.country,
-                zipCode: item.zip_code,
-                travelDistance: item.travel_distance,
-              }) as ProfessionalProfile
-          );
+          const mappedResults = rawResults.map((item: any) => ({
+            id: item.id,
+            userId: item.user_id,
+            firstName: item.user?.first_name,
+            lastName: item.user?.last_name,
+            username: item.user?.username,
+            email: item.user?.email,
+            profileImageUrl: item.user?.profile_image_url,
+            bio: item.bio,
+            location: item.location,
+            danceStyles: item.dance_style || [],
+            serviceCategory: item.service_category || [],
+            pricing: item.pricing,
+            rate: item.pricing?.toString() || "",
+            yearsExperience: item.years_experience,
+            services: item.services || [],
+            portfolio: item.portfolio,
+            rating: item.rating,
+            reviewCount: item.review_count,
+            sessionDuration: item.session_duration,
+            priceMin: item.price_min,
+            priceMax: item.price_max,
+            providerType: item.service_category?.[0] || "Dance Professional",
+            availability: item.availability || [],
+            isVerified: item.is_verified || false,
+            isProfessional: item.is_professional || false,
+            phoneNumber: item.phone_number,
+            address: item.address,
+            city: item.city,
+            state: item.state,
+            country: item.country,
+            zipCode: item.zip_code,
+            travelDistance: item.travel_distance,
+          }));
 
           setProfessionals(mappedResults);
         }
