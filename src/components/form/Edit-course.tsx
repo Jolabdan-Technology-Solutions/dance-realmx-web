@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Link, useLocation, useParams } from "wouter";
+import { Link, useParams } from "wouter";
 import {
   Loader2,
   ArrowLeft,
@@ -10,7 +10,6 @@ import {
   Trash2,
   Eye,
   FileDown,
-  FileUp,
   BookOpen,
   CheckCircle,
   User,
@@ -21,7 +20,6 @@ import {
   FileText,
   Edit,
   Download,
-  Gift,
   Mail,
   PenTool,
   Server,

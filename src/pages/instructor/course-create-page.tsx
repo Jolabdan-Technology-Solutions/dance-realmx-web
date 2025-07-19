@@ -818,7 +818,6 @@
 // // //   );
 // // // }
 
-
 // import { useState, useEffect } from "react";
 // import { useAuth } from "../../hooks/use-auth";
 // import { useQuery, useMutation } from "@tanstack/react-query";
@@ -1015,7 +1014,7 @@
 //       console.log("Course creation response data:", data);
 //       console.log("Data type:", typeof data);
 //       console.log("Data keys:", data ? Object.keys(data) : "No data");
-      
+
 //       // Invalidate courses cache
 //       queryClient.invalidateQueries({ queryKey: ["courses"] });
 //       queryClient.invalidateQueries({ queryKey: ["/api/courses"] });
@@ -1026,16 +1025,16 @@
 
 //       if (data && typeof data === 'object') {
 //         // Check for various title formats
-//         courseTitle = data.title || 
-//                      data.name || 
-//                      data.course_title || 
+//         courseTitle = data.title ||
+//                      data.name ||
+//                      data.course_title ||
 //                      data.course_name ||
 //                      (data.data && data.data.title) ||
 //                      courseTitle;
 
 //         // Check for various ID formats
-//         courseId = data.id || 
-//                    data.course_id || 
+//         courseId = data.id ||
+//                    data.course_id ||
 //                    data.courseId ||
 //                    (data.data && (data.data.id || data.data.course_id));
 //       }
@@ -1059,7 +1058,7 @@
 //         stack: error.stack,
 //         name: error.name
 //       });
-      
+
 //       toast({
 //         title: "Failed to Create Course",
 //         description:
@@ -1675,7 +1674,6 @@
 //   );
 // }
 
-
 import { useState, useEffect } from "react";
 import { useAuth } from "../../hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -1818,8 +1816,8 @@ const FileUpload: React.FC<FileUploadProps> = ({
     try {
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("resource_type", "image")
-      formData.append("folder", "images")
+      formData.append("resource_type", "image");
+      formData.append("folder", "images");
 
       const response = await apiRequest("/api/upload", {
         method: "POST",
@@ -2323,7 +2321,10 @@ export default function CourseCreatePage() {
                     <FormLabel>Course Image</FormLabel>
                     <FormControl>
                       <FileUpload
-                        onUploadComplete={(url) => {field.onChange(url); form.setValue("imageUrl", url)}}
+                        onUploadComplete={(url) => {
+                          field.onChange(url);
+                          form.setValue("imageUrl", url);
+                        }}
                         defaultValue={field.value || ""}
                         // uploadEndpoint="/api/upload"
                         acceptedTypes="image/*"
@@ -2433,7 +2434,9 @@ export default function CourseCreatePage() {
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="beginner">Beginner</SelectItem>
-                        <SelectItem value="intermediate">Intermediate</SelectItem>
+                        <SelectItem value="intermediate">
+                          Intermediate
+                        </SelectItem>
                         <SelectItem value="advanced">Advanced</SelectItem>
                         <SelectItem value="all-levels">All Levels</SelectItem>
                       </SelectContent>
@@ -2586,7 +2589,7 @@ export default function CourseCreatePage() {
         </Form>
       </div>
 
-      {/* Enhanced Debug Panel */}
+      {/* Enhanced Debug Panel
       {process.env.NODE_ENV === "development" && (
         <div className="mt-8 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
           <h3 className="font-semibold mb-2">Debug Info:</h3>
@@ -2624,9 +2627,7 @@ export default function CourseCreatePage() {
             </div>
           </div>
         </div>
-      )}
+      )} */}
     </div>
   );
 }
-
-
