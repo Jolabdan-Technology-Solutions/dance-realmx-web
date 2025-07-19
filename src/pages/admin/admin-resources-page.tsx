@@ -150,6 +150,8 @@ export default function AdminResourcesPage() {
   const [resourceType, setResourceType] = useState<string>("VIDEO");
   const [isMainFileUploading, setIsMainFileUploading] = useState(false);
   const [isThumbnailUploading, setIsThumbnailUploading] = useState(false);
+  // Add isFeatured state
+  const [isFeatured, setIsFeatured] = useState(false);
 
   // Fetch resources from the new API
   const { data: resources = [], isLoading } = useQuery({
@@ -295,6 +297,7 @@ export default function AdminResourcesPage() {
     setResourceType("VIDEO");
     setIsMainFileUploading(false);
     setIsThumbnailUploading(false);
+    setIsFeatured(false); // Reset isFeatured
   };
 
   // Calculate counts for each category
@@ -420,6 +423,7 @@ export default function AdminResourcesPage() {
       thumbnailUrl: string;
       type: ResourceType;
       url: string;
+      isFeatured: boolean; // Add isFeatured to the payload
     } = {
       title,
       description,
@@ -431,6 +435,7 @@ export default function AdminResourcesPage() {
       thumbnailUrl: uploadedThumbnailUrl || "",
       type: resourceType as ResourceType,
       url: uploadedFileUrl!,
+      isFeatured, // Include isFeatured in the payload
     };
 
     console.log("Sending resource payload:", resourcePayload);
@@ -1467,6 +1472,19 @@ export default function AdminResourcesPage() {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              {/* Add isFeatured checkbox to the form */}
+              <div className="space-y-4">
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    checked={isFeatured}
+                    onChange={(e) => setIsFeatured(e.target.checked)}
+                    name="isFeatured"
+                  />
+                  <span>Featured Resource</span>
+                </label>
               </div>
             </div>
 
