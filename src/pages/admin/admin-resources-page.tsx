@@ -3,10 +3,7 @@ import {
   Search,
   Trash,
   Edit,
-  Award,
-  ThumbsUp,
   Package,
-  Check,
   X,
   Plus,
   Upload,
@@ -48,12 +45,11 @@ import { useToast } from "@/hooks/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
+import { ResourceType } from "./ResourceType";
 
 // API Configuration
 const API_BASE_URL = "https://api.livetestdomain.com";
 const UPLOAD_ENDPOINT = "https://api.livetestdomain.com/api/upload";
-const AUTH_TOKEN =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFkbWluIiwic3ViIjoxLCJlbWFpbCI6ImFkbWluQGV4YW1wbGUuY29tIiwicm9sZXMiOltdLCJpYXQiOjE3NTE0Mzc4OTAsImV4cCI6MTc1MTUyNDI5MH0.aErXDDsdvNrc4_BYpJaEmPquoI-yOZUXDSfL87DmFoo";
 
 // Helper for price formatting
 const formatPrice = (price: string | number | null) => {
@@ -159,55 +155,56 @@ export default function AdminResourcesPage() {
   const { data: resources = [], isLoading } = useQuery({
     queryKey: ["/api/resources"],
     queryFn: async () => {
-      const res = await fetch(`${API_BASE_URL}/api/resources`, {
-        headers: {
-          Authorization: `Bearer ${AUTH_TOKEN}`,
-        },
+      const res = await apiRequest(`/api/resources`, {
+        method: "GET",
       });
-      if (!res.ok) {
+      if (!res) {
         throw new Error("Failed to fetch resources");
       }
-      const data = await res.json();
+      const data = await res;
       console.log("Resources from API:", data);
       return data;
     },
   });
+  console.log(resources);
 
   // Fetch categories for the dropdown
   const { data: categories = [] } = useQuery({
     queryKey: ["/api/resource-categories"],
     queryFn: async () => {
-      const res = await apiRequest("GET", "/api/resource-categories");
-      return await res.json();
+      const res = await apiRequest("/api/resource-categories", {
+        method: "GET",
+      });
+      console.log("Resource categories", res);
+      return await res;
     },
   });
 
   // Create resource mutation with new API
   const createResourceMutation = useMutation({
     mutationFn: async (resourceData: any) => {
-      const response = await fetch(`${API_BASE_URL}/api/resources`, {
+      const response = await apiRequest(`/api/resources`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${AUTH_TOKEN}`,
         },
-        body: JSON.stringify(resourceData),
+        data: JSON.stringify(resourceData),
       });
 
-      if (!response.ok) {
+      if (!response) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(
           errorData.message || `HTTP error! status: ${response.status}`
         );
       }
 
-      return await response.json();
+      return await response.data;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/resources"] });
       toast({
         title: "Resource Created Successfully",
-        description: `"${data.title}" has been added to the curriculum.`,
+        description: `Resource has been added to the curriculum.`,
       });
       setIsCreateDialogOpen(false);
       resetCreateForm();
@@ -225,13 +222,12 @@ export default function AdminResourcesPage() {
   // Update resource mutation
   const updateResourceMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: any }) => {
-      const response = await fetch(`${API_BASE_URL}/api/resources/${id}`, {
+      const response = await apiRequest(`${API_BASE_URL}/api/resources/${id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${AUTH_TOKEN}`,
         },
-        body: JSON.stringify(data),
+        data: JSON.stringify(data),
       });
 
       if (!response.ok) {
@@ -241,7 +237,7 @@ export default function AdminResourcesPage() {
         );
       }
 
-      return await response.json();
+      return await response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/resources"] });
@@ -264,18 +260,15 @@ export default function AdminResourcesPage() {
   // Delete resource mutation
   const deleteResourceMutation = useMutation({
     mutationFn: async (id: number) => {
-      const response = await fetch(`${API_BASE_URL}/api/resources/${id}`, {
+      const response = await apiRequest(`/api/resources/${id}`, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${AUTH_TOKEN}`,
-        },
       });
 
-      if (!response.ok) {
+      if (!response) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      return response.status === 204 ? {} : await response.json();
+      return response.status === 204 ? {} : await response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/resources"] });
@@ -416,7 +409,18 @@ export default function AdminResourcesPage() {
     }
 
     // Build the payload according to API specification
-    const resourcePayload = {
+    const resourcePayload: {
+      title: string;
+      description: string;
+      price: number;
+      ageRange: string;
+      categoryId: number | null;
+      danceStyle: string;
+      difficultyLevel: string;
+      thumbnailUrl: string;
+      type: ResourceType;
+      url: string;
+    } = {
       title,
       description,
       price: parseFloat(price || "0"),
@@ -425,8 +429,8 @@ export default function AdminResourcesPage() {
       danceStyle,
       difficultyLevel,
       thumbnailUrl: uploadedThumbnailUrl || "",
-      type: resourceType,
-      url: uploadedFileUrl,
+      type: resourceType as ResourceType,
+      url: uploadedFileUrl!,
     };
 
     console.log("Sending resource payload:", resourcePayload);
@@ -568,7 +572,7 @@ export default function AdminResourcesPage() {
           <TabsTrigger value="all">
             All Resources ({resources.length})
           </TabsTrigger>
-          <TabsTrigger value="pending" className="relative">
+          {/* <TabsTrigger value="pending" className="relative">
             Pending
             {pendingCount > 0 && (
               <span className="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-yellow-600 text-white">
@@ -591,7 +595,7 @@ export default function AdminResourcesPage() {
                 {rejectedCount}
               </span>
             )}
-          </TabsTrigger>
+          </TabsTrigger> */}
           <TabsTrigger value="featured">
             Featured
             {featuredCount > 0 && (
@@ -642,8 +646,8 @@ export default function AdminResourcesPage() {
                         <TableHead>Type & Style</TableHead>
                         <TableHead>Details</TableHead>
                         <TableHead>Price</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Actions</TableHead>
+                        {/* <TableHead>Status</TableHead>
+                        <TableHead>Actions</TableHead> */}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -707,15 +711,15 @@ export default function AdminResourcesPage() {
                               {formatPrice(resource.price)}
                             </div>
                           </TableCell>
-                          <TableCell>
+                          {/* <TableCell>
                             {getStatusBadge(
                               resource.status || "pending",
                               resource.isApproved
                             )}
-                          </TableCell>
+                          </TableCell> */}
                           <TableCell>
                             <div className="flex space-x-2">
-                              {resource.status !== "approved" && (
+                              {/* {resource.status !== "approved" && (
                                 <Button
                                   variant="outline"
                                   size="sm"
@@ -730,8 +734,8 @@ export default function AdminResourcesPage() {
                                   <Check className="h-4 w-4 mr-1" />
                                   Approve
                                 </Button>
-                              )}
-                              {resource.status !== "rejected" && (
+                              )} */}
+                              {/* {resource.status !== "rejected" && (
                                 <Button
                                   variant="outline"
                                   size="sm"
@@ -746,7 +750,7 @@ export default function AdminResourcesPage() {
                                   <X className="h-4 w-4 mr-1" />
                                   Reject
                                 </Button>
-                              )}
+                              )} */}
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -814,7 +818,7 @@ export default function AdminResourcesPage() {
                         <Button
                           type="button"
                           variant="outline"
-                          className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                          className="bg-blue-50 border-blue-200 text-blue-700"
                           onClick={() =>
                             document.getElementById("main-file-input")?.click()
                           }
@@ -843,6 +847,7 @@ export default function AdminResourcesPage() {
                             const file = e.target.files?.[0];
                             if (!file) return;
 
+                            console.log(file);
                             // Validate file size
                             if (file.size > 50 * 1024 * 1024) {
                               toast({
@@ -902,19 +907,21 @@ export default function AdminResourcesPage() {
                               }
 
                               // Upload to server
-                              const response = await fetch(UPLOAD_ENDPOINT, {
-                                method: "POST",
-                                body: formData,
-                                headers: {
-                                  Authorization: `Bearer ${AUTH_TOKEN}`,
-                                  // Don't set Content-Type - let browser set it with boundary
-                                },
-                              });
+                              const response = await apiRequest(
+                                UPLOAD_ENDPOINT,
+                                {
+                                  method: "POST",
+                                  data: formData,
+                                  headers: {
+                                    "Content-Type": "multipart/form-data",
+                                  },
+                                }
+                              );
 
-                              if (!response.ok) {
+                              if (!response) {
                                 let errorMessage = `Upload failed with status ${response.status}`;
                                 try {
-                                  const errorData = await response.json();
+                                  const errorData = await response.data;
                                   console.error(
                                     "API Error Response:",
                                     errorData
@@ -927,7 +934,7 @@ export default function AdminResourcesPage() {
                                     errorMessage = errorData.message.join(", ");
                                   }
                                 } catch (parseError) {
-                                  const errorText = await response.text();
+                                  const errorText = await response;
                                   console.error(
                                     "Raw error response:",
                                     errorText
@@ -937,7 +944,7 @@ export default function AdminResourcesPage() {
                                 throw new Error(errorMessage);
                               }
 
-                              const result = await response.json();
+                              const result = await response.data;
                               console.log(
                                 "Upload successful - Full response:",
                                 result
@@ -1153,19 +1160,21 @@ export default function AdminResourcesPage() {
                               // Remove type and entity_type fields as API doesn't expect them
 
                               // Upload to server
-                              const response = await fetch(UPLOAD_ENDPOINT, {
-                                method: "POST",
-                                body: formData,
-                                headers: {
-                                  Authorization: `Bearer ${AUTH_TOKEN}`,
-                                  // Don't set Content-Type - let browser set it with boundary
-                                },
-                              });
+                              const response = await apiRequest(
+                                UPLOAD_ENDPOINT,
+                                {
+                                  method: "POST",
+                                  data: formData,
+                                  headers: {
+                                    "Content-Type": "multipart/form-data",
+                                  },
+                                }
+                              );
 
-                              if (!response.ok) {
+                              if (!response) {
                                 let errorMessage = `Thumbnail upload failed with status ${response.status}`;
                                 try {
-                                  const errorData = await response.json();
+                                  const errorData = await response;
                                   console.error(
                                     "Thumbnail API Error Response:",
                                     errorData
@@ -1178,7 +1187,7 @@ export default function AdminResourcesPage() {
                                     errorMessage = errorData.message.join(", ");
                                   }
                                 } catch (parseError) {
-                                  const errorText = await response.text();
+                                  const errorText = await response;
                                   console.error(
                                     "Raw thumbnail error response:",
                                     errorText
@@ -1188,7 +1197,7 @@ export default function AdminResourcesPage() {
                                 throw new Error(errorMessage);
                               }
 
-                              const result = await response.json();
+                              const result = await response;
                               console.log(
                                 "Thumbnail upload successful - Full response:",
                                 result
@@ -1414,10 +1423,32 @@ export default function AdminResourcesPage() {
 
               <Separator />
 
+              {/* Resource Type Selection */}
+              <div className="space-y-4">
+                <Label className="text-base font-semibold">
+                  Resource Type *
+                </Label>
+                <Select
+                  value={resourceType}
+                  onValueChange={(val) => setResourceType(val as ResourceType)}
+                  required
+                  name="resourceType"
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select resource type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.values(ResourceType).map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type.charAt(0) + type.slice(1).toLowerCase()}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               {/* Category */}
               <div className="space-y-4">
-                <Label className="text-base font-semibold">Organization</Label>
-
                 <div>
                   <Label htmlFor="categoryId">Category (Optional)</Label>
                   <Select name="categoryId">
@@ -1478,7 +1509,7 @@ export default function AdminResourcesPage() {
                   type="submit"
                   disabled={
                     createResourceMutation.isPending ||
-                    !uploadedFileUrl ||
+                    // !uploadedFileUrl ||
                     isMainFileUploading ||
                     isThumbnailUploading
                   }
@@ -1606,7 +1637,7 @@ export default function AdminResourcesPage() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
-                    <div>
+                    {/* <div>
                       <Label htmlFor="status">Status</Label>
                       <Select
                         name="status"
@@ -1622,7 +1653,7 @@ export default function AdminResourcesPage() {
                           <SelectItem value="rejected">Rejected</SelectItem>
                         </SelectContent>
                       </Select>
-                    </div>
+                    </div> */}
 
                     <div className="flex items-center space-x-2 pt-6">
                       <Checkbox
