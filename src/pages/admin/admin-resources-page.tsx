@@ -1,10 +1,30 @@
-import { FileText, Search, Trash, Edit, Award, ThumbsUp, Package, Check, X, Plus, Upload, Image } from "lucide-react";
+import {
+  FileText,
+  Search,
+  Trash,
+  Edit,
+  Award,
+  ThumbsUp,
+  Package,
+  Check,
+  X,
+  Plus,
+  Upload,
+  Image,
+} from "lucide-react";
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -32,53 +52,91 @@ import { Label } from "@/components/ui/label";
 // API Configuration
 const API_BASE_URL = "https://api.livetestdomain.com";
 const UPLOAD_ENDPOINT = "https://api.livetestdomain.com/api/upload";
-const AUTH_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFkbWluIiwic3ViIjoxLCJlbWFpbCI6ImFkbWluQGV4YW1wbGUuY29tIiwicm9sZXMiOltdLCJpYXQiOjE3NTE0Mzc4OTAsImV4cCI6MTc1MTUyNDI5MH0.aErXDDsdvNrc4_BYpJaEmPquoI-yOZUXDSfL87DmFoo";
+const AUTH_TOKEN =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFkbWluIiwic3ViIjoxLCJlbWFpbCI6ImFkbWluQGV4YW1wbGUuY29tIiwicm9sZXMiOltdLCJpYXQiOjE3NTE0Mzc4OTAsImV4cCI6MTc1MTUyNDI5MH0.aErXDDsdvNrc4_BYpJaEmPquoI-yOZUXDSfL87DmFoo";
 
 // Helper for price formatting
 const formatPrice = (price: string | number | null) => {
   if (!price) return "$0.00";
-  const numPrice = typeof price === 'string' ? parseFloat(price) : price;
+  const numPrice = typeof price === "string" ? parseFloat(price) : price;
   return `$${numPrice.toFixed(2)}`;
 };
 
 // Helper for file type detection
-const getResourceType = (fileUrl: string, fileName: string = '') => {
+const getResourceType = (fileUrl: string, fileName: string = "") => {
   const url = fileUrl.toLowerCase();
   const name = fileName.toLowerCase();
-  
-  if (url.includes('.mp4') || url.includes('.mov') || url.includes('.avi') || name.includes('.mp4')) {
-    return 'VIDEO';
-  }
-  if (url.includes('.mp3') || url.includes('.wav') || url.includes('.m4a') || name.includes('.mp3')) {
-    return 'AUDIO';
-  }
-  if (url.includes('.pdf') || name.includes('.pdf')) {
-    return 'DOCUMENT';
-  }
-  if (url.includes('.jpg') || url.includes('.png') || url.includes('.jpeg') || name.includes('.jpg')) {
-    return 'IMAGE';
-  }
-  return 'DOCUMENT'; // Default fallback
-};
 
-// Placeholder seller image
-const DEFAULT_SELLER_IMAGE = "https://ui-avatars.com/api/?name=Unknown&background=random";
+  if (
+    url.includes(".mp4") ||
+    url.includes(".mov") ||
+    url.includes(".avi") ||
+    name.includes(".mp4")
+  ) {
+    return "VIDEO";
+  }
+  if (
+    url.includes(".mp3") ||
+    url.includes(".wav") ||
+    url.includes(".m4a") ||
+    name.includes(".mp3")
+  ) {
+    return "AUDIO";
+  }
+  if (url.includes(".pdf") || name.includes(".pdf")) {
+    return "DOCUMENT";
+  }
+  if (
+    url.includes(".jpg") ||
+    url.includes(".png") ||
+    url.includes(".jpeg") ||
+    name.includes(".jpg")
+  ) {
+    return "IMAGE";
+  }
+  return "DOCUMENT"; // Default fallback
+};
 
 // Dance styles options
 const DANCE_STYLES = [
-  "Ballet", "Hip-Hop", "Jazz", "Contemporary", "Salsa", "Bachata", 
-  "Ballroom", "Latin", "Tap", "Lyrical", "Commercial", "Breakdancing",
-  "Krump", "House", "Waacking", "Voguing", "Other"
+  "Ballet",
+  "Hip-Hop",
+  "Jazz",
+  "Contemporary",
+  "Salsa",
+  "Bachata",
+  "Ballroom",
+  "Latin",
+  "Tap",
+  "Lyrical",
+  "Commercial",
+  "Breakdancing",
+  "Krump",
+  "House",
+  "Waacking",
+  "Voguing",
+  "Other",
 ];
 
 // Difficulty levels
 const DIFFICULTY_LEVELS = [
-  "Beginner", "Intermediate", "Advanced", "Professional"
+  "Beginner",
+  "Intermediate",
+  "Advanced",
+  "Professional",
 ];
 
 // Age ranges
 const AGE_RANGES = [
-  "3-5", "6-8", "9-12", "13-17", "18-25", "26-35", "36-45", "46+", "All Ages"
+  "3-5",
+  "6-8",
+  "9-12",
+  "13-17",
+  "18-25",
+  "26-35",
+  "36-45",
+  "46+",
+  "All Ages",
 ];
 
 export default function AdminResourcesPage() {
@@ -90,55 +148,59 @@ export default function AdminResourcesPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
-  const [uploadedThumbnailUrl, setUploadedThumbnailUrl] = useState<string | null>(null);
-  const [resourceType, setResourceType] = useState<string>('VIDEO');
+  const [uploadedThumbnailUrl, setUploadedThumbnailUrl] = useState<
+    string | null
+  >(null);
+  const [resourceType, setResourceType] = useState<string>("VIDEO");
   const [isMainFileUploading, setIsMainFileUploading] = useState(false);
   const [isThumbnailUploading, setIsThumbnailUploading] = useState(false);
-  
+
   // Fetch resources from the new API
   const { data: resources = [], isLoading } = useQuery({
     queryKey: ["/api/resources"],
     queryFn: async () => {
       const res = await fetch(`${API_BASE_URL}/api/resources`, {
         headers: {
-          'Authorization': `Bearer ${AUTH_TOKEN}`,
+          Authorization: `Bearer ${AUTH_TOKEN}`,
         },
       });
       if (!res.ok) {
-        throw new Error('Failed to fetch resources');
+        throw new Error("Failed to fetch resources");
       }
       const data = await res.json();
       console.log("Resources from API:", data);
       return data;
-    }
+    },
   });
-  
+
   // Fetch categories for the dropdown
   const { data: categories = [] } = useQuery({
     queryKey: ["/api/resource-categories"],
     queryFn: async () => {
       const res = await apiRequest("GET", "/api/resource-categories");
       return await res.json();
-    }
+    },
   });
-  
+
   // Create resource mutation with new API
   const createResourceMutation = useMutation({
     mutationFn: async (resourceData: any) => {
       const response = await fetch(`${API_BASE_URL}/api/resources`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${AUTH_TOKEN}`,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${AUTH_TOKEN}`,
         },
         body: JSON.stringify(resourceData),
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        throw new Error(
+          errorData.message || `HTTP error! status: ${response.status}`
+        );
       }
-      
+
       return await response.json();
     },
     onSuccess: (data) => {
@@ -153,29 +215,32 @@ export default function AdminResourcesPage() {
     onError: (error) => {
       toast({
         title: "Creation Failed",
-        description: error instanceof Error ? error.message : "Failed to create resource",
+        description:
+          error instanceof Error ? error.message : "Failed to create resource",
         variant: "destructive",
       });
-    }
+    },
   });
 
   // Update resource mutation
   const updateResourceMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: number, data: any }) => {
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
       const response = await fetch(`${API_BASE_URL}/api/resources/${id}`, {
-        method: 'PATCH',
+        method: "PATCH",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${AUTH_TOKEN}`,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${AUTH_TOKEN}`,
         },
         body: JSON.stringify(data),
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        throw new Error(
+          errorData.message || `HTTP error! status: ${response.status}`
+        );
       }
-      
+
       return await response.json();
     },
     onSuccess: () => {
@@ -189,26 +254,27 @@ export default function AdminResourcesPage() {
     onError: (error) => {
       toast({
         title: "Update Failed",
-        description: error instanceof Error ? error.message : "Failed to update resource",
+        description:
+          error instanceof Error ? error.message : "Failed to update resource",
         variant: "destructive",
       });
-    }
+    },
   });
-  
+
   // Delete resource mutation
   const deleteResourceMutation = useMutation({
     mutationFn: async (id: number) => {
       const response = await fetch(`${API_BASE_URL}/api/resources/${id}`, {
-        method: 'DELETE',
+        method: "DELETE",
         headers: {
-          'Authorization': `Bearer ${AUTH_TOKEN}`,
+          Authorization: `Bearer ${AUTH_TOKEN}`,
         },
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       return response.status === 204 ? {} : await response.json();
     },
     onSuccess: () => {
@@ -222,94 +288,110 @@ export default function AdminResourcesPage() {
     onError: (error) => {
       toast({
         title: "Delete Failed",
-        description: error instanceof Error ? error.message : "Failed to delete resource",
+        description:
+          error instanceof Error ? error.message : "Failed to delete resource",
         variant: "destructive",
       });
-    }
+    },
   });
-  
+
   // Reset create form
   const resetCreateForm = () => {
     setUploadedFileUrl(null);
     setUploadedThumbnailUrl(null);
-    setResourceType('VIDEO');
+    setResourceType("VIDEO");
     setIsMainFileUploading(false);
     setIsThumbnailUploading(false);
   };
-  
+
   // Calculate counts for each category
   const pendingCount = resources.filter((r: any) => {
     const status = (r.status || "").toLowerCase();
-    return status === "pending" || status === "pending_approval" || r.isApproved === false;
+    return (
+      status === "pending" ||
+      status === "pending_approval" ||
+      r.isApproved === false
+    );
   }).length;
-  
+
   const approvedCount = resources.filter((r: any) => {
     const status = (r.status || "").toLowerCase();
-    return status === "approved" || status === "published" || status === "active" || r.isApproved === true;
+    return (
+      status === "approved" ||
+      status === "published" ||
+      status === "active" ||
+      r.isApproved === true
+    );
   }).length;
-  
+
   const rejectedCount = resources.filter((r: any) => {
     const status = (r.status || "").toLowerCase();
     return status === "rejected";
   }).length;
-  
-  const featuredCount = resources.filter((r: any) => r.isFeatured === true).length;
-  
+
+  const featuredCount = resources.filter(
+    (r: any) => r.isFeatured === true
+  ).length;
+
   // Filter resources based on search and tab
   const filteredResources = resources.filter((resource: any) => {
-    const matchesSearch = 
-      !searchQuery || 
+    const matchesSearch =
+      !searchQuery ||
       resource.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       resource.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       resource.danceStyle?.toLowerCase().includes(searchQuery.toLowerCase());
-    
+
     const resourceStatus = (resource.status || "").toLowerCase();
-    const isResourcePending = resourceStatus === "pending" || 
-                             resourceStatus === "pending_approval" || 
-                             resource.isApproved === false;
-    
-    const isResourceApproved = resourceStatus === "approved" || 
-                             resourceStatus === "published" || 
-                             resourceStatus === "active" ||
-                             resource.isApproved === true;
-                             
+    const isResourcePending =
+      resourceStatus === "pending" ||
+      resourceStatus === "pending_approval" ||
+      resource.isApproved === false;
+
+    const isResourceApproved =
+      resourceStatus === "approved" ||
+      resourceStatus === "published" ||
+      resourceStatus === "active" ||
+      resource.isApproved === true;
+
     const isResourceRejected = resourceStatus === "rejected";
     const isResourceFeatured = resource.isFeatured === true;
-    
+
     if (selectedTab === "all") return matchesSearch;
     if (selectedTab === "pending") return matchesSearch && isResourcePending;
     if (selectedTab === "approved") return matchesSearch && isResourceApproved;
     if (selectedTab === "rejected") return matchesSearch && isResourceRejected;
     if (selectedTab === "featured") return matchesSearch && isResourceFeatured;
-    
+
     return matchesSearch;
   });
-  
+
   // Handle resource creation form submission
   const handleCreateResource = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const formData = new FormData(e.target as HTMLFormElement);
-    
+
     // Enhanced validation with better error messages
     if (!uploadedFileUrl) {
       toast({
         title: "Main File Required",
-        description: "Please upload the main resource file before creating the resource. Click 'Choose Main File' to upload.",
+        description:
+          "Please upload the main resource file before creating the resource. Click 'Choose Main File' to upload.",
         variant: "destructive",
       });
       return;
     }
-    
+
     if (isMainFileUploading || isThumbnailUploading) {
       toast({
         title: "Upload In Progress",
-        description: "Please wait for the file upload to complete before submitting.",
+        description:
+          "Please wait for the file upload to complete before submitting.",
         variant: "destructive",
       });
       return;
     }
-    
+
     // Check required form fields
     const title = formData.get("title") as string;
     const description = formData.get("description") as string;
@@ -317,8 +399,14 @@ export default function AdminResourcesPage() {
     const danceStyle = formData.get("danceStyle") as string;
     const difficultyLevel = formData.get("difficultyLevel") as string;
     const ageRange = formData.get("ageRange") as string;
-    
-    if (!title || !description || !danceStyle || !difficultyLevel || !ageRange) {
+
+    if (
+      !title ||
+      !description ||
+      !danceStyle ||
+      !difficultyLevel ||
+      !ageRange
+    ) {
       toast({
         title: "Required Fields Missing",
         description: "Please fill in all required fields (marked with *).",
@@ -326,7 +414,7 @@ export default function AdminResourcesPage() {
       });
       return;
     }
-    
+
     // Build the payload according to API specification
     const resourcePayload = {
       title,
@@ -338,81 +426,89 @@ export default function AdminResourcesPage() {
       difficultyLevel,
       thumbnailUrl: uploadedThumbnailUrl || "",
       type: resourceType,
-      url: uploadedFileUrl
+      url: uploadedFileUrl,
     };
-    
+
     console.log("Sending resource payload:", resourcePayload);
-    
+
     // Show a loading toast
     toast({
       title: "Creating Resource",
       description: "Please wait while we create your resource...",
     });
-    
+
     createResourceMutation.mutate(resourcePayload);
   };
-  
+
   // Handle resource edit
   const handleUpdateResource = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedResource) return;
-    
+
     const formData = new FormData(e.target as HTMLFormElement);
-    
+
     const updateData = {
       title: formData.get("title") as string,
       description: formData.get("description") as string,
-      price: parseFloat(formData.get("price") as string || "0"),
+      price: parseFloat((formData.get("price") as string) || "0"),
       ageRange: formData.get("ageRange") as string,
       danceStyle: formData.get("danceStyle") as string,
       difficultyLevel: formData.get("difficultyLevel") as string,
       status: formData.get("status") as string,
       isFeatured: formData.has("isFeatured"),
     };
-    
-    updateResourceMutation.mutate({ id: selectedResource.id, data: updateData });
+
+    updateResourceMutation.mutate({
+      id: selectedResource.id,
+      data: updateData,
+    });
   };
-  
+
   // Handle quick status change
   const handleQuickStatusChange = (id: number, status: string) => {
-    const isApproved = status === "approved" ? true : (status === "rejected" ? false : null);
-    
-    updateResourceMutation.mutate({ 
-      id, 
-      data: { 
+    const isApproved =
+      status === "approved" ? true : status === "rejected" ? false : null;
+
+    updateResourceMutation.mutate({
+      id,
+      data: {
         status,
-        isApproved
-      } 
+        isApproved,
+      },
     });
   };
-  
+
   // Handle featured toggle
   const handleFeaturedToggle = (id: number, isFeatured: boolean) => {
-    updateResourceMutation.mutate({ 
-      id, 
-      data: { isFeatured: !isFeatured } 
+    updateResourceMutation.mutate({
+      id,
+      data: { isFeatured: !isFeatured },
     });
   };
-  
+
   // Dialog handlers
   const openEditDialog = (resource: any) => {
     setSelectedResource(resource);
     setIsEditDialogOpen(true);
   };
-  
+
   const openDeleteDialog = (resource: any) => {
     setSelectedResource(resource);
     setIsDeleteDialogOpen(true);
   };
-  
+
   const getStatusBadge = (status: string, isApproved?: boolean) => {
     const statusLower = (status || "").toLowerCase();
-    
+
     if (statusLower === "approved") {
       return <Badge className="bg-green-600">Approved</Badge>;
     } else if (statusLower === "published" || statusLower === "active") {
       return <Badge className="bg-green-600">Published</Badge>;
-    } else if (statusLower === "pending" || statusLower === "pending_approval" || isApproved === false) {
+    } else if (
+      statusLower === "pending" ||
+      statusLower === "pending_approval" ||
+      isApproved === false
+    ) {
       return <Badge className="bg-yellow-600">Pending</Badge>;
     } else if (statusLower === "rejected") {
       return <Badge className="bg-red-600">Rejected</Badge>;
@@ -420,31 +516,35 @@ export default function AdminResourcesPage() {
       return <Badge className="bg-gray-600">{status || "Unknown"}</Badge>;
     }
   };
-  
+
   const getResourceTypeIcon = (type: string) => {
     switch (type?.toUpperCase()) {
-      case 'VIDEO':
+      case "VIDEO":
         return <div className="w-2 h-2 rounded-full bg-red-500"></div>;
-      case 'AUDIO':
+      case "AUDIO":
         return <div className="w-2 h-2 rounded-full bg-blue-500"></div>;
-      case 'DOCUMENT':
+      case "DOCUMENT":
         return <div className="w-2 h-2 rounded-full bg-green-500"></div>;
-      case 'IMAGE':
+      case "IMAGE":
         return <div className="w-2 h-2 rounded-full bg-purple-500"></div>;
       default:
         return <div className="w-2 h-2 rounded-full bg-gray-500"></div>;
     }
   };
-  
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Resource Management</h1>
-          <p className="text-gray-400">Manage dance curriculum resources and content</p>
+          <h1 className="text-3xl font-bold tracking-tight">
+            Resource Management
+          </h1>
+          <p className="text-gray-400">
+            Manage dance curriculum resources and content
+          </p>
         </div>
-        
-        <Button 
+
+        <Button
           className="bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90"
           onClick={() => setIsCreateDialogOpen(true)}
         >
@@ -452,7 +552,7 @@ export default function AdminResourcesPage() {
           Create Resource
         </Button>
       </div>
-      
+
       <div className="flex items-center space-x-2">
         <Search className="h-4 w-4 text-gray-400" />
         <Input
@@ -462,10 +562,12 @@ export default function AdminResourcesPage() {
           className="max-w-md"
         />
       </div>
-      
+
       <Tabs value={selectedTab} onValueChange={setSelectedTab}>
         <TabsList>
-          <TabsTrigger value="all">All Resources ({resources.length})</TabsTrigger>
+          <TabsTrigger value="all">
+            All Resources ({resources.length})
+          </TabsTrigger>
           <TabsTrigger value="pending" className="relative">
             Pending
             {pendingCount > 0 && (
@@ -499,7 +601,7 @@ export default function AdminResourcesPage() {
             )}
           </TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value={selectedTab} className="mt-6">
           <Card>
             <CardHeader>
@@ -522,7 +624,9 @@ export default function AdminResourcesPage() {
               ) : filteredResources.length === 0 ? (
                 <div className="flex flex-col items-center justify-center p-8">
                   <FileText className="h-12 w-12 text-gray-400 mb-4" />
-                  <p className="text-gray-400 text-center">No resources found</p>
+                  <p className="text-gray-400 text-center">
+                    No resources found
+                  </p>
                   {searchQuery && (
                     <p className="text-sm text-gray-500 mt-2">
                       Try adjusting your search criteria
@@ -549,8 +653,8 @@ export default function AdminResourcesPage() {
                             <div className="flex items-center space-x-3">
                               <div className="h-12 w-12 rounded bg-gray-800 flex items-center justify-center overflow-hidden">
                                 {resource.thumbnailUrl ? (
-                                  <img 
-                                    src={resource.thumbnailUrl} 
+                                  <img
+                                    src={resource.thumbnailUrl}
                                     alt={resource.title}
                                     className="h-full w-full object-cover"
                                   />
@@ -559,14 +663,16 @@ export default function AdminResourcesPage() {
                                 )}
                               </div>
                               <div className="flex flex-col">
-                                <span className="font-medium">{resource.title}</span>
+                                <span className="font-medium">
+                                  {resource.title}
+                                </span>
                                 <span className="text-xs text-gray-400">
-                                  {resource.description ? 
-                                    (resource.description.length > 50 
-                                      ? resource.description.substring(0, 50) + "..." 
-                                      : resource.description)
-                                    : "No description"
-                                  }
+                                  {resource.description
+                                    ? resource.description.length > 50
+                                      ? resource.description.substring(0, 50) +
+                                        "..."
+                                      : resource.description
+                                    : "No description"}
                                 </span>
                               </div>
                             </div>
@@ -575,22 +681,37 @@ export default function AdminResourcesPage() {
                             <div className="flex items-center space-x-2">
                               {getResourceTypeIcon(resource.type)}
                               <div className="flex flex-col">
-                                <span className="text-sm font-medium">{resource.type}</span>
-                                <span className="text-xs text-gray-400">{resource.danceStyle}</span>
+                                <span className="text-sm font-medium">
+                                  {resource.type}
+                                </span>
+                                <span className="text-xs text-gray-400">
+                                  {resource.danceStyle}
+                                </span>
                               </div>
                             </div>
                           </TableCell>
                           <TableCell>
                             <div className="space-y-1 text-sm">
-                              <div><span className="text-gray-400">Level:</span> {resource.difficultyLevel}</div>
-                              <div><span className="text-gray-400">Age:</span> {resource.ageRange}</div>
+                              <div>
+                                <span className="text-gray-400">Level:</span>{" "}
+                                {resource.difficultyLevel}
+                              </div>
+                              <div>
+                                <span className="text-gray-400">Age:</span>{" "}
+                                {resource.ageRange}
+                              </div>
                             </div>
                           </TableCell>
                           <TableCell>
-                            <div className="font-medium">{formatPrice(resource.price)}</div>
+                            <div className="font-medium">
+                              {formatPrice(resource.price)}
+                            </div>
                           </TableCell>
                           <TableCell>
-                            {getStatusBadge(resource.status || "pending", resource.isApproved)}
+                            {getStatusBadge(
+                              resource.status || "pending",
+                              resource.isApproved
+                            )}
                           </TableCell>
                           <TableCell>
                             <div className="flex space-x-2">
@@ -598,7 +719,12 @@ export default function AdminResourcesPage() {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => handleQuickStatusChange(resource.id, "approved")}
+                                  onClick={() =>
+                                    handleQuickStatusChange(
+                                      resource.id,
+                                      "approved"
+                                    )
+                                  }
                                   className="bg-green-950 hover:bg-green-900 text-white"
                                 >
                                   <Check className="h-4 w-4 mr-1" />
@@ -609,7 +735,12 @@ export default function AdminResourcesPage() {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => handleQuickStatusChange(resource.id, "rejected")}
+                                  onClick={() =>
+                                    handleQuickStatusChange(
+                                      resource.id,
+                                      "rejected"
+                                    )
+                                  }
                                   className="bg-red-950 hover:bg-red-900 text-white"
                                 >
                                   <X className="h-4 w-4 mr-1" />
@@ -643,7 +774,7 @@ export default function AdminResourcesPage() {
           </Card>
         </TabsContent>
       </Tabs>
-      
+
       {/* Create Resource Dialog */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -653,23 +784,29 @@ export default function AdminResourcesPage() {
               Upload a new dance curriculum resource to the platform.
             </DialogDescription>
           </DialogHeader>
-          
+
           <form onSubmit={handleCreateResource}>
             <div className="grid gap-6 py-4">
               {/* File Upload Section */}
               <div className="space-y-4">
-                <Label className="text-base font-semibold">Resource Files</Label>
-                
+                <Label className="text-base font-semibold">
+                  Resource Files
+                </Label>
+
                 {/* Main Resource File */}
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
                   <div className="text-center space-y-2">
                     <Upload className="h-8 w-8 text-gray-400 mx-auto" />
                     <div>
-                      <Label className="text-sm font-medium">Main Resource File *</Label>
-                      <p className="text-xs text-gray-500">Upload your dance instruction video, audio, or document</p>
+                      <Label className="text-sm font-medium">
+                        Main Resource File *
+                      </Label>
+                      <p className="text-xs text-gray-500">
+                        Upload your dance instruction video, audio, or document
+                      </p>
                     </div>
                   </div>
-                  
+
                   {/* Custom File Selection and Upload */}
                   <div className="mt-4 space-y-4">
                     {!uploadedFileUrl ? (
@@ -678,7 +815,9 @@ export default function AdminResourcesPage() {
                           type="button"
                           variant="outline"
                           className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
-                          onClick={() => document.getElementById('main-file-input')?.click()}
+                          onClick={() =>
+                            document.getElementById("main-file-input")?.click()
+                          }
                           disabled={isMainFileUploading}
                         >
                           {isMainFileUploading ? (
@@ -693,7 +832,7 @@ export default function AdminResourcesPage() {
                             </>
                           )}
                         </Button>
-                        
+
                         {/* Hidden file input */}
                         <input
                           id="main-file-input"
@@ -703,130 +842,170 @@ export default function AdminResourcesPage() {
                           onChange={async (e) => {
                             const file = e.target.files?.[0];
                             if (!file) return;
-                            
+
                             // Validate file size
                             if (file.size > 50 * 1024 * 1024) {
                               toast({
                                 title: "File Too Large",
-                                description: "Please select a file smaller than 50MB.",
+                                description:
+                                  "Please select a file smaller than 50MB.",
                                 variant: "destructive",
                               });
                               return;
                             }
-                            
+
                             setIsMainFileUploading(true);
-                            
+
                             try {
-                              console.log("Starting file upload to:", UPLOAD_ENDPOINT);
+                              console.log(
+                                "Starting file upload to:",
+                                UPLOAD_ENDPOINT
+                              );
                               console.log("Using authentication: Bearer token");
                               console.log("File details:", {
                                 name: file.name,
-                                size: (file.size / 1024 / 1024).toFixed(2) + "MB",
-                                type: file.type
+                                size:
+                                  (file.size / 1024 / 1024).toFixed(2) + "MB",
+                                type: file.type,
                               });
-                              console.log("Sending only file data (no additional metadata)");
-                              
+                              console.log(
+                                "Sending only file data (no additional metadata)"
+                              );
+
                               // Create FormData
                               const formData = new FormData();
-                              formData.append('file', file);
+                              formData.append("file", file);
                               // Remove type and entity_type fields as API doesn't expect them
-                              
+
                               // Debug FormData contents
                               console.log("Thumbnail FormData contents:");
                               for (let [key, value] of formData.entries()) {
                                 if (value instanceof File) {
-                                  console.log(`- ${key}: File[${value.name}, ${value.size} bytes, ${value.type}]`);
+                                  console.log(
+                                    `- ${key}: File[${value.name}, ${value.size} bytes, ${value.type}]`
+                                  );
                                 } else {
                                   console.log(`- ${key}: ${value}`);
                                 }
                               }
-                              
+
                               // Debug FormData contents
                               console.log("FormData contents:");
                               for (let [key, value] of formData.entries()) {
                                 if (value instanceof File) {
-                                  console.log(`- ${key}: File[${value.name}, ${value.size} bytes, ${value.type}]`);
+                                  console.log(
+                                    `- ${key}: File[${value.name}, ${value.size} bytes, ${value.type}]`
+                                  );
                                 } else {
                                   console.log(`- ${key}: ${value}`);
                                 }
                               }
-                              
+
                               // Upload to server
                               const response = await fetch(UPLOAD_ENDPOINT, {
-                                method: 'POST',
+                                method: "POST",
                                 body: formData,
                                 headers: {
-                                  'Authorization': `Bearer ${AUTH_TOKEN}`,
+                                  Authorization: `Bearer ${AUTH_TOKEN}`,
                                   // Don't set Content-Type - let browser set it with boundary
-                                }
+                                },
                               });
-                              
+
                               if (!response.ok) {
                                 let errorMessage = `Upload failed with status ${response.status}`;
                                 try {
                                   const errorData = await response.json();
-                                  console.error("API Error Response:", errorData);
-                                  errorMessage = errorData.message || errorData.error || errorMessage;
+                                  console.error(
+                                    "API Error Response:",
+                                    errorData
+                                  );
+                                  errorMessage =
+                                    errorData.message ||
+                                    errorData.error ||
+                                    errorMessage;
                                   if (Array.isArray(errorData.message)) {
-                                    errorMessage = errorData.message.join(', ');
+                                    errorMessage = errorData.message.join(", ");
                                   }
                                 } catch (parseError) {
                                   const errorText = await response.text();
-                                  console.error("Raw error response:", errorText);
+                                  console.error(
+                                    "Raw error response:",
+                                    errorText
+                                  );
                                   errorMessage = errorText || errorMessage;
                                 }
                                 throw new Error(errorMessage);
                               }
-                              
+
                               const result = await response.json();
-                              console.log("Upload successful - Full response:", result);
-                              
+                              console.log(
+                                "Upload successful - Full response:",
+                                result
+                              );
+
                               // Try multiple possible URL field names
-                              const fileUrl = result.url || 
-                                             result.file_url || 
-                                             result.fileUrl || 
-                                             result.downloadUrl ||
-                                             result.path ||
-                                             result.location ||
-                                             result.data?.url ||
-                                             result.data?.file_url;
-                              
+                              const fileUrl =
+                                result.url ||
+                                result.file_url ||
+                                result.fileUrl ||
+                                result.downloadUrl ||
+                                result.path ||
+                                result.location ||
+                                result.data?.url ||
+                                result.data?.file_url;
+
                               console.log("Extracted file URL:", fileUrl);
-                              console.log("Available response keys:", Object.keys(result));
-                              
+                              console.log(
+                                "Available response keys:",
+                                Object.keys(result)
+                              );
+
                               if (!fileUrl) {
-                                console.error("No file URL found in response. Available fields:", Object.keys(result));
-                                throw new Error(`No file URL returned from server. Response keys: ${Object.keys(result).join(', ')}`);
+                                console.error(
+                                  "No file URL found in response. Available fields:",
+                                  Object.keys(result)
+                                );
+                                throw new Error(
+                                  `No file URL returned from server. Response keys: ${Object.keys(result).join(", ")}`
+                                );
                               }
-                              
+
                               setUploadedFileUrl(fileUrl);
-                              
+
                               // Detect resource type
-                              const detectedType = getResourceType(fileUrl, file.name);
+                              const detectedType = getResourceType(
+                                fileUrl,
+                                file.name
+                              );
                               setResourceType(detectedType);
-                              
-                              console.log("File upload completed successfully:", {
-                                url: fileUrl,
-                                type: detectedType,
-                                uploadedFileUrl: fileUrl
-                              });
-                              
+
+                              console.log(
+                                "File upload completed successfully:",
+                                {
+                                  url: fileUrl,
+                                  type: detectedType,
+                                  uploadedFileUrl: fileUrl,
+                                }
+                              );
+
                               toast({
                                 title: "File Uploaded Successfully",
                                 description: `${file.name} has been uploaded as a ${detectedType.toLowerCase()} resource.`,
                               });
-                              
                             } catch (error) {
                               console.error("Upload error:", error);
                               toast({
                                 title: "Upload Failed",
-                                description: error instanceof Error ? error.message : "Failed to upload file. Please try again.",
+                                description:
+                                  error instanceof Error
+                                    ? error.message
+                                    : "Failed to upload file. Please try again.",
                                 variant: "destructive",
                               });
                             } finally {
                               setIsMainFileUploading(false);
                               // Reset the input
-                              e.target.value = '';
+                              e.target.value = "";
                             }
                           }}
                         />
@@ -841,7 +1020,8 @@ export default function AdminResourcesPage() {
                                 ✓ File uploaded successfully
                               </p>
                               <p className="text-xs text-green-600">
-                                {uploadedFileUrl.split('/').pop()} ({resourceType})
+                                {uploadedFileUrl.split("/").pop()} (
+                                {resourceType})
                               </p>
                             </div>
                           </div>
@@ -850,7 +1030,11 @@ export default function AdminResourcesPage() {
                               type="button"
                               variant="outline"
                               size="sm"
-                              onClick={() => document.getElementById('main-file-input')?.click()}
+                              onClick={() =>
+                                document
+                                  .getElementById("main-file-input")
+                                  ?.click()
+                              }
                               className="text-blue-600 border-blue-200 hover:bg-blue-50"
                             >
                               Change File
@@ -861,7 +1045,7 @@ export default function AdminResourcesPage() {
                               size="sm"
                               onClick={() => {
                                 setUploadedFileUrl(null);
-                                setResourceType('VIDEO');
+                                setResourceType("VIDEO");
                               }}
                               className="text-red-600 hover:text-red-800"
                             >
@@ -871,24 +1055,30 @@ export default function AdminResourcesPage() {
                         </div>
                       </div>
                     )}
-                    
+
                     {/* File validation info */}
                     <div className="text-xs text-gray-500 text-center">
-                      <p>Supported formats: MP4, MOV, MP3, WAV, PDF, DOC, DOCX, JPG, PNG</p>
+                      <p>
+                        Supported formats: MP4, MOV, MP3, WAV, PDF, DOC, DOCX,
+                        JPG, PNG
+                      </p>
                       <p>Maximum file size: 50MB</p>
-                      
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Thumbnail Upload */}
                 <div className="border border-gray-200 rounded-lg p-4">
                   <div className="flex items-center space-x-2 mb-2">
                     <Image className="h-4 w-4 text-gray-500" />
-                    <Label className="text-sm font-medium">Thumbnail Image (Optional)</Label>
+                    <Label className="text-sm font-medium">
+                      Thumbnail Image (Optional)
+                    </Label>
                   </div>
-                  <p className="text-xs text-gray-500 mb-3">Upload a preview image for your resource</p>
-                  
+                  <p className="text-xs text-gray-500 mb-3">
+                    Upload a preview image for your resource
+                  </p>
+
                   {/* Custom Thumbnail Selection and Upload */}
                   <div className="space-y-3">
                     {!uploadedThumbnailUrl ? (
@@ -898,7 +1088,11 @@ export default function AdminResourcesPage() {
                           variant="outline"
                           size="sm"
                           className="bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100"
-                          onClick={() => document.getElementById('thumbnail-file-input')?.click()}
+                          onClick={() =>
+                            document
+                              .getElementById("thumbnail-file-input")
+                              ?.click()
+                          }
                           disabled={isThumbnailUploading}
                         >
                           {isThumbnailUploading ? (
@@ -913,7 +1107,7 @@ export default function AdminResourcesPage() {
                             </>
                           )}
                         </Button>
-                        
+
                         {/* Hidden thumbnail file input */}
                         <input
                           id="thumbnail-file-input"
@@ -923,106 +1117,139 @@ export default function AdminResourcesPage() {
                           onChange={async (e) => {
                             const file = e.target.files?.[0];
                             if (!file) return;
-                            
+
                             // Validate file size
                             if (file.size > 5 * 1024 * 1024) {
                               toast({
                                 title: "Image Too Large",
-                                description: "Please select an image smaller than 5MB.",
+                                description:
+                                  "Please select an image smaller than 5MB.",
                                 variant: "destructive",
                               });
                               return;
                             }
-                            
+
                             setIsThumbnailUploading(true);
-                            
+
                             try {
-                              console.log("Starting thumbnail upload to:", UPLOAD_ENDPOINT);
+                              console.log(
+                                "Starting thumbnail upload to:",
+                                UPLOAD_ENDPOINT
+                              );
                               console.log("Using authentication: Bearer token");
                               console.log("Thumbnail details:", {
                                 name: file.name,
-                                size: (file.size / 1024 / 1024).toFixed(2) + "MB",
-                                type: file.type
+                                size:
+                                  (file.size / 1024 / 1024).toFixed(2) + "MB",
+                                type: file.type,
                               });
-                              console.log("Sending only file data (no additional metadata)");
-                              
+                              console.log(
+                                "Sending only file data (no additional metadata)"
+                              );
+
                               // Create FormData
                               const formData = new FormData();
-                              formData.append('file', file);
+                              formData.append("file", file);
                               // Remove type and entity_type fields as API doesn't expect them
-                              
+
                               // Upload to server
                               const response = await fetch(UPLOAD_ENDPOINT, {
-                                method: 'POST',
+                                method: "POST",
                                 body: formData,
                                 headers: {
-                                  'Authorization': `Bearer ${AUTH_TOKEN}`,
+                                  Authorization: `Bearer ${AUTH_TOKEN}`,
                                   // Don't set Content-Type - let browser set it with boundary
-                                }
+                                },
                               });
-                              
+
                               if (!response.ok) {
                                 let errorMessage = `Thumbnail upload failed with status ${response.status}`;
                                 try {
                                   const errorData = await response.json();
-                                  console.error("Thumbnail API Error Response:", errorData);
-                                  errorMessage = errorData.message || errorData.error || errorMessage;
+                                  console.error(
+                                    "Thumbnail API Error Response:",
+                                    errorData
+                                  );
+                                  errorMessage =
+                                    errorData.message ||
+                                    errorData.error ||
+                                    errorMessage;
                                   if (Array.isArray(errorData.message)) {
-                                    errorMessage = errorData.message.join(', ');
+                                    errorMessage = errorData.message.join(", ");
                                   }
                                 } catch (parseError) {
                                   const errorText = await response.text();
-                                  console.error("Raw thumbnail error response:", errorText);
+                                  console.error(
+                                    "Raw thumbnail error response:",
+                                    errorText
+                                  );
                                   errorMessage = errorText || errorMessage;
                                 }
                                 throw new Error(errorMessage);
                               }
-                              
+
                               const result = await response.json();
-                              console.log("Thumbnail upload successful - Full response:", result);
-                              
+                              console.log(
+                                "Thumbnail upload successful - Full response:",
+                                result
+                              );
+
                               // Try multiple possible URL field names
-                              const imageUrl = result.url || 
-                                              result.image_url || 
-                                              result.fileUrl || 
-                                              result.file_url ||
-                                              result.downloadUrl ||
-                                              result.path ||
-                                              result.location ||
-                                              result.data?.url ||
-                                              result.data?.image_url;
-                              
+                              const imageUrl =
+                                result.url ||
+                                result.image_url ||
+                                result.fileUrl ||
+                                result.file_url ||
+                                result.downloadUrl ||
+                                result.path ||
+                                result.location ||
+                                result.data?.url ||
+                                result.data?.image_url;
+
                               console.log("Extracted thumbnail URL:", imageUrl);
-                              console.log("Available response keys:", Object.keys(result));
-                              
+                              console.log(
+                                "Available response keys:",
+                                Object.keys(result)
+                              );
+
                               if (!imageUrl) {
-                                console.error("No image URL found in response. Available fields:", Object.keys(result));
-                                throw new Error(`No image URL returned from server. Response keys: ${Object.keys(result).join(', ')}`);
+                                console.error(
+                                  "No image URL found in response. Available fields:",
+                                  Object.keys(result)
+                                );
+                                throw new Error(
+                                  `No image URL returned from server. Response keys: ${Object.keys(result).join(", ")}`
+                                );
                               }
-                              
+
                               setUploadedThumbnailUrl(imageUrl);
-                              
-                              console.log("Thumbnail upload completed successfully:", {
-                                url: imageUrl,
-                                uploadedThumbnailUrl: imageUrl
-                              });
-                              
+
+                              console.log(
+                                "Thumbnail upload completed successfully:",
+                                {
+                                  url: imageUrl,
+                                  uploadedThumbnailUrl: imageUrl,
+                                }
+                              );
+
                               toast({
                                 title: "Thumbnail Uploaded",
                                 description: `${file.name} has been uploaded successfully.`,
                               });
-                              
                             } catch (error) {
                               console.error("Thumbnail upload error:", error);
                               toast({
                                 title: "Thumbnail Upload Failed",
-                                description: error instanceof Error ? error.message : "Failed to upload thumbnail. Please try again.",
+                                description:
+                                  error instanceof Error
+                                    ? error.message
+                                    : "Failed to upload thumbnail. Please try again.",
                                 variant: "destructive",
                               });
                             } finally {
                               setIsThumbnailUploading(false);
                               // Reset the input
-                              e.target.value = '';
+                              e.target.value = "";
                             }
                           }}
                         />
@@ -1031,9 +1258,9 @@ export default function AdminResourcesPage() {
                       <div className="bg-green-50 border border-green-200 rounded-md p-3">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
-                            <img 
-                              src={uploadedThumbnailUrl} 
-                              alt="Thumbnail preview" 
+                            <img
+                              src={uploadedThumbnailUrl}
+                              alt="Thumbnail preview"
                               className="h-10 w-10 rounded object-cover border border-green-300"
                             />
                             <div>
@@ -1041,7 +1268,7 @@ export default function AdminResourcesPage() {
                                 ✓ Thumbnail uploaded
                               </p>
                               <p className="text-xs text-green-600">
-                                {uploadedThumbnailUrl.split('/').pop()}
+                                {uploadedThumbnailUrl.split("/").pop()}
                               </p>
                             </div>
                           </div>
@@ -1050,7 +1277,11 @@ export default function AdminResourcesPage() {
                               type="button"
                               variant="outline"
                               size="sm"
-                              onClick={() => document.getElementById('thumbnail-file-input')?.click()}
+                              onClick={() =>
+                                document
+                                  .getElementById("thumbnail-file-input")
+                                  ?.click()
+                              }
                               className="text-blue-600 border-blue-200 hover:bg-blue-50"
                             >
                               Change
@@ -1068,7 +1299,7 @@ export default function AdminResourcesPage() {
                         </div>
                       </div>
                     )}
-                    
+
                     <div className="text-xs text-gray-500 text-center">
                       <p>Supported formats: JPG, PNG, GIF, WebP</p>
                       <p>Maximum file size: 5MB</p>
@@ -1078,11 +1309,13 @@ export default function AdminResourcesPage() {
               </div>
 
               <Separator />
-              
+
               {/* Basic Information */}
               <div className="space-y-4">
-                <Label className="text-base font-semibold">Basic Information</Label>
-                
+                <Label className="text-base font-semibold">
+                  Basic Information
+                </Label>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="title">Title *</Label>
@@ -1093,7 +1326,7 @@ export default function AdminResourcesPage() {
                       placeholder="e.g., Beginner Salsa Routine"
                     />
                   </div>
-                  
+
                   <div>
                     <Label htmlFor="price">Price ($) *</Label>
                     <Input
@@ -1107,7 +1340,7 @@ export default function AdminResourcesPage() {
                     />
                   </div>
                 </div>
-                
+
                 <div>
                   <Label htmlFor="description">Description *</Label>
                   <Textarea
@@ -1121,11 +1354,13 @@ export default function AdminResourcesPage() {
               </div>
 
               <Separator />
-              
+
               {/* Dance Specifics */}
               <div className="space-y-4">
-                <Label className="text-base font-semibold">Dance Specifics</Label>
-                
+                <Label className="text-base font-semibold">
+                  Dance Specifics
+                </Label>
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <Label htmlFor="danceStyle">Dance Style *</Label>
@@ -1142,7 +1377,7 @@ export default function AdminResourcesPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div>
                     <Label htmlFor="difficultyLevel">Difficulty Level *</Label>
                     <Select name="difficultyLevel" required>
@@ -1158,7 +1393,7 @@ export default function AdminResourcesPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div>
                     <Label htmlFor="ageRange">Age Range *</Label>
                     <Select name="ageRange" required>
@@ -1178,11 +1413,11 @@ export default function AdminResourcesPage() {
               </div>
 
               <Separator />
-              
+
               {/* Category */}
               <div className="space-y-4">
                 <Label className="text-base font-semibold">Organization</Label>
-                
+
                 <div>
                   <Label htmlFor="categoryId">Category (Optional)</Label>
                   <Select name="categoryId">
@@ -1191,7 +1426,10 @@ export default function AdminResourcesPage() {
                     </SelectTrigger>
                     <SelectContent>
                       {categories.map((category: any) => (
-                        <SelectItem key={category.id} value={category.id.toString()}>
+                        <SelectItem
+                          key={category.id}
+                          value={category.id.toString()}
+                        >
                           {category.name}
                         </SelectItem>
                       ))}
@@ -1200,7 +1438,7 @@ export default function AdminResourcesPage() {
                 </div>
               </div>
             </div>
-            
+
             <DialogFooter className="mt-6">
               {/* Status indicator for form completion */}
               <div className="flex-1 text-left">
@@ -1211,20 +1449,24 @@ export default function AdminResourcesPage() {
                 )}
                 {uploadedFileUrl && !createResourceMutation.isPending && (
                   <div className="text-sm text-green-600 mb-2">
-                    <span className="font-medium">✅ Ready to create resource</span>
+                    <span className="font-medium">
+                      ✅ Ready to create resource
+                    </span>
                   </div>
                 )}
                 {(isMainFileUploading || isThumbnailUploading) && (
                   <div className="text-sm text-blue-600 mb-2">
-                    <span className="font-medium">⏳ Upload in progress...</span>
+                    <span className="font-medium">
+                      ⏳ Upload in progress...
+                    </span>
                   </div>
                 )}
               </div>
-              
+
               <div className="flex space-x-2">
-                <Button 
-                  type="button" 
-                  variant="outline" 
+                <Button
+                  type="button"
+                  variant="outline"
                   onClick={() => {
                     setIsCreateDialogOpen(false);
                     resetCreateForm();
@@ -1232,9 +1474,14 @@ export default function AdminResourcesPage() {
                 >
                   Cancel
                 </Button>
-                <Button 
+                <Button
                   type="submit"
-                  disabled={createResourceMutation.isPending || !uploadedFileUrl || isMainFileUploading || isThumbnailUploading}
+                  disabled={
+                    createResourceMutation.isPending ||
+                    !uploadedFileUrl ||
+                    isMainFileUploading ||
+                    isThumbnailUploading
+                  }
                   className="bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {createResourceMutation.isPending ? (
@@ -1251,7 +1498,7 @@ export default function AdminResourcesPage() {
           </form>
         </DialogContent>
       </Dialog>
-      
+
       {/* Edit Resource Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-2xl">
@@ -1261,7 +1508,7 @@ export default function AdminResourcesPage() {
               Make changes to the resource properties below.
             </DialogDescription>
           </DialogHeader>
-          
+
           {selectedResource && (
             <form onSubmit={handleUpdateResource}>
               <div className="grid gap-4 py-4">
@@ -1275,7 +1522,7 @@ export default function AdminResourcesPage() {
                       required
                     />
                   </div>
-                  
+
                   <div>
                     <Label htmlFor="description">Description</Label>
                     <Textarea
@@ -1285,11 +1532,14 @@ export default function AdminResourcesPage() {
                       rows={3}
                     />
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="danceStyle">Dance Style</Label>
-                      <Select name="danceStyle" defaultValue={selectedResource.danceStyle}>
+                      <Select
+                        name="danceStyle"
+                        defaultValue={selectedResource.danceStyle}
+                      >
                         <SelectTrigger>
                           <SelectValue placeholder="Select dance style" />
                         </SelectTrigger>
@@ -1302,10 +1552,13 @@ export default function AdminResourcesPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                    
+
                     <div>
                       <Label htmlFor="difficultyLevel">Difficulty Level</Label>
-                      <Select name="difficultyLevel" defaultValue={selectedResource.difficultyLevel}>
+                      <Select
+                        name="difficultyLevel"
+                        defaultValue={selectedResource.difficultyLevel}
+                      >
                         <SelectTrigger>
                           <SelectValue placeholder="Select difficulty" />
                         </SelectTrigger>
@@ -1319,11 +1572,14 @@ export default function AdminResourcesPage() {
                       </Select>
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="ageRange">Age Range</Label>
-                      <Select name="ageRange" defaultValue={selectedResource.ageRange}>
+                      <Select
+                        name="ageRange"
+                        defaultValue={selectedResource.ageRange}
+                      >
                         <SelectTrigger>
                           <SelectValue placeholder="Select age range" />
                         </SelectTrigger>
@@ -1336,7 +1592,7 @@ export default function AdminResourcesPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                    
+
                     <div>
                       <Label htmlFor="price">Price ($)</Label>
                       <Input
@@ -1348,11 +1604,14 @@ export default function AdminResourcesPage() {
                       />
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="status">Status</Label>
-                      <Select name="status" defaultValue={selectedResource.status || "pending"}>
+                      <Select
+                        name="status"
+                        defaultValue={selectedResource.status || "pending"}
+                      >
                         <SelectTrigger>
                           <SelectValue placeholder="Select a status" />
                         </SelectTrigger>
@@ -1364,10 +1623,10 @@ export default function AdminResourcesPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                    
+
                     <div className="flex items-center space-x-2 pt-6">
-                      <Checkbox 
-                        id="isFeatured" 
+                      <Checkbox
+                        id="isFeatured"
                         name="isFeatured"
                         defaultChecked={selectedResource.isFeatured}
                       />
@@ -1376,40 +1635,47 @@ export default function AdminResourcesPage() {
                   </div>
                 </div>
               </div>
-              
+
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsEditDialogOpen(false)}
+                >
                   Cancel
                 </Button>
-                <Button 
+                <Button
                   type="submit"
                   disabled={updateResourceMutation.isPending}
                 >
-                  {updateResourceMutation.isPending ? "Saving..." : "Save Changes"}
+                  {updateResourceMutation.isPending
+                    ? "Saving..."
+                    : "Save Changes"}
                 </Button>
               </DialogFooter>
             </form>
           )}
         </DialogContent>
       </Dialog>
-      
+
       {/* Delete Confirmation Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete Resource</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this resource? This action cannot be undone.
+              Are you sure you want to delete this resource? This action cannot
+              be undone.
             </DialogDescription>
           </DialogHeader>
-          
+
           {selectedResource && (
             <div className="py-4">
               <div className="flex items-center space-x-3 mb-4">
                 <div className="h-10 w-10 rounded bg-gray-800 flex items-center justify-center overflow-hidden">
                   {selectedResource.thumbnailUrl ? (
-                    <img 
-                      src={selectedResource.thumbnailUrl} 
+                    <img
+                      src={selectedResource.thumbnailUrl}
                       alt={selectedResource.title}
                       className="h-full w-full object-cover"
                     />
@@ -1420,23 +1686,33 @@ export default function AdminResourcesPage() {
                 <div>
                   <div className="font-medium">{selectedResource.title}</div>
                   <div className="text-sm text-gray-400">
-                    {selectedResource.danceStyle} • {selectedResource.difficultyLevel}
+                    {selectedResource.danceStyle} •{" "}
+                    {selectedResource.difficultyLevel}
                   </div>
                 </div>
               </div>
             </div>
           )}
-          
+
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsDeleteDialogOpen(false)}
+            >
               Cancel
             </Button>
-            <Button 
+            <Button
               variant="destructive"
-              onClick={() => selectedResource && deleteResourceMutation.mutate(selectedResource.id)}
+              onClick={() =>
+                selectedResource &&
+                deleteResourceMutation.mutate(selectedResource.id)
+              }
               disabled={deleteResourceMutation.isPending}
             >
-              {deleteResourceMutation.isPending ? "Deleting..." : "Delete Resource"}
+              {deleteResourceMutation.isPending
+                ? "Deleting..."
+                : "Delete Resource"}
             </Button>
           </DialogFooter>
         </DialogContent>

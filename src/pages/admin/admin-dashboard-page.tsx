@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import {
   BarChart3,
@@ -215,190 +214,237 @@ interface CourseStatsResponse {
 export default function AdminDashboardPage() {
   const [timeRange, setTimeRange] = useState("7days");
 
-  // Fetch analytics users
-  const {
-    data: analyticsData,
-    isLoading: isLoadingAnalyticsData,
-    isError: isErrorAnalyticsData,
-    error: analyticsDataError,
-  } = useQuery({
-    queryKey: ["/analytics/users"],
-    queryFn: () =>
-      apiRequest<AnalyticsResponse>("/api/analytics/users", {
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsResponse | null>(
+    null
+  );
+  const [isLoadingAnalyticsData, setIsLoadingAnalyticsData] = useState(true);
+  const [isErrorAnalyticsData, setIsErrorAnalyticsData] = useState(false);
+  const [analyticsDataError, setAnalyticsDataError] = useState<any>(null);
+  const fetchAnalyticsData = async () => {
+    setIsLoadingAnalyticsData(true);
+    setIsErrorAnalyticsData(false);
+    try {
+      const res = await apiRequest<AnalyticsResponse>("/api/analytics/users", {
         method: "GET",
         requireAuth: true,
-      }),
-    retry: 3,
-    staleTime: 5 * 60 * 1000,
-  });
+      });
+      setAnalyticsData(res);
+    } catch (err) {
+      setIsErrorAnalyticsData(true);
+      setAnalyticsDataError(err);
+    } finally {
+      setIsLoadingAnalyticsData(false);
+    }
+  };
+  useEffect(() => {
+    fetchAnalyticsData();
+  }, []);
 
-  // Fetch subscriptions
-  const {
-    data: subscriptionsData,
-    isLoading: isLoadingAnalyticsSubscriptions,
-    isError: isErrorAnalyticsSubscriptions,
-    error: analyticsSubscriptionsError,
-  } = useQuery({
-    queryKey: ["/subscriptions"],
-    queryFn: () =>
-      apiRequest<Array<{
-        id: number;
-        user_id: number;
-        plan_id: number;
-        status: string;
-        frequency: string;
-      }>>("/api/subscriptions", {
+  const [subscriptionsData, setSubscriptionsData] = useState<any[] | null>(
+    null
+  );
+  const [isLoadingAnalyticsSubscriptions, setIsLoadingAnalyticsSubscriptions] =
+    useState(true);
+  const [isErrorAnalyticsSubscriptions, setIsErrorAnalyticsSubscriptions] =
+    useState(false);
+  const [analyticsSubscriptionsError, setAnalyticsSubscriptionsError] =
+    useState<any>(null);
+  const fetchSubscriptionsData = async () => {
+    setIsLoadingAnalyticsSubscriptions(true);
+    setIsErrorAnalyticsSubscriptions(false);
+    try {
+      const res = await apiRequest<any[]>("/api/subscriptions/plans", {
         method: "GET",
         requireAuth: true,
-      }),
-  });
+      });
+      setSubscriptionsData(res);
+    } catch (err) {
+      setIsErrorAnalyticsSubscriptions(true);
+      setAnalyticsSubscriptionsError(err);
+    } finally {
+      setIsLoadingAnalyticsSubscriptions(false);
+    }
+  };
+  useEffect(() => {
+    fetchSubscriptionsData();
+  }, []);
 
-  // Fetch course stats - NEW
-  const {
-    data: courseStatsData,
-    isLoading: isLoadingCourseStats,
-    isError: isErrorCourseStats,
-    error: courseStatsError,
-  } = useQuery({
-    queryKey: ["/subscriptions/course-stats"],
-    queryFn: () =>
-      apiRequest<CourseStatsResponse>("/api/subscriptions/course-stats", {
+  const [courseStatsData, setCourseStatsData] =
+    useState<CourseStatsResponse | null>(null);
+  const [isLoadingCourseStats, setIsLoadingCourseStats] = useState(true);
+  const [isErrorCourseStats, setIsErrorCourseStats] = useState(false);
+  const [courseStatsError, setCourseStatsError] = useState<any>(null);
+  const fetchCourseStatsData = async () => {
+    setIsLoadingCourseStats(true);
+    setIsErrorCourseStats(false);
+    try {
+      const res = await apiRequest<CourseStatsResponse>(
+        "/api/subscriptions/course-stats",
+        { method: "GET", requireAuth: true }
+      );
+      setCourseStatsData(res);
+    } catch (err) {
+      setIsErrorCourseStats(true);
+      setCourseStatsError(err);
+    } finally {
+      setIsLoadingCourseStats(false);
+    }
+  };
+  useEffect(() => {
+    fetchCourseStatsData();
+  }, []);
+
+  const [analyticsCourses, setAnalyticsCourses] = useState<any>(null);
+  const [isLoadingAnalyticsCourses, setIsLoadingAnalyticsCourses] =
+    useState(true);
+  const [isErrorAnalyticsCourses, setIsErrorAnalyticsCourses] = useState(false);
+  const [analyticsCoursesError, setAnalyticsCoursesError] = useState<any>(null);
+  const fetchAnalyticsCourses = async () => {
+    setIsLoadingAnalyticsCourses(true);
+    setIsErrorAnalyticsCourses(false);
+    try {
+      const res = await apiRequest<any>("/api/courses", {
         method: "GET",
         requireAuth: true,
-      }),
-    retry: 3,
-    staleTime: 5 * 60 * 1000,
-  });
+      });
+      setAnalyticsCourses(res);
+    } catch (err) {
+      setIsErrorAnalyticsCourses(true);
+      setAnalyticsCoursesError(err);
+    } finally {
+      setIsLoadingAnalyticsCourses(false);
+    }
+  };
+  useEffect(() => {
+    fetchAnalyticsCourses();
+  }, []);
 
-  // Get all courses
-  const {
-    data: analyticsCourses,
-    isLoading: isLoadingAnalyticsCourses,
-    isError: isErrorAnalyticsCourses,
-    error: analyticsCoursesError,
-  } = useQuery({
-    queryKey: ["/analytics/courses"],
-    queryFn: () =>
-      apiRequest<{
-        data: Array<{
-          id: number;
-          title: string;
-          short_name: string;
-          duration: string;
-          difficulty_level: string;
-          price: number;
-          visible: boolean;
-          instructor_id: number;
-          enrollment_count: number;
-          average_rating: number;
-          _count: {
-            enrollments: number;
-          };
-        }>;
-        meta: {
-          total: number;
-          page: number;
-          limit: number;
-          totalPages: number;
-        };
-      }>("/api/courses", {
-        method: "GET",
-        requireAuth: true,
-      }),
-  });
-
-  // Fetch dashboard stats
-  const {
-    data: stats,
-    isLoading,
-    isError,
-    error,
-    refetch,
-  } = useQuery<DashboardStats>({
-    queryKey: ["/api/admin/stats", timeRange],
-    queryFn: async () => {
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isError, setIsError] = useState(false);
+  const [error, setError] = useState<any>(null);
+  const fetchStats = async () => {
+    setIsLoading(true);
+    setIsError(false);
+    try {
       const res = await apiRequest(`/api/admin/stats?range=${timeRange}`, {
         method: "GET",
         requireAuth: true,
       });
-      return res;
-    },
-  });
+      setStats(res);
+    } catch (err) {
+      setIsError(true);
+      setError(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  useEffect(() => {
+    fetchStats();
+  }, [timeRange]);
 
-  // Fetch recent activity
-  const {
-    data: recentActivity = [],
-    isLoading: isLoadingActivity,
-    isError: isErrorActivity,
-    error: activityError,
-  } = useQuery<RecentActivity[]>({
-    queryKey: ["/api/admin/activity"],
-    queryFn: async () => {
-      const res = await apiRequest("/api/admin/activity?limit=8", {
+  const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
+  const [isLoadingActivity, setIsLoadingActivity] = useState(true);
+  const [isErrorActivity, setIsErrorActivity] = useState(false);
+  const [activityError, setActivityError] = useState<any>(null);
+  const fetchRecentActivity = async () => {
+    setIsLoadingActivity(true);
+    setIsErrorActivity(false);
+    try {
+      const res = await apiRequest<RecentActivity[]>(
+        "/api/admin/activity?limit=8",
+        { method: "GET", requireAuth: true }
+      );
+      setRecentActivity(res);
+    } catch (err) {
+      setIsErrorActivity(true);
+      setActivityError(err);
+    } finally {
+      setIsLoadingActivity(false);
+    }
+  };
+  useEffect(() => {
+    fetchRecentActivity();
+  }, []);
+
+  const [popularCourses, setPopularCourses] = useState<PopularCourse[]>([]);
+  const [isLoadingCourses, setIsLoadingCourses] = useState(true);
+  const [isErrorCourses, setIsErrorCourses] = useState(false);
+  const [coursesError, setCoursesError] = useState<any>(null);
+  const fetchPopularCourses = async () => {
+    setIsLoadingCourses(true);
+    setIsErrorCourses(false);
+    try {
+      const res = await apiRequest<PopularCourse[]>(
+        "/api/admin/courses/popular?limit=5",
+        { method: "GET", requireAuth: true }
+      );
+      setPopularCourses(res);
+    } catch (err) {
+      setIsErrorCourses(true);
+      setCoursesError(err);
+    } finally {
+      setIsLoadingCourses(false);
+    }
+  };
+  useEffect(() => {
+    fetchPopularCourses();
+  }, []);
+
+  const [topInstructors, setTopInstructors] = useState<TopInstructor[]>([]);
+  const [isLoadingInstructors, setIsLoadingInstructors] = useState(true);
+  const [isErrorInstructors, setIsErrorInstructors] = useState(false);
+  const [instructorsError, setInstructorsError] = useState<any>(null);
+  const fetchTopInstructors = async () => {
+    setIsLoadingInstructors(true);
+    setIsErrorInstructors(false);
+    try {
+      const res = await apiRequest<TopInstructor[]>(
+        "/api/admin/instructors/top?limit=4",
+        { method: "GET", requireAuth: true }
+      );
+      setTopInstructors(res);
+    } catch (err) {
+      setIsErrorInstructors(true);
+      setInstructorsError(err);
+    } finally {
+      setIsLoadingInstructors(false);
+    }
+  };
+  useEffect(() => {
+    fetchTopInstructors();
+  }, []);
+
+  const [analyticsRevenue, setAnalyticsRevenue] = useState<any>(null);
+  const [isLoadingAnalyticsRevenue, setIsLoadingAnalyticsRevenue] =
+    useState(true);
+  const [isErrorAnalyticsRevenue, setIsErrorAnalyticsRevenue] = useState(false);
+  const [analyticsRevenueError, setAnalyticsRevenueError] = useState<any>(null);
+  const fetchAnalyticsRevenue = async () => {
+    setIsLoadingAnalyticsRevenue(true);
+    setIsErrorAnalyticsRevenue(false);
+    try {
+      const res = await apiRequest<any>("/api/payments/revenue", {
         method: "GET",
         requireAuth: true,
       });
-      return res;
-    },
-  });
-
-  // Fetch popular courses
-  const {
-    data: popularCourses = [],
-    isLoading: isLoadingCourses,
-    isError: isErrorCourses,
-    error: coursesError,
-  } = useQuery<PopularCourse[]>({
-    queryKey: ["/api/admin/courses/popular"],
-    queryFn: async () => {
-      const res = await apiRequest("/api/admin/courses/popular?limit=5", {
-        method: "GET",
-        requireAuth: true,
-      });
-      return res;
-    },
-  });
-
-  // Fetch top instructors
-  const {
-    data: topInstructors = [],
-    isLoading: isLoadingInstructors,
-    isError: isErrorInstructors,
-    error: instructorsError,
-  } = useQuery<TopInstructor[]>({
-    queryKey: ["/api/admin/instructors/top"],
-    queryFn: async () => {
-      const res = await apiRequest("/api/admin/instructors/top?limit=4", {
-        method: "GET",
-        requireAuth: true,
-      });
-      return res;
-    },
-  });
-
-  const {
-    data: analyticsRevenue,
-    isLoading: isLoadingAnalyticsRevenue,
-    isError: isErrorAnalyticsRevenue,
-    error: analyticsRevenueError,
-  } = useQuery({
-    queryKey: ["/analytics/revenue"],
-    queryFn: () =>
-      apiRequest<{
-        total: number;
-        thisMonth?: number;
-        percentChange?: number;
-      }>("/api/payments/revenue", {
-        method: "GET",
-        requireAuth: true,
-      }),
-  });
+      setAnalyticsRevenue(res);
+    } catch (err) {
+      setIsErrorAnalyticsRevenue(true);
+      setAnalyticsRevenueError(err);
+    } finally {
+      setIsLoadingAnalyticsRevenue(false);
+    }
+  };
+  useEffect(() => {
+    fetchAnalyticsRevenue();
+  }, []);
 
   // Helper function to format currency
   const formatCurrency = (amount: number | bigint) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
       minimumFractionDigits: 2,
     }).format(amount);
   };
@@ -406,15 +452,20 @@ export default function AdminDashboardPage() {
   // Helper function to format percentage change
   const formatPercentChange = (change: number | undefined) => {
     if (!change && change !== 0) return null;
-    
+
     const isPositive = change > 0;
     const isNeutral = change === 0;
-    
+
     return (
-      <span className={`text-xs flex items-center ${
-        isPositive ? 'text-green-600' : 
-        isNeutral ? 'text-gray-500' : 'text-red-600'
-      }`}>
+      <span
+        className={`text-xs flex items-center ${
+          isPositive
+            ? "text-green-600"
+            : isNeutral
+              ? "text-gray-500"
+              : "text-red-600"
+        }`}
+      >
         {isPositive && <TrendingUp className="w-3 h-3 mr-1" />}
         {change < 0 && <TrendingDown className="w-3 h-3 mr-1" />}
         {Math.abs(change).toFixed(1)}%
@@ -425,40 +476,49 @@ export default function AdminDashboardPage() {
   // Calculate course statistics from course stats endpoint
   const calculateCourseStatsFromEndpoint = () => {
     if (!courseStatsData?.course_enrollments) return null;
-    
+
     const courseEnrollments = courseStatsData.course_enrollments;
     const totalCourses = courseEnrollments.length;
-    const totalEnrollments = courseEnrollments.reduce((sum, course) => sum + course.total_enrollments, 0);
-    
+    const totalEnrollments = courseEnrollments.reduce(
+      (sum, course) => sum + course.total_enrollments,
+      0
+    );
+
     // Get top courses by enrollment
     const topCourses = [...courseEnrollments]
       .sort((a, b) => b.total_enrollments - a.total_enrollments)
       .slice(0, 5);
-    
+
     // Get instructor statistics
-    const instructorStats = courseEnrollments.reduce((acc, course) => {
-      if (!acc[course.instructor_id]) {
-        acc[course.instructor_id] = {
-          instructor_id: course.instructor_id,
-          instructor_name: course.instructor_name,
-          total_courses: 0,
-          total_enrollments: 0,
-        };
-      }
-      acc[course.instructor_id].total_courses += 1;
-      acc[course.instructor_id].total_enrollments += course.total_enrollments;
-      return acc;
-    }, {} as Record<number, {
-      instructor_id: number;
-      instructor_name: string;
-      total_courses: number;
-      total_enrollments: number;
-    }>);
-    
+    const instructorStats = courseEnrollments.reduce(
+      (acc, course) => {
+        if (!acc[course.instructor_id]) {
+          acc[course.instructor_id] = {
+            instructor_id: course.instructor_id,
+            instructor_name: course.instructor_name,
+            total_courses: 0,
+            total_enrollments: 0,
+          };
+        }
+        acc[course.instructor_id].total_courses += 1;
+        acc[course.instructor_id].total_enrollments += course.total_enrollments;
+        return acc;
+      },
+      {} as Record<
+        number,
+        {
+          instructor_id: number;
+          instructor_name: string;
+          total_courses: number;
+          total_enrollments: number;
+        }
+      >
+    );
+
     const topInstructorsByEnrollments = Object.values(instructorStats)
       .sort((a, b) => b.total_enrollments - a.total_enrollments)
       .slice(0, 4);
-    
+
     return {
       totalCourses,
       totalEnrollments,
@@ -467,11 +527,15 @@ export default function AdminDashboardPage() {
     };
   };
 
-  const analyticsSubscriptions = subscriptionsData ? {
-    total: subscriptionsData.length,
-    active: subscriptionsData.filter(sub => sub.status === 'ACTIVE').length,
-    inactive: subscriptionsData.filter(sub => sub.status !== 'ACTIVE').length,
-  } : null;
+  const analyticsSubscriptions = subscriptionsData
+    ? {
+        total: subscriptionsData.length,
+        active: subscriptionsData.filter((sub) => sub.status === "ACTIVE")
+          .length,
+        inactive: subscriptionsData.filter((sub) => sub.status !== "ACTIVE")
+          .length,
+      }
+    : null;
 
   const totalUsers = analyticsData?.userStats?.total ?? 0;
   const activeUsers = analyticsData?.userStats?.active ?? 0;
@@ -479,42 +543,53 @@ export default function AdminDashboardPage() {
   const totalRevenue = analyticsData?.revenue?.total ?? 0;
   const subscriptionRevenue = analyticsData?.revenue?.subscriptions ?? 0;
 
-  const newUsersThisMonth = analyticsData?.growth?.monthly?.reduce((sum, entry) => {
-    const entryDate = new Date(entry.month);
-    const now = new Date();
-    const isThisMonth = entryDate.getMonth() === now.getMonth() && 
-                       entryDate.getFullYear() === now.getFullYear();
-    return isThisMonth ? sum + entry.newUsers : sum;
-  }, 0) ?? 0;
+  const newUsersThisMonth =
+    analyticsData?.growth?.monthly?.reduce((sum, entry) => {
+      const entryDate = new Date(entry.month);
+      const now = new Date();
+      const isThisMonth =
+        entryDate.getMonth() === now.getMonth() &&
+        entryDate.getFullYear() === now.getFullYear();
+      return isThisMonth ? sum + entry.newUsers : sum;
+    }, 0) ?? 0;
 
   // Calculate analytics from the response
-  const calculateCourseStats = (coursesData: { data: any; }) => {
+  const calculateCourseStats = (coursesData: { data: any }) => {
     if (!coursesData?.data) return null;
-    
+
     const courses = coursesData.data;
-    const totalEnrollments = courses.reduce((sum: any, course: { _count: { enrollments: any; }; enrollment_count: any; }) => 
-      sum + (course._count?.enrollments || course.enrollment_count || 0), 0
+    const totalEnrollments = courses.reduce(
+      (
+        sum: any,
+        course: { _count: { enrollments: any }; enrollment_count: any }
+      ) => sum + (course._count?.enrollments || course.enrollment_count || 0),
+      0
     );
-    const publishedCourses = courses.filter((course: { visible: any; }) => course.visible).length;
+    const publishedCourses = courses.filter(
+      (course: { visible: any }) => course.visible
+    ).length;
     const totalCourses = courses.length;
-    
+
     return {
       enrollments: totalEnrollments,
       published: publishedCourses,
       total: totalCourses,
-      percentChange: 0
+      percentChange: 0,
     };
   };
 
   const calculateGrowthPercentage = () => {
-    if (!analyticsData?.growth?.monthly || analyticsData.growth.monthly.length < 2) {
+    if (
+      !analyticsData?.growth?.monthly ||
+      analyticsData.growth.monthly.length < 2
+    ) {
       return 0;
     }
-    
+
     const monthlyData = analyticsData.growth.monthly;
     const thisMonth = monthlyData[monthlyData.length - 1]?.newUsers ?? 0;
     const lastMonth = monthlyData[monthlyData.length - 2]?.newUsers ?? 0;
-    
+
     if (lastMonth === 0) return thisMonth > 0 ? 100 : 0;
     return ((thisMonth - lastMonth) / lastMonth) * 100;
   };
@@ -586,7 +661,9 @@ export default function AdminDashboardPage() {
   };
 
   // Format percentage change with color
-  const formatPercentChangeWithColor = (percentChange: number | null | undefined) => {
+  const formatPercentChangeWithColor = (
+    percentChange: number | null | undefined
+  ) => {
     if (percentChange === null || percentChange === undefined) {
       return <div className="flex items-center text-gray-400">0.0%</div>;
     }
@@ -632,10 +709,10 @@ export default function AdminDashboardPage() {
   // Generate recent activity from course stats
   const generateRecentActivityFromCourseStats = () => {
     if (!courseStatsData?.course_enrollments) return [];
-    
-    const activities = [];
+
+    const activities: any[] = [];
     const now = new Date();
-    
+
     // Generate activities for courses with enrollments
     courseStatsData.course_enrollments.forEach((course, index) => {
       if (course.total_enrollments > 0) {
@@ -653,10 +730,12 @@ export default function AdminDashboardPage() {
             name: course.course_title,
             type: "course",
           },
-          timestamp: new Date(now.getTime() - (index * 2 * 60 * 60 * 1000)).toISOString(), // Stagger times
-          details: `received ${course.total_enrollments} enrollment${course.total_enrollments > 1 ? 's' : ''} for`,
+          // timestamp: new Date(
+          //   now.getTime() - index * 2 * 60 * 60 * 1000
+          // ).toISOString(), // Stagger times
+          details: `received ${course.total_enrollments} enrollment${course.total_enrollments > 1 ? "s" : ""} for`,
         });
-        
+
         // Generate course creation activity for courses with high enrollments
         if (course.total_enrollments >= 2) {
           activities.push({
@@ -672,28 +751,33 @@ export default function AdminDashboardPage() {
               name: course.course_title,
               type: "course",
             },
-            timestamp: new Date(now.getTime() - ((index + 5) * 3 * 60 * 60 * 1000)).toISOString(),
+            // timestamp: new Date(
+            //   now.getTime() - (index + 5) * 3 * 60 * 60 * 1000
+            // ).toISOString(),
             details: "published course",
           });
         }
       }
     });
-    
+
     // Add some instructor-related activities
-    const instructorStats = courseStatsData.course_enrollments.reduce((acc, course) => {
-      if (!acc[course.instructor_id]) {
-        acc[course.instructor_id] = {
-          instructor_id: course.instructor_id,
-          instructor_name: course.instructor_name,
-          total_courses: 0,
-          total_enrollments: 0,
-        };
-      }
-      acc[course.instructor_id].total_courses += 1;
-      acc[course.instructor_id].total_enrollments += course.total_enrollments;
-      return acc;
-    }, {} as Record<number, any>);
-    
+    const instructorStats = courseStatsData.course_enrollments.reduce(
+      (acc, course) => {
+        if (!acc[course.instructor_id]) {
+          acc[course.instructor_id] = {
+            instructor_id: course.instructor_id,
+            instructor_name: course.instructor_name,
+            total_courses: 0,
+            total_enrollments: 0,
+          };
+        }
+        acc[course.instructor_id].total_courses += 1;
+        acc[course.instructor_id].total_enrollments += course.total_enrollments;
+        return acc;
+      },
+      {} as Record<number, any>
+    );
+
     Object.values(instructorStats).forEach((instructor: any, index) => {
       if (instructor.total_enrollments > 3) {
         activities.push({
@@ -709,15 +793,20 @@ export default function AdminDashboardPage() {
             name: `${instructor.total_enrollments} students`,
             type: "milestone",
           },
-          timestamp: new Date(now.getTime() - ((index + 10) * 4 * 60 * 60 * 1000)).toISOString(),
+          // timestamp: new Date(
+          //   now.getTime() - (index + 10) * 4 * 60 * 60 * 1000
+          // ).toISOString(),
           details: "achieved milestone of",
         });
       }
     });
-    
+
     // Sort by timestamp (newest first) and limit to 8
     return activities
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .sort(
+        (a, b) =>
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      )
       .slice(0, 8);
   };
 
@@ -758,7 +847,7 @@ export default function AdminDashboardPage() {
               <SelectItem value="all">All Time</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" onClick={() => refetch()}>
+          <Button variant="outline" onClick={() => fetchStats()}>
             <RefreshCw className="w-4 h-4 mr-2" />
             Refresh
           </Button>
@@ -784,11 +873,9 @@ export default function AdminDashboardPage() {
             </div>
             <div className="flex items-center justify-between mt-1">
               <p className="text-xs text-gray-400">
-                {isLoadingAnalyticsData ? (
-                  "Loading..."
-                ) : (
-                  `${newUsersThisMonth.toLocaleString()} new this month`
-                )}
+                {isLoadingAnalyticsData
+                  ? "Loading..."
+                  : `${newUsersThisMonth.toLocaleString()} new this month`}
               </p>
               <div className="text-xs text-muted-foreground">
                 {isLoadingAnalyticsData ? (
@@ -820,15 +907,15 @@ export default function AdminDashboardPage() {
             </div>
             <div className="flex items-center justify-between mt-1">
               <p className="text-xs text-gray-400">
-                {isLoadingCourseStats ? (
-                  "Loading..."
-                ) : (
-                  `${courseStatsCalculated?.totalCourses || 0} total courses`
-                )}
+                {isLoadingCourseStats
+                  ? "Loading..."
+                  : `${courseStatsCalculated?.totalCourses || 0} total courses`}
               </p>
-              {!isLoadingCourseStats && !isErrorCourseStats && (
-                formatPercentChange(0) // You can calculate growth here if you have historical data
-              )}
+              {
+                !isLoadingCourseStats &&
+                  !isErrorCourseStats &&
+                  formatPercentChange(0) // You can calculate growth here if you have historical data
+              }
             </div>
           </CardContent>
         </Card>
@@ -858,16 +945,18 @@ export default function AdminDashboardPage() {
                   `${formatCurrency(analyticsRevenue?.thisMonth || 0)} this month`
                 )}
               </p>
-              {!isLoadingAnalyticsRevenue && !isErrorAnalyticsRevenue && (
-                formatPercentChange(analyticsRevenue?.percentChange || 0)
-              )}
+              {!isLoadingAnalyticsRevenue &&
+                !isErrorAnalyticsRevenue &&
+                formatPercentChange(analyticsRevenue?.percentChange || 0)}
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total Subscriptions</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total Subscriptions
+            </CardTitle>
             <CreditCard className="w-4 h-4 text-gray-400" />
           </CardHeader>
           <CardContent>
@@ -883,7 +972,8 @@ export default function AdminDashboardPage() {
             <div className="text-xs text-gray-500 mt-1">
               {analyticsSubscriptions && (
                 <>
-                  {analyticsSubscriptions.active} active, {analyticsSubscriptions.inactive} inactive
+                  {analyticsSubscriptions.active} active,{" "}
+                  {analyticsSubscriptions.inactive} inactive
                 </>
               )}
             </div>
@@ -964,79 +1054,84 @@ export default function AdminDashboardPage() {
                               </Badge>
                             )}
                             {activity.target?.type === "milestone" && (
-                              <Badge variant="outline" className="text-xs bg-yellow-500/10 text-yellow-400 border-yellow-500/20">
+                              <Badge
+                                variant="outline"
+                                className="text-xs bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
+                              >
                                 Milestone
                               </Badge>
                             )}
                           </div>
-                          <div className="flex items-center text-xs text-gray-400">
+                          {/* <div className="flex items-center text-xs text-gray-400">
                             <Clock className="w-3 h-3 mr-1" />
                             {formatDate(activity.timestamp)}
-                          </div>
+                          </div> */}
                         </div>
                       </div>
                     ))
                   )}
                 </div>
-                
+
                 {/* Fallback to original activity if course stats are loading */}
-                {!isLoadingCourseStats && !isErrorCourseStats && courseStatsRecentActivity.length === 0 && (
-                  <div className="space-y-2">
-                    {isLoadingActivity ? (
-                      <div className="flex items-center justify-center py-8">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                      </div>
-                    ) : isErrorActivity ? (
-                      <div className="p-4 rounded-md bg-red-900/20 text-center">
-                        <p className="text-sm text-red-400">
-                          Error loading activity data
-                        </p>
-                      </div>
-                    ) : recentActivity.length === 0 ? (
-                      <div className="p-4 rounded-md bg-gray-800/50 text-center">
-                        <p className="text-sm text-gray-400">
-                          No recent activity available
-                        </p>
-                      </div>
-                    ) : (
-                      recentActivity.map((activity, index) => (
-                        <div
-                          key={`fallback-activity-${activity.id || index}`}
-                          className="flex items-start p-2 rounded-lg hover:bg-gray-800/50"
-                        >
-                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-800 mr-3">
-                            {getActivityIcon(activity.type)}
-                          </div>
-                          <div className="flex-1 space-y-1">
-                            <div className="flex items-center gap-1">
-                              {activity.user?.name ? (
-                                <span className="font-medium">
-                                  {activity.user.name}
-                                </span>
-                              ) : (
-                                <span className="font-medium">User</span>
-                              )}
-                              <span className="text-gray-400">
-                                {typeof activity.details === "object"
-                                  ? JSON.stringify(activity.details)
-                                  : activity.details}
-                              </span>
-                              {activity.target?.name && (
-                                <span className="font-medium">
-                                  {activity.target.name}
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex items-center text-xs text-gray-400">
-                              <Clock className="w-3 h-3 mr-1" />
-                              {formatDate(activity.timestamp)}
-                            </div>
-                          </div>
+                {!isLoadingCourseStats &&
+                  !isErrorCourseStats &&
+                  courseStatsRecentActivity.length === 0 && (
+                    <div className="space-y-2">
+                      {isLoadingActivity ? (
+                        <div className="flex items-center justify-center py-8">
+                          <Loader2 className="h-8 w-8 animate-spin text-primary" />
                         </div>
-                      ))
-                    )}
-                  </div>
-                )}
+                      ) : isErrorActivity ? (
+                        <div className="p-4 rounded-md bg-red-900/20 text-center">
+                          <p className="text-sm text-red-400">
+                            Error loading activity data
+                          </p>
+                        </div>
+                      ) : recentActivity.length === 0 ? (
+                        <div className="p-4 rounded-md bg-gray-800/50 text-center">
+                          <p className="text-sm text-gray-400">
+                            No recent activity available
+                          </p>
+                        </div>
+                      ) : (
+                        recentActivity.map((activity, index) => (
+                          <div
+                            key={`fallback-activity-${activity.id || index}`}
+                            className="flex items-start p-2 rounded-lg hover:bg-gray-800/50"
+                          >
+                            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-800 mr-3">
+                              {getActivityIcon(activity.type)}
+                            </div>
+                            <div className="flex-1 space-y-1">
+                              <div className="flex items-center gap-1">
+                                {activity.user?.name ? (
+                                  <span className="font-medium">
+                                    {activity.user.name}
+                                  </span>
+                                ) : (
+                                  <span className="font-medium">User</span>
+                                )}
+                                <span className="text-gray-400">
+                                  {typeof activity.details === "object"
+                                    ? JSON.stringify(activity.details)
+                                    : activity.details}
+                                </span>
+                                {activity.target?.name && (
+                                  <span className="font-medium">
+                                    {activity.target.name}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center text-xs text-gray-400">
+                                <Clock className="w-3 h-3 mr-1" />
+                                {formatDate(activity.timestamp)}
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
               </CardContent>
               <CardFooter className="border-t border-gray-700 p-4">
                 <Link
@@ -1075,32 +1170,43 @@ export default function AdminDashboardPage() {
                       </p>
                     </div>
                   ) : (
-                    courseStatsCalculated.instructorStats.map((instructor, index) => (
-                      <div
-                        key={`instructor-stats-${instructor.instructor_id}`}
-                        className="flex items-center justify-between"
-                      >
-                        <div className="flex items-center">
-                          <Avatar className="h-9 w-9 mr-3">
-                            <AvatarFallback>
-                              {getAvatarFallback(instructor.instructor_name)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <div className="font-medium">{instructor.instructor_name}</div>
+                    courseStatsCalculated.instructorStats.map(
+                      (instructor, index) => (
+                        <div
+                          key={`instructor-stats-${instructor.instructor_id}`}
+                          className="flex items-center justify-between"
+                        >
+                          <div className="flex items-center">
+                            <Avatar className="h-9 w-9 mr-3">
+                              <AvatarFallback>
+                                {getAvatarFallback(instructor.instructor_name)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <div className="font-medium">
+                                {instructor.instructor_name}
+                              </div>
+                              <div className="text-xs text-gray-400">
+                                {instructor.total_courses} courses
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-semibold">
+                              {instructor.total_enrollments} enrollments
+                            </div>
                             <div className="text-xs text-gray-400">
-                              {instructor.total_courses} courses
+                              Avg:{" "}
+                              {Math.round(
+                                instructor.total_enrollments /
+                                  instructor.total_courses
+                              )}{" "}
+                              per course
                             </div>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <div className="font-semibold">{instructor.total_enrollments} enrollments</div>
-                          <div className="text-xs text-gray-400">
-                            Avg: {Math.round(instructor.total_enrollments / instructor.total_courses)} per course
-                          </div>
-                        </div>
-                      </div>
-                    ))
+                      )
+                    )
                   )}
                 </div>
               </CardContent>
@@ -1173,7 +1279,9 @@ export default function AdminDashboardPage() {
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="font-semibold">{course.total_enrollments} enrollments</div>
+                          <div className="font-semibold">
+                            {course.total_enrollments} enrollments
+                          </div>
                           <div className="text-xs text-gray-400">
                             Course ID: {course.course_id}
                           </div>
@@ -1218,11 +1326,12 @@ export default function AdminDashboardPage() {
                       ) : isErrorCourseStats ? (
                         <span className="text-red-500">Error</span>
                       ) : (
-                        courseStatsCalculated?.totalCourses?.toLocaleString() || "0"
+                        courseStatsCalculated?.totalCourses?.toLocaleString() ||
+                        "0"
                       )}
                     </div>
                   </div>
-                  
+
                   <div className="space-y-1">
                     <p className="text-xs text-gray-400">Total Enrollments</p>
                     <div className="text-2xl font-bold">
@@ -1231,40 +1340,51 @@ export default function AdminDashboardPage() {
                       ) : isErrorCourseStats ? (
                         <span className="text-red-500">Error</span>
                       ) : (
-                        courseStatsCalculated?.totalEnrollments?.toLocaleString() || "0"
+                        courseStatsCalculated?.totalEnrollments?.toLocaleString() ||
+                        "0"
                       )}
                     </div>
                   </div>
-                  
+
                   <div className="space-y-1">
-                    <p className="text-xs text-gray-400">Avg Enrollments per Course</p>
+                    <p className="text-xs text-gray-400">
+                      Avg Enrollments per Course
+                    </p>
                     <div className="text-2xl font-bold">
                       {isLoadingCourseStats ? (
                         <Loader2 className="inline h-5 w-5 animate-spin" />
                       ) : isErrorCourseStats ? (
                         <span className="text-red-500">Error</span>
-                      ) : courseStatsCalculated?.totalCourses > 0 ? (
-                        Math.round(courseStatsCalculated.totalEnrollments / courseStatsCalculated.totalCourses)
+                      ) : courseStatsCalculated?.totalCourses &&
+                        courseStatsCalculated?.totalEnrollments ? (
+                        Math.round(
+                          courseStatsCalculated.totalEnrollments /
+                            courseStatsCalculated.totalCourses
+                        )
                       ) : (
                         "0"
                       )}
                     </div>
                   </div>
-                  
+
                   <div className="space-y-1">
-                    <p className="text-xs text-gray-400">Courses with Enrollments</p>
+                    <p className="text-xs text-gray-400">
+                      Courses with Enrollments
+                    </p>
                     <div className="text-2xl font-bold">
                       {isLoadingCourseStats ? (
                         <Loader2 className="inline h-5 w-5 animate-spin" />
                       ) : isErrorCourseStats ? (
                         <span className="text-red-500">Error</span>
                       ) : (
-                        courseStatsData?.course_enrollments?.filter(course => course.total_enrollments > 0).length || 0
+                        courseStatsData?.course_enrollments?.filter(
+                          (course) => course.total_enrollments > 0
+                        ).length || 0
                       )}
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="space-y-1">
                   <div className="flex justify-between text-xs text-gray-400">
                     <span>Courses with Enrollments</span>
@@ -1273,8 +1393,9 @@ export default function AdminDashboardPage() {
                         <Loader2 className="inline h-3 w-3 animate-spin" />
                       ) : isErrorCourseStats ? (
                         "--"
-                      ) : courseStatsCalculated?.totalCourses > 0 ? (
-                        `${Math.round((courseStatsData?.course_enrollments?.filter(course => course.total_enrollments > 0).length || 0) / courseStatsCalculated.totalCourses * 100)}%`
+                      ) : courseStatsCalculated?.totalCourses &&
+                        courseStatsCalculated?.totalCourses > 0 ? (
+                        `${Math.round(((courseStatsData?.course_enrollments?.filter((course) => course.total_enrollments > 0).length || 0) / courseStatsCalculated.totalCourses) * 100)}%`
                       ) : (
                         "0%"
                       )}
@@ -1282,8 +1403,15 @@ export default function AdminDashboardPage() {
                   </div>
                   <Progress
                     value={
-                      isLoadingCourseStats || isErrorCourseStats || !courseStatsCalculated?.totalCourses ? 0 : 
-                      ((courseStatsData?.course_enrollments?.filter(course => course.total_enrollments > 0).length || 0) / courseStatsCalculated.totalCourses) * 100
+                      isLoadingCourseStats ||
+                      isErrorCourseStats ||
+                      !courseStatsCalculated?.totalCourses
+                        ? 0
+                        : ((courseStatsData?.course_enrollments?.filter(
+                            (course) => course.total_enrollments > 0
+                          ).length || 0) /
+                            courseStatsCalculated.totalCourses) *
+                          100
                     }
                     className="h-2"
                   />
@@ -1393,7 +1521,8 @@ export default function AdminDashboardPage() {
                                 {course.course_title}
                               </div>
                               <div className="text-xs text-gray-400">
-                                by {course.instructor_name} • ID: {course.course_id}
+                                by {course.instructor_name} • ID:{" "}
+                                {course.course_id}
                               </div>
                             </div>
                           </div>
@@ -1402,13 +1531,16 @@ export default function AdminDashboardPage() {
                               {course.total_enrollments} enrollments
                             </div>
                             <div className="text-xs text-gray-400">
-                              {course.total_enrollments === 0 ? "No enrollments" : 
-                               course.total_enrollments === 1 ? "1 student" : 
-                               `${course.total_enrollments} students`}
+                              {course.total_enrollments === 0
+                                ? "No enrollments"
+                                : course.total_enrollments === 1
+                                  ? "1 student"
+                                  : `${course.total_enrollments} students`}
                             </div>
                           </div>
                         </div>
-                        {index < courseStatsData.course_enrollments.length - 1 && (
+                        {index <
+                          courseStatsData.course_enrollments.length - 1 && (
                           <Separator className="bg-gray-800" />
                         )}
                       </div>
@@ -1440,11 +1572,9 @@ export default function AdminDashboardPage() {
                 </div>
                 <div className="flex items-center justify-between mt-1">
                   <p className="text-xs text-gray-400">
-                    {isLoadingAnalyticsData ? (
-                      "Loading..."
-                    ) : (
-                      `${newUsersThisMonth.toLocaleString()} new this month`
-                    )}
+                    {isLoadingAnalyticsData
+                      ? "Loading..."
+                      : `${newUsersThisMonth.toLocaleString()} new this month`}
                   </p>
                   <div className="text-xs text-muted-foreground">
                     {isLoadingAnalyticsData ? (
@@ -1522,7 +1652,7 @@ export default function AdminDashboardPage() {
                       ((stats?.subscriptions?.active || 0) /
                         ((stats?.subscriptions?.active || 0) +
                           (stats?.subscriptions?.expired || 0))) *
-                      100 || 0
+                        100 || 0
                     }
                     className="h-2"
                   />
@@ -1574,53 +1704,72 @@ export default function AdminDashboardPage() {
                     </p>
                   </div>
                 ) : (
-                  courseStatsCalculated.instructorStats.map((instructor, index) => (
-                    <div
-                      key={`instructor-performance-${instructor.instructor_id}`}
-                      className="space-y-2"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center">
-                          <Avatar className="h-12 w-12 mr-3">
-                            <AvatarFallback>
-                              {getAvatarFallback(instructor.instructor_name)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <div className="font-medium text-lg">
-                              {instructor.instructor_name}
+                  courseStatsCalculated.instructorStats.map(
+                    (instructor, index) => (
+                      <div
+                        key={`instructor-performance-${instructor.instructor_id}`}
+                        className="space-y-2"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <Avatar className="h-12 w-12 mr-3">
+                              <AvatarFallback>
+                                {getAvatarFallback(instructor.instructor_name)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <div className="font-medium text-lg">
+                                {instructor.instructor_name}
+                              </div>
+                              <div className="text-sm text-gray-400">
+                                {instructor.total_courses} courses • ID:{" "}
+                                {instructor.instructor_id}
+                              </div>
                             </div>
+                          </div>
+                          <div className="text-right">
+                            <Badge className="mb-1">
+                              {instructor.total_enrollments} total enrollments
+                            </Badge>
                             <div className="text-sm text-gray-400">
-                              {instructor.total_courses} courses • ID: {instructor.instructor_id}
+                              Avg:{" "}
+                              {Math.round(
+                                instructor.total_enrollments /
+                                  instructor.total_courses
+                              )}{" "}
+                              per course
                             </div>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <Badge className="mb-1">
-                            {instructor.total_enrollments} total enrollments
-                          </Badge>
-                          <div className="text-sm text-gray-400">
-                            Avg: {Math.round(instructor.total_enrollments / instructor.total_courses)} per course
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-xs text-gray-400">
+                            <span>Performance Score</span>
+                            <span>
+                              {Math.round(
+                                (instructor.total_enrollments /
+                                  instructor.total_courses) *
+                                  10
+                              )}
+                              /100
+                            </span>
                           </div>
+                          <Progress
+                            value={Math.min(
+                              100,
+                              (instructor.total_enrollments /
+                                instructor.total_courses) *
+                                10
+                            )}
+                            className="h-2"
+                          />
                         </div>
+                        {index <
+                          courseStatsCalculated.instructorStats.length - 1 && (
+                          <Separator className="bg-gray-800 mt-4" />
+                        )}
                       </div>
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-xs text-gray-400">
-                          <span>Performance Score</span>
-                          <span>
-                            {Math.round(instructor.total_enrollments / instructor.total_courses * 10)}/100
-                          </span>
-                        </div>
-                        <Progress
-                          value={Math.min(100, instructor.total_enrollments / instructor.total_courses * 10)}
-                          className="h-2"
-                        />
-                      </div>
-                      {index < courseStatsCalculated.instructorStats.length - 1 && (
-                        <Separator className="bg-gray-800 mt-4" />
-                      )}
-                    </div>
-                  ))
+                    )
+                  )
                 )}
               </div>
             </CardContent>
@@ -1740,9 +1889,7 @@ export default function AdminDashboardPage() {
                 <div className="space-y-1">
                   <p className="text-xs text-gray-400">Growth</p>
                   <div className="text-2xl font-bold flex items-center">
-                    {formatPercentChange(
-                      stats?.bookings?.percentChange || 0
-                    )}
+                    {formatPercentChange(stats?.bookings?.percentChange || 0)}
                   </div>
                 </div>
               </div>

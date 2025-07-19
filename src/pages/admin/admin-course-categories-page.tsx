@@ -1,13 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import {
-  FolderOpen,
-  PlusCircle,
-  Edit,
-  Trash2,
-  RefreshCw,
-  Search,
-} from "lucide-react";
+import { PlusCircle, Edit, Trash2, RefreshCw, Search } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -25,7 +18,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -57,7 +49,9 @@ interface Category {
   name: string;
   description: string | null;
   image_url: string | null;
-  courseCount?: number;
+  _count: {
+    courses: number;
+  };
 }
 
 // Form schema for category
@@ -101,7 +95,7 @@ export default function AdminCourseCategoriesPage() {
           method: "GET",
         });
 
-        console.log(res)
+        console.log(res);
         return await res.data;
       } catch (error) {
         console.error("Failed to fetch categories:", error);
@@ -123,7 +117,7 @@ export default function AdminCourseCategoriesPage() {
         data: values, // Fixed: stringify the body
       });
 
-      if (!response.ok) {
+      if (!response) {
         const errorData = await response;
         throw new Error(
           errorData.message || `HTTP ${response.status}: ${response.statusText}`
@@ -339,8 +333,13 @@ export default function AdminCourseCategoriesPage() {
                       <TableRow key={category.id}>
                         <TableCell>
                           <div className="flex items-center space-x-3">
-                            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-800">
-                              <FolderOpen className="h-5 w-5 text-gray-400" />
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-800">
+                              {/* <FolderOpen className="h-5 w-5 text-gray-400" /> */}
+                              <img
+                                src={`${category.image_url}`}
+                                alt={`${category.name} image`}
+                                className="rounded-full object-cover"
+                              />
                             </div>
                             <span className="font-medium">{category.name}</span>
                           </div>
@@ -350,7 +349,7 @@ export default function AdminCourseCategoriesPage() {
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline">
-                            {category.courseCount || 0} courses
+                            {category._count.courses || 0} courses
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
@@ -369,7 +368,8 @@ export default function AdminCourseCategoriesPage() {
                               onClick={() => handleDeleteClick(category)}
                               title="Delete category"
                               disabled={Boolean(
-                                category.courseCount && category.courseCount > 0
+                                category._count.courses &&
+                                  category._count.courses > 0
                               )}
                             >
                               <Trash2 className="h-4 w-4" />
