@@ -60,6 +60,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
           console.error("Failed to fetch cart:", response.statusText);
           return [];
         }
+
+        console.log(response);
         const data = await response.items;
         return data;
       } catch (error) {
