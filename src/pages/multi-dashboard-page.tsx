@@ -18,6 +18,9 @@ import {
   Upload,
   X,
   Image,
+  Package,
+  Pencil,
+  Trash,
 } from "lucide-react";
 import {
   Card,
@@ -50,6 +53,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ResourceType } from "./admin/ResourceType";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const API_BASE_URL = "https://api.livetestdomain.com";
 const UPLOAD_ENDPOINT = "https://api.livetestdomain.com/api/upload";
@@ -150,6 +154,7 @@ export default function MultiDashboardPage() {
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [selectedResource, setSelectedResource] = useState<any>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
   const [uploadedThumbnailUrl, setUploadedThumbnailUrl] = useState<
@@ -231,6 +236,97 @@ export default function MultiDashboardPage() {
       });
     },
   });
+
+  const updateResourceMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
+      const response = await apiRequest(`${API_BASE_URL}/api/resources/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        data: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.message || `HTTP error! status: ${response.status}`
+        );
+      }
+
+      return await response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/resources"] });
+      toast({
+        title: "Resource Updated",
+        description: "The resource has been updated successfully.",
+      });
+      setIsEditDialogOpen(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Update Failed",
+        description:
+          error instanceof Error ? error.message : "Failed to update resource",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete resource mutation
+  const deleteResourceMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await apiRequest(`/api/resources/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!response) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return response.status === 204 ? {} : await response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/resources"] });
+      toast({
+        title: "Resource Deleted",
+        description: "The resource has been deleted successfully.",
+      });
+      setIsDeleteDialogOpen(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Delete Failed",
+        description:
+          error instanceof Error ? error.message : "Failed to delete resource",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleUpdateResource = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedResource) return;
+
+    const formData = new FormData(e.target as HTMLFormElement);
+
+    const updateData = {
+      title: formData.get("title") as string,
+      description: formData.get("description") as string,
+      price: parseFloat((formData.get("price") as string) || "0"),
+      ageRange: formData.get("ageRange") as string,
+      danceStyle: formData.get("danceStyle") as string,
+      difficultyLevel: formData.get("difficultyLevel") as string,
+      status: formData.get("status") as string,
+      isFeatured: formData.has("isFeatured"),
+    };
+
+    updateResourceMutation.mutate({
+      id: selectedResource.id,
+      data: updateData,
+    });
+  };
 
   // Handle resource creation form submission
   const handleCreateResource = (e: React.FormEvent) => {
@@ -506,6 +602,7 @@ export default function MultiDashboardPage() {
                 </Button> */}
                 {/* <Button asChild variant="outline" size="sm">
                   <Link href="/admin/curriculum-officer">
+                    <Users className="h-4 w-4 mr-2" />
                     Full Curriculum Portal
                   </Link>
                 </Button> */}
@@ -556,83 +653,82 @@ export default function MultiDashboardPage() {
               <span className="">Total Resource: {resourceCourses.length}</span>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              {resourceCourses?.map((resource: any, i: any) => (
-                <Card key={i}>
-                  <CardHeader className="pb-2">
-                    <div className="w-full h-auto rounded-md bg-muted mb-2 flex items-center justify-center">
-                      {resource.type === "IMAGE" ? (
-                        <img src={`${resource.thumbnailUrl}`} />
-                      ) : (
-                        <File className="h-12 w-12 text-muted-foreground opacity-50" />
-                      )}
-                    </div>
-                    <CardTitle className="text-lg">{resource?.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="pb-2">
-                    <div className="text-sm text-muted-foreground mb-2">
-                      Price{" "}
-                      <span className="font-medium">${resource?.price}</span>
-                    </div>
-                    <div className="text-sm text-muted-foreground mb-2">
-                      Difficulty Level{" "}
-                      <span className="font-medium">
-                        ${resource?.difficultyLevel}
-                      </span>
-                    </div>
-                    <div className="text-sm text-muted-foreground mb-2">
-                      Age Range{" "}
-                      <span className="font-medium">{resource?.ageRange}</span>
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      {/* Submitted {resource.submitted} */}
-                    </div>
-                  </CardContent>
-                  {/* <CardFooter className="flex justify-between">
-                      <Button variant="outline" size="sm">
-                        Review
-                      </Button>
-                      <div className="flex space-x-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-green-500"
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="h-4 w-4"
+              {resourceCourses.length > 0 ? (
+                <>
+                  {resourceCourses.map((resource: any, i: any) => (
+                    <Card key={i}>
+                      <CardHeader className="pb-2">
+                        <div className="w-full h-auto rounded-md bg-muted mb-2 flex items-center justify-center">
+                          {resource.type === "IMAGE" ? (
+                            <img
+                              src={`${resource.thumbnailUrl}`}
+                              alt={resource.title}
+                            />
+                          ) : (
+                            <File className="h-12 w-12 text-muted-foreground opacity-50" />
+                          )}
+                        </div>
+                        <CardTitle className="text-lg">
+                          {resource?.title}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="pb-2">
+                        <div className="text-sm text-muted-foreground mb-2">
+                          Price{" "}
+                          <span className="font-medium">
+                            ${resource?.price}
+                          </span>
+                        </div>
+                        <div className="text-sm text-muted-foreground mb-2">
+                          Difficulty Level{" "}
+                          <span className="font-medium">
+                            {resource?.difficultyLevel}
+                          </span>
+                        </div>
+                        <div className="text-sm text-muted-foreground mb-2">
+                          Age Range{" "}
+                          <span className="font-medium">
+                            {resource?.ageRange}
+                          </span>
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {/* Submitted {resource.submitted} */}
+                        </div>
+                      </CardContent>
+                      <CardFooter className="flex justify-between">
+                        <div className="flex space-x-2 justify-self-end">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-white"
+                            onClick={() => {
+                              setIsEditDialogOpen(true);
+                              setSelectedResource(resource);
+                            }}
                           >
-                            <path d="M20 6 9 17l-5-5" />
-                          </svg>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-red-500"
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="h-4 w-4"
+                            <Pencil />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-white"
+                            onClick={() => {
+                              setIsDeleteDialogOpen(true);
+                              setSelectedResource(resource);
+                            }}
                           >
-                            <path d="M18 6 6 18" />
-                            <path d="m6 6 12 12" />
-                          </svg>
-                        </Button>
-                      </div>
-                    </CardFooter> */}
-                </Card>
-              ))}
+                            <Trash />
+                          </Button>
+                        </div>
+                      </CardFooter>
+                    </Card>
+                  ))}
+                </>
+              ) : (
+                <div className="text-center text-muted-foreground py-8">
+                  No resources found.
+                </div>
+              )}
             </div>
 
             {/* <div className="mt-2">
@@ -2163,6 +2259,225 @@ export default function MultiDashboardPage() {
               </div>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Resource Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Resource</DialogTitle>
+            <DialogDescription>
+              Make changes to the resource properties below.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedResource && (
+            <form onSubmit={handleUpdateResource}>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
+                    <Label htmlFor="title">Title</Label>
+                    <Input
+                      id="title"
+                      name="title"
+                      defaultValue={selectedResource.title}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea
+                      id="description"
+                      name="description"
+                      defaultValue={selectedResource.description}
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="danceStyle">Dance Style</Label>
+                      <Select
+                        name="danceStyle"
+                        defaultValue={selectedResource.danceStyle}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select dance style" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {DANCE_STYLES.map((style) => (
+                            <SelectItem key={style} value={style}>
+                              {style}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="difficultyLevel">Difficulty Level</Label>
+                      <Select
+                        name="difficultyLevel"
+                        defaultValue={selectedResource.difficultyLevel}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select difficulty" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {DIFFICULTY_LEVELS.map((level) => (
+                            <SelectItem key={level} value={level}>
+                              {level}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="ageRange">Age Range</Label>
+                      <Select
+                        name="ageRange"
+                        defaultValue={selectedResource.ageRange}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select age range" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {AGE_RANGES.map((range) => (
+                            <SelectItem key={range} value={range}>
+                              {range}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="price">Price ($)</Label>
+                      <Input
+                        id="price"
+                        name="price"
+                        type="number"
+                        step="0.01"
+                        defaultValue={selectedResource.price || "0.00"}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* <div>
+                      <Label htmlFor="status">Status</Label>
+                      <Select
+                        name="status"
+                        defaultValue={selectedResource.status || "pending"}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pending">Pending</SelectItem>
+                          <SelectItem value="approved">Approved</SelectItem>
+                          <SelectItem value="published">Published</SelectItem>
+                          <SelectItem value="rejected">Rejected</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div> */}
+
+                    <div className="flex items-center space-x-2 pt-6">
+                      <Checkbox
+                        id="isFeatured"
+                        name="isFeatured"
+                        defaultChecked={selectedResource.isFeatured}
+                      />
+                      <Label htmlFor="isFeatured">Featured Resource</Label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsEditDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={updateResourceMutation.isPending}
+                >
+                  {updateResourceMutation.isPending
+                    ? "Saving..."
+                    : "Save Changes"}
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Resource</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this resource? This action cannot
+              be undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedResource && (
+            <div className="py-4">
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="h-10 w-10 rounded bg-gray-800 flex items-center justify-center overflow-hidden">
+                  {selectedResource.thumbnailUrl ? (
+                    <img
+                      src={selectedResource.thumbnailUrl}
+                      alt={selectedResource.title}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <Package className="h-6 w-6 text-gray-400" />
+                  )}
+                </div>
+                <div>
+                  <div className="font-medium">{selectedResource.title}</div>
+                  <div className="text-sm text-gray-400">
+                    {selectedResource.danceStyle} •{" "}
+                    {selectedResource.difficultyLevel}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsDeleteDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() =>
+                selectedResource &&
+                deleteResourceMutation.mutate(selectedResource.id)
+              }
+              disabled={deleteResourceMutation.isPending}
+            >
+              {deleteResourceMutation.isPending
+                ? "Deleting..."
+                : "Delete Resource"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
