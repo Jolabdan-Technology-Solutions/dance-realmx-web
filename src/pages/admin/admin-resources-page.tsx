@@ -194,7 +194,7 @@ export default function AdminResourcesPage() {
       });
 
       if (!response) {
-        const errorData = await response.json().catch(() => ({}));
+        const errorData = await response;
         throw new Error(
           errorData.message || `HTTP error! status: ${response.status}`
         );
@@ -232,8 +232,8 @@ export default function AdminResourcesPage() {
         data: JSON.stringify(data),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+      if (!response) {
+        const errorData = await response;
         throw new Error(
           errorData.message || `HTTP error! status: ${response.status}`
         );
