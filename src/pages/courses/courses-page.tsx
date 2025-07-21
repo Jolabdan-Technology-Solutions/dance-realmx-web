@@ -114,10 +114,12 @@ export default function CoursesPage() {
     isLoading: isLoadingCourses,
     error: coursesError,
   } = useQuery<Course[]>({
-    queryKey: ["courses"],
+    queryKey: ["/courses"],
     queryFn: async () => {
       const response = await fetchCourses();
-      return response.data;
+
+      console.log(response);
+      return response;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -199,6 +201,8 @@ export default function CoursesPage() {
     );
     return category ? category.name : "Uncategorized";
   };
+
+  console.log(courses);
 
   // Filter and sort courses with improved logic
   const filteredCourses = Array.isArray(courses)
