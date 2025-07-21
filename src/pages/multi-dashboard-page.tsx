@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "wouter";
 import { useEffect, useState } from "react";
 import { UserRole } from "@/constants/roles";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   Loader2,
   ShoppingBag,
@@ -15,6 +15,9 @@ import {
   File,
   AlertTriangle,
   BarChart3,
+  Upload,
+  X,
+  Image,
 } from "lucide-react";
 import {
   Card,
@@ -25,6 +28,115 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CourseDetailsModal } from "@/components/courses/course-details-modal";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ResourceType } from "./admin/ResourceType";
+
+const API_BASE_URL = "https://api.livetestdomain.com";
+const UPLOAD_ENDPOINT = "https://api.livetestdomain.com/api/upload";
+
+// Helper for price formatting
+const formatPrice = (price: string | number | null) => {
+  if (!price) return "$0.00";
+  const numPrice = typeof price === "string" ? parseFloat(price) : price;
+  return `$${numPrice.toFixed(2)}`;
+};
+
+// Helper for file type detection
+const getResourceType = (fileUrl: string, fileName: string = "") => {
+  const url = fileUrl.toLowerCase();
+  const name = fileName.toLowerCase();
+
+  if (
+    url.includes(".mp4") ||
+    url.includes(".mov") ||
+    url.includes(".avi") ||
+    name.includes(".mp4")
+  ) {
+    return "VIDEO";
+  }
+  if (
+    url.includes(".mp3") ||
+    url.includes(".wav") ||
+    url.includes(".m4a") ||
+    name.includes(".mp3")
+  ) {
+    return "AUDIO";
+  }
+  if (url.includes(".pdf") || name.includes(".pdf")) {
+    return "DOCUMENT";
+  }
+  if (
+    url.includes(".jpg") ||
+    url.includes(".png") ||
+    url.includes(".jpeg") ||
+    name.includes(".jpg")
+  ) {
+    return "IMAGE";
+  }
+  return "DOCUMENT"; // Default fallback
+};
+
+// Dance styles options
+const DANCE_STYLES = [
+  "Ballet",
+  "Hip-Hop",
+  "Jazz",
+  "Contemporary",
+  "Salsa",
+  "Bachata",
+  "Ballroom",
+  "Latin",
+  "Tap",
+  "Lyrical",
+  "Commercial",
+  "Breakdancing",
+  "Krump",
+  "House",
+  "Waacking",
+  "Voguing",
+  "Other",
+];
+
+// Difficulty levels
+const DIFFICULTY_LEVELS = [
+  "Beginner",
+  "Intermediate",
+  "Advanced",
+  "Professional",
+];
+
+// Age ranges
+const AGE_RANGES = [
+  "3-5",
+  "6-8",
+  "9-12",
+  "13-17",
+  "18-25",
+  "26-35",
+  "36-45",
+  "46+",
+  "All Ages",
+];
 
 /**
  * Multi-role dashboard for users with multiple roles
@@ -32,9 +144,181 @@ import { CourseDetailsModal } from "@/components/courses/course-details-modal";
  */
 export default function MultiDashboardPage() {
   const { user, isLoading } = useAuth();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<string>("");
   const [selectedCourseId, setSelectedCourseId] = useState<number | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [selectedResource, setSelectedResource] = useState<any>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
+  const [uploadedThumbnailUrl, setUploadedThumbnailUrl] = useState<
+    string | null
+  >(null);
+  const [resourceType, setResourceType] = useState<string>("VIDEO");
+  const [isMainFileUploading, setIsMainFileUploading] = useState(false);
+  const [isThumbnailUploading, setIsThumbnailUploading] = useState(false);
+  // Add isFeatured state
+  const [isFeatured, setIsFeatured] = useState(false);
+
+  const resetCreateForm = () => {
+    setUploadedFileUrl(null);
+    setUploadedThumbnailUrl(null);
+    setResourceType("VIDEO");
+    setIsMainFileUploading(false);
+    setIsThumbnailUploading(false);
+    setIsFeatured(false); // Reset isFeatured
+  };
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ["/api/resource-categories"],
+    queryFn: async () => {
+      const res = await apiRequest("/api/resource-categories", {
+        method: "GET",
+      });
+      console.log("Resource categories", res);
+      return await res;
+    },
+  });
+
+  const { data: resourceCourses = [] } = useQuery({
+    queryKey: ["/api/resource"],
+    queryFn: async () => {
+      const res = await apiRequest(`/api/resources/seller/${user?.id}`, {
+        method: "GET",
+      });
+      console.log("Resource", res);
+      return await res;
+    },
+  });
+
+  console.log("resource", resourceCourses);
+
+  const createResourceMutation = useMutation({
+    mutationFn: async (resourceData: any) => {
+      const response = await apiRequest(`/api/resources`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        data: JSON.stringify(resourceData),
+      });
+
+      if (!response) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.message || `HTTP error! status: ${response.status}`
+        );
+      }
+
+      return await response.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/resources"] });
+      toast({
+        title: "Resource Created Successfully",
+        description: `Resource has been added to the curriculum.`,
+      });
+      setIsCreateDialogOpen(false);
+      resetCreateForm();
+    },
+    onError: (error) => {
+      toast({
+        title: "Creation Failed",
+        description:
+          error instanceof Error ? error.message : "Failed to create resource",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Handle resource creation form submission
+  const handleCreateResource = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const formData = new FormData(e.target as HTMLFormElement);
+
+    // Enhanced validation with better error messages
+    if (!uploadedFileUrl) {
+      toast({
+        title: "Main File Required",
+        description:
+          "Please upload the main resource file before creating the resource. Click 'Choose Main File' to upload.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (isMainFileUploading || isThumbnailUploading) {
+      toast({
+        title: "Upload In Progress",
+        description:
+          "Please wait for the file upload to complete before submitting.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check required form fields
+    const title = formData.get("title") as string;
+    const description = formData.get("description") as string;
+    const price = formData.get("price") as string;
+    const danceStyle = formData.get("danceStyle") as string;
+    const difficultyLevel = formData.get("difficultyLevel") as string;
+    const ageRange = formData.get("ageRange") as string;
+
+    if (
+      !title ||
+      !description ||
+      !danceStyle ||
+      !difficultyLevel ||
+      !ageRange
+    ) {
+      toast({
+        title: "Required Fields Missing",
+        description: "Please fill in all required fields (marked with *).",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Build the payload according to API specification
+    const resourcePayload: {
+      title: string;
+      description: string;
+      price: number;
+      ageRange: string;
+      categoryId: number | null;
+      danceStyle: string;
+      difficultyLevel: string;
+      thumbnailUrl: string;
+      type: ResourceType;
+      url: string;
+      // isFeatured: boolean; // Add isFeatured to the payload
+    } = {
+      title,
+      description,
+      price: parseFloat(price || "0"),
+      ageRange,
+      categoryId: parseInt(formData.get("categoryId") as string) || null,
+      danceStyle,
+      difficultyLevel,
+      thumbnailUrl: uploadedThumbnailUrl || "",
+      type: resourceType as ResourceType,
+      url: uploadedFileUrl!,
+      // isFeatured, // Include isFeatured in the payload
+    };
+
+    console.log("Sending resource payload:", resourcePayload);
+
+    // Show a loading toast
+    toast({
+      title: "Creating Resource",
+      description: "Please wait while we create your resource...",
+    });
+
+    createResourceMutation.mutate(resourcePayload);
+  };
 
   {
     /* Course Details Modal */
@@ -83,33 +367,26 @@ export default function MultiDashboardPage() {
   });
 
   // Fetch instructor courses from the API
-  const resourceCourses = useQuery({
-    queryKey: ["resources-courses"],
-    queryFn: async () => {
-      const response = await fetch(
-        `https://api.livetestdomain.com/api/resources/seller/${user?.id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`, // Adjust based on your auth setup
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      if (!response.ok) {
-        throw new Error("Failed to fetch courses");
-      }
-      const data = await response.json();
-      // console.log(data);
-      return data.data; // Return the courses array from the API response
-    },
-    // Only enabled when user is logged in and has instructor role
-    enabled:
-      !isLoading &&
-      !!user &&
-      Array.isArray(user.role) &&
-      user.role.includes(UserRole.INSTRUCTOR_ADMIN),
-    staleTime: 1000 * 60 * 5, // 5 minutes
-  });
+  // const resourceCourses = useQuery({
+  //   queryKey: ["/resources-courses"],
+  //   queryFn: async () => {
+  //     const response = await apiRequest(`api/resources/seller/${user?.id}`, {
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //       requireAuth: true,
+  //     });
+  //     if (!response) {
+  //       throw new Error("Failed to fetch resource");
+  //     }
+  //     const data = await response.json();
+  //     console.log("Resource", data);
+  //     return data.data; // Return the courses array from the API response
+  //   },
+  //   // Only enabled when user is logged in and has instructor role
+  //   enabled: !isLoading && !!user,
+  //   staleTime: 1000 * 60 * 5, // 5 minutes
+  // });
 
   useEffect(() => {
     // Set default active tab based on user roles
@@ -206,34 +483,37 @@ export default function MultiDashboardPage() {
 
         {/* Seller Dashboard Tab */}
         {hasSellerRole && (
-          <TabsContent value={UserRole.CURRICULUM_ADMIN} className="space-y-4">
+          <TabsContent value={UserRole.CURRICULUM_SELLER} className="space-y-4">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold">
-                Curriculum Officer Dashboard
-              </h2>
-              <div className="flex items-center space-x-2">
-                <Button asChild variant="outline" size="sm">
-                  <Link href="/admin/curriculum-officer">
-                    <BookOpen className="h-4 w-4 mr-2" />
-                    Review Resources
-                  </Link>
+              <h2 className="text-2xl font-bold">Seller Dashboard</h2>
+              <div className="flex items-center space-x-2 my-4">
+                <Button
+                  asChild
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsCreateDialogOpen(true)}
+                >
+                  <span>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Resources
+                  </span>
                 </Button>
-                <Button asChild variant="outline" size="sm">
+                {/* <Button asChild variant="outline" size="sm">
                   <Link href="/admin/curriculum-officer/sellers">
                     <Users className="h-4 w-4 mr-2" />
                     Manage Sellers
                   </Link>
-                </Button>
-                <Button asChild variant="outline" size="sm">
+                </Button> */}
+                {/* <Button asChild variant="outline" size="sm">
                   <Link href="/admin/curriculum-officer">
                     Full Curriculum Portal
                   </Link>
-                </Button>
+                </Button> */}
               </div>
             </div>
 
             {/* Curriculum Officer summary */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg">Pending Reviews</CardTitle>
@@ -268,34 +548,46 @@ export default function MultiDashboardPage() {
                   </div>
                 </CardContent>
               </Card>
-            </div>
+            </div> */}
 
             {/* Pending Resources */}
-            <h3 className="text-xl font-semibold mb-3">
-              Pending Resource Reviews
-            </h3>
+            <div className="flex justify-between items-center pb-6">
+              <h3 className="text-xl font-semibold">Your Resource</h3>
+              <span className="">Total Resource: {resourceCourses.length}</span>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              {resourceCourses.data?.map(
-                ({ resource, i }: { resource: any; i: any }) => (
-                  <Card key={i}>
-                    <CardHeader className="pb-2">
-                      <div className="w-full h-32 rounded-md bg-muted mb-2 flex items-center justify-center">
+              {resourceCourses?.map((resource: any, i: any) => (
+                <Card key={i}>
+                  <CardHeader className="pb-2">
+                    <div className="w-full h-auto rounded-md bg-muted mb-2 flex items-center justify-center">
+                      {resource.type === "IMAGE" ? (
+                        <img src={`${resource.thumbnailUrl}`} />
+                      ) : (
                         <File className="h-12 w-12 text-muted-foreground opacity-50" />
-                      </div>
-                      <CardTitle className="text-lg">
-                        {resource.title}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="pb-2">
-                      <div className="text-sm text-muted-foreground mb-2">
-                        Submitted by{" "}
-                        <span className="font-medium">{resource.seller}</span>
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        Submitted {resource.submitted}
-                      </div>
-                    </CardContent>
-                    <CardFooter className="flex justify-between">
+                      )}
+                    </div>
+                    <CardTitle className="text-lg">{resource?.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="pb-2">
+                    <div className="text-sm text-muted-foreground mb-2">
+                      Price{" "}
+                      <span className="font-medium">${resource?.price}</span>
+                    </div>
+                    <div className="text-sm text-muted-foreground mb-2">
+                      Difficulty Level{" "}
+                      <span className="font-medium">
+                        ${resource?.difficultyLevel}
+                      </span>
+                    </div>
+                    <div className="text-sm text-muted-foreground mb-2">
+                      Age Range{" "}
+                      <span className="font-medium">{resource?.ageRange}</span>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {/* Submitted {resource.submitted} */}
+                    </div>
+                  </CardContent>
+                  {/* <CardFooter className="flex justify-between">
                       <Button variant="outline" size="sm">
                         Review
                       </Button>
@@ -338,10 +630,9 @@ export default function MultiDashboardPage() {
                           </svg>
                         </Button>
                       </div>
-                    </CardFooter>
-                  </Card>
-                )
-              )}
+                    </CardFooter> */}
+                </Card>
+              ))}
             </div>
 
             {/* <div className="mt-2">
@@ -442,7 +733,7 @@ export default function MultiDashboardPage() {
                       <span className="text-red-500">-</span>
                     ) : (
                       instructorCourses?.data?.reduce(
-                        (total, course) =>
+                        (total: any, course: any) =>
                           total + (course.enrollment_count || 0),
                         0
                       ) || 0
@@ -1110,6 +1401,770 @@ export default function MultiDashboardPage() {
           }}
         />
       )}
+
+      {/* Create Resource Dialog */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create New Dance Resource</DialogTitle>
+            <DialogDescription>
+              Upload a new dance curriculum resource to the platform.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleCreateResource}>
+            <div className="grid gap-6 py-4">
+              {/* File Upload Section */}
+              <div className="space-y-4">
+                <Label className="text-base font-semibold">
+                  Resource Files
+                </Label>
+
+                {/* Main Resource File */}
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
+                  <div className="text-center space-y-2">
+                    <Upload className="h-8 w-8 text-gray-400 mx-auto" />
+                    <div>
+                      <Label className="text-sm font-medium">
+                        Main Resource File *
+                      </Label>
+                      <p className="text-xs text-gray-500">
+                        Upload your dance instruction video, audio, or document
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Custom File Selection and Upload */}
+                  <div className="mt-4 space-y-4">
+                    {!uploadedFileUrl ? (
+                      <div className="text-center">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="bg-blue-50 border-blue-200 text-blue-700"
+                          onClick={() =>
+                            document.getElementById("main-file-input")?.click()
+                          }
+                          disabled={isMainFileUploading}
+                        >
+                          {isMainFileUploading ? (
+                            <>
+                              <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full mr-2"></div>
+                              Uploading...
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="h-4 w-4 mr-2" />
+                              Choose Main File
+                            </>
+                          )}
+                        </Button>
+
+                        {/* Hidden file input */}
+                        <input
+                          id="main-file-input"
+                          type="file"
+                          accept="video/*,audio/*,application/pdf,.doc,.docx,image/*"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+
+                            console.log(file);
+                            // Validate file size
+                            if (file.size > 50 * 1024 * 1024) {
+                              toast({
+                                title: "File Too Large",
+                                description:
+                                  "Please select a file smaller than 50MB.",
+                                variant: "destructive",
+                              });
+                              return;
+                            }
+
+                            setIsMainFileUploading(true);
+
+                            try {
+                              console.log(
+                                "Starting file upload to:",
+                                UPLOAD_ENDPOINT
+                              );
+                              console.log("Using authentication: Bearer token");
+                              console.log("File details:", {
+                                name: file.name,
+                                size:
+                                  (file.size / 1024 / 1024).toFixed(2) + "MB",
+                                type: file.type,
+                              });
+                              console.log(
+                                "Sending only file data (no additional metadata)"
+                              );
+
+                              // Create FormData
+                              const formData = new FormData();
+                              formData.append("file", file);
+                              // Remove type and entity_type fields as API doesn't expect them
+
+                              // Debug FormData contents
+                              // console.log("Thumbnail FormData contents:");
+                              // for (let [key, value] of formData.entries()) {
+                              //   if (value instanceof File) {
+                              //     console.log(
+                              //       `- ${key}: File[${value.name}, ${value.size} bytes, ${value.type}]`
+                              //     );
+                              //   } else {
+                              //     console.log(`- ${key}: ${value}`);
+                              //   }
+                              // }
+
+                              // Debug FormData contents
+                              // console.log("FormData contents:");
+                              // for (let [key, value] of formData.entries()) {
+                              //   if (value instanceof File) {
+                              //     console.log(
+                              //       `- ${key}: File[${value.name}, ${value.size} bytes, ${value.type}]`
+                              //     );
+                              //   } else {
+                              //     console.log(`- ${key}: ${value}`);
+                              //   }
+                              // }
+
+                              // Upload to server
+                              const response = await apiRequest(
+                                UPLOAD_ENDPOINT,
+                                {
+                                  method: "POST",
+                                  data: formData,
+                                  headers: {
+                                    "Content-Type": "multipart/form-data",
+                                  },
+                                }
+                              );
+
+                              if (!response) {
+                                let errorMessage = `Upload failed with status ${response.status}`;
+                                try {
+                                  const errorData = await response.data;
+                                  console.error(
+                                    "API Error Response:",
+                                    errorData
+                                  );
+                                  errorMessage =
+                                    errorData.message ||
+                                    errorData.error ||
+                                    errorMessage;
+                                  if (Array.isArray(errorData.message)) {
+                                    errorMessage = errorData.message.join(", ");
+                                  }
+                                } catch (parseError) {
+                                  const errorText = await response;
+                                  console.error(
+                                    "Raw error response:",
+                                    errorText
+                                  );
+                                  errorMessage = errorText || errorMessage;
+                                }
+                                throw new Error(errorMessage);
+                              }
+
+                              const result = await response.data;
+                              console.log(
+                                "Upload successful - Full response:",
+                                result
+                              );
+
+                              // Try multiple possible URL field names
+                              const fileUrl =
+                                result.url ||
+                                result.file_url ||
+                                result.fileUrl ||
+                                result.downloadUrl ||
+                                result.path ||
+                                result.location ||
+                                result.data?.url ||
+                                result.data?.file_url;
+
+                              console.log("Extracted file URL:", fileUrl);
+                              console.log(
+                                "Available response keys:",
+                                Object.keys(result)
+                              );
+
+                              if (!fileUrl) {
+                                console.error(
+                                  "No file URL found in response. Available fields:",
+                                  Object.keys(result)
+                                );
+                                throw new Error(
+                                  `No file URL returned from server. Response keys: ${Object.keys(result).join(", ")}`
+                                );
+                              }
+
+                              setUploadedFileUrl(fileUrl);
+
+                              // Detect resource type
+                              const detectedType = getResourceType(
+                                fileUrl,
+                                file.name
+                              );
+                              setResourceType(detectedType);
+
+                              console.log(
+                                "File upload completed successfully:",
+                                {
+                                  url: fileUrl,
+                                  type: detectedType,
+                                  uploadedFileUrl: fileUrl,
+                                }
+                              );
+
+                              toast({
+                                title: "File Uploaded Successfully",
+                                description: `${file.name} has been uploaded as a ${detectedType.toLowerCase()} resource.`,
+                              });
+                            } catch (error) {
+                              console.error("Upload error:", error);
+                              toast({
+                                title: "Upload Failed",
+                                description:
+                                  error instanceof Error
+                                    ? error.message
+                                    : "Failed to upload file. Please try again.",
+                                variant: "destructive",
+                              });
+                            } finally {
+                              setIsMainFileUploading(false);
+                              // Reset the input
+                              e.target.value = "";
+                            }
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <div className="bg-green-50 border border-green-200 rounded-md p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            {/* {getResourceTypeIcon(resourceType)} */}
+                            <div>
+                              <p className="text-sm font-medium text-green-800">
+                                ✓ File uploaded successfully
+                              </p>
+                              <p className="text-xs text-green-600">
+                                {uploadedFileUrl.split("/").pop()} (
+                                {resourceType})
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex space-x-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                document
+                                  .getElementById("main-file-input")
+                                  ?.click()
+                              }
+                              className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                            >
+                              Change File
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setUploadedFileUrl(null);
+                                setResourceType("VIDEO");
+                              }}
+                              className="text-red-600 hover:text-red-800"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* File validation info */}
+                    <div className="text-xs text-gray-500 text-center">
+                      <p>
+                        Supported formats: MP4, MOV, MP3, WAV, PDF, DOC, DOCX,
+                        JPG, PNG
+                      </p>
+                      <p>Maximum file size: 50MB</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Thumbnail Upload */}
+                <div className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <Image className="h-4 w-4 text-gray-500" />
+                    <Label className="text-sm font-medium">
+                      Thumbnail Image (Optional)
+                    </Label>
+                  </div>
+                  <p className="text-xs text-gray-500 mb-3">
+                    Upload a preview image for your resource
+                  </p>
+
+                  {/* Custom Thumbnail Selection and Upload */}
+                  <div className="space-y-3">
+                    {!uploadedThumbnailUrl ? (
+                      <div className="text-center">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100"
+                          onClick={() =>
+                            document
+                              .getElementById("thumbnail-file-input")
+                              ?.click()
+                          }
+                          disabled={isThumbnailUploading}
+                        >
+                          {isThumbnailUploading ? (
+                            <>
+                              <div className="animate-spin h-4 w-4 border-2 border-gray-600 border-t-transparent rounded-full mr-2"></div>
+                              Uploading...
+                            </>
+                          ) : (
+                            <>
+                              <Image className="h-4 w-4 mr-2" />
+                              Choose Thumbnail
+                            </>
+                          )}
+                        </Button>
+
+                        {/* Hidden thumbnail file input */}
+                        <input
+                          id="thumbnail-file-input"
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+
+                            // Validate file size
+                            if (file.size > 5 * 1024 * 1024) {
+                              toast({
+                                title: "Image Too Large",
+                                description:
+                                  "Please select an image smaller than 5MB.",
+                                variant: "destructive",
+                              });
+                              return;
+                            }
+
+                            setIsThumbnailUploading(true);
+
+                            try {
+                              console.log(
+                                "Starting thumbnail upload to:",
+                                UPLOAD_ENDPOINT
+                              );
+                              console.log("Using authentication: Bearer token");
+                              console.log("Thumbnail details:", {
+                                name: file.name,
+                                size:
+                                  (file.size / 1024 / 1024).toFixed(2) + "MB",
+                                type: file.type,
+                              });
+                              console.log(
+                                "Sending only file data (no additional metadata)"
+                              );
+
+                              // Create FormData
+                              const formData = new FormData();
+                              formData.append("file", file);
+                              // Remove type and entity_type fields as API doesn't expect them
+
+                              // Upload to server
+                              const response = await apiRequest(
+                                UPLOAD_ENDPOINT,
+                                {
+                                  method: "POST",
+                                  data: formData,
+                                  headers: {
+                                    "Content-Type": "multipart/form-data",
+                                  },
+                                }
+                              );
+
+                              if (!response) {
+                                let errorMessage = `Thumbnail upload failed with status ${response.status}`;
+                                try {
+                                  const errorData = await response;
+                                  console.error(
+                                    "Thumbnail API Error Response:",
+                                    errorData
+                                  );
+                                  errorMessage =
+                                    errorData.message ||
+                                    errorData.error ||
+                                    errorMessage;
+                                  if (Array.isArray(errorData.message)) {
+                                    errorMessage = errorData.message.join(", ");
+                                  }
+                                } catch (parseError) {
+                                  const errorText = await response;
+                                  console.error(
+                                    "Raw thumbnail error response:",
+                                    errorText
+                                  );
+                                  errorMessage = errorText || errorMessage;
+                                }
+                                throw new Error(errorMessage);
+                              }
+
+                              const result = await response;
+                              console.log(
+                                "Thumbnail upload successful - Full response:",
+                                result
+                              );
+
+                              // Try multiple possible URL field names
+                              const imageUrl =
+                                result.url ||
+                                result.image_url ||
+                                result.fileUrl ||
+                                result.file_url ||
+                                result.downloadUrl ||
+                                result.path ||
+                                result.location ||
+                                result.data?.url ||
+                                result.data?.image_url;
+
+                              console.log("Extracted thumbnail URL:", imageUrl);
+                              console.log(
+                                "Available response keys:",
+                                Object.keys(result)
+                              );
+
+                              if (!imageUrl) {
+                                console.error(
+                                  "No image URL found in response. Available fields:",
+                                  Object.keys(result)
+                                );
+                                throw new Error(
+                                  `No image URL returned from server. Response keys: ${Object.keys(result).join(", ")}`
+                                );
+                              }
+
+                              setUploadedThumbnailUrl(imageUrl);
+
+                              console.log(
+                                "Thumbnail upload completed successfully:",
+                                {
+                                  url: imageUrl,
+                                  uploadedThumbnailUrl: imageUrl,
+                                }
+                              );
+
+                              toast({
+                                title: "Thumbnail Uploaded",
+                                description: `${file.name} has been uploaded successfully.`,
+                              });
+                            } catch (error) {
+                              console.error("Thumbnail upload error:", error);
+                              toast({
+                                title: "Thumbnail Upload Failed",
+                                description:
+                                  error instanceof Error
+                                    ? error.message
+                                    : "Failed to upload thumbnail. Please try again.",
+                                variant: "destructive",
+                              });
+                            } finally {
+                              setIsThumbnailUploading(false);
+                              // Reset the input
+                              e.target.value = "";
+                            }
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <div className="bg-green-50 border border-green-200 rounded-md p-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <img
+                              src={uploadedThumbnailUrl}
+                              alt="Thumbnail preview"
+                              className="h-10 w-10 rounded object-cover border border-green-300"
+                            />
+                            <div>
+                              <p className="text-sm font-medium text-green-800">
+                                ✓ Thumbnail uploaded
+                              </p>
+                              <p className="text-xs text-green-600">
+                                {uploadedThumbnailUrl.split("/").pop()}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex space-x-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                document
+                                  .getElementById("thumbnail-file-input")
+                                  ?.click()
+                              }
+                              className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                            >
+                              Change
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setUploadedThumbnailUrl(null)}
+                              className="text-red-600 hover:text-red-800"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="text-xs text-gray-500 text-center">
+                      <p>Supported formats: JPG, PNG, GIF, WebP</p>
+                      <p>Maximum file size: 5MB</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Basic Information */}
+              <div className="space-y-4">
+                <Label className="text-base font-semibold">
+                  Basic Information
+                </Label>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="title">Title *</Label>
+                    <Input
+                      id="title"
+                      name="title"
+                      required
+                      placeholder="e.g., Beginner Salsa Routine"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="price">Price ($) *</Label>
+                    <Input
+                      id="price"
+                      name="price"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      required
+                      placeholder="29.99"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="description">Description *</Label>
+                  <Textarea
+                    id="description"
+                    name="description"
+                    rows={3}
+                    required
+                    placeholder="Describe what students will learn from this resource..."
+                  />
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Dance Specifics */}
+              <div className="space-y-4">
+                <Label className="text-base font-semibold">
+                  Dance Specifics
+                </Label>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="danceStyle">Dance Style *</Label>
+                    <Select name="danceStyle" required>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select dance style" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DANCE_STYLES.map((style) => (
+                          <SelectItem key={style} value={style}>
+                            {style}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="difficultyLevel">Difficulty Level *</Label>
+                    <Select name="difficultyLevel" required>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select difficulty" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DIFFICULTY_LEVELS.map((level) => (
+                          <SelectItem key={level} value={level}>
+                            {level}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="ageRange">Age Range *</Label>
+                    <Select name="ageRange" required>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select age range" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {AGE_RANGES.map((range) => (
+                          <SelectItem key={range} value={range}>
+                            {range}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Resource Type Selection */}
+              <div className="space-y-4">
+                <Label className="text-base font-semibold">
+                  Resource Type *
+                </Label>
+                <Select
+                  value={resourceType}
+                  onValueChange={(val) => setResourceType(val as ResourceType)}
+                  required
+                  name="resourceType"
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select resource type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.values(ResourceType).map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type.charAt(0) + type.slice(1).toLowerCase()}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Category */}
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="categoryId">Category (Optional)</Label>
+                  <Select name="categoryId">
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((category: any) => (
+                        <SelectItem
+                          key={category.id}
+                          value={category.id.toString()}
+                        >
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Add isFeatured checkbox to the form */}
+              <div className="space-y-4">
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    checked={isFeatured}
+                    onChange={(e) => setIsFeatured(e.target.checked)}
+                    name="isFeatured"
+                  />
+                  <span>Featured Resource</span>
+                </label>
+              </div>
+            </div>
+
+            <DialogFooter className="mt-6">
+              {/* Status indicator for form completion */}
+              <div className="flex-1 text-left">
+                {!uploadedFileUrl && (
+                  <div className="text-sm text-amber-600 mb-2">
+                    {/* <span className="font-medium">⚠️ Upload a main file to enable resource creation</span> */}
+                  </div>
+                )}
+                {uploadedFileUrl && !createResourceMutation.isPending && (
+                  <div className="text-sm text-green-600 mb-2">
+                    <span className="font-medium">
+                      ✅ Ready to create resource
+                    </span>
+                  </div>
+                )}
+                {(isMainFileUploading || isThumbnailUploading) && (
+                  <div className="text-sm text-blue-600 mb-2">
+                    <span className="font-medium">
+                      ⏳ Upload in progress...
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex space-x-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setIsCreateDialogOpen(false);
+                    resetCreateForm();
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={
+                    createResourceMutation.isPending ||
+                    // !uploadedFileUrl ||
+                    isMainFileUploading ||
+                    isThumbnailUploading
+                  }
+                  className="bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {createResourceMutation.isPending ? (
+                    <>
+                      <div className="animate-spin h-4 w-4 border-2 border-black border-t-transparent rounded-full mr-2"></div>
+                      Creating...
+                    </>
+                  ) : (
+                    "Create Resource"
+                  )}
+                </Button>
+              </div>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

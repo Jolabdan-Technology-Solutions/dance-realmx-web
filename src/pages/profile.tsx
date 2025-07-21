@@ -276,7 +276,7 @@ export default function ProfilePage() {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading profile...</p>
+          <p className="text-white">Loading profile...</p>
         </div>
       </div>
     );
@@ -287,10 +287,10 @@ export default function ProfilePage() {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
         <div className="text-center">
           <div className="text-red-500 text-6xl mb-4">🔒</div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">
+          <h2 className="text-2xl font-bold text-white mb-2">
             Authentication Required
           </h2>
-          <p className="text-gray-600 mb-4">
+          <p className="text-white mb-4">
             Please sign in to view your profile.
           </p>
           <Button onClick={() => navigate("/auth")}>Sign In</Button>
@@ -304,10 +304,10 @@ export default function ProfilePage() {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
         <div className="text-center">
           <div className="text-red-500 text-6xl mb-4">⚠️</div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">
+          <h2 className="text-2xl font-bold text-white mb-2">
             Profile Not Found
           </h2>
-          <p className="text-gray-600 mb-4">{error}</p>
+          <p className="text-white mb-4">{error}</p>
           <Button onClick={() => window.history.back()}>Go Back</Button>
         </div>
       </div>
@@ -315,7 +315,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
+    <div className="min-h-screen bg-gray-800">
       {/* Hero Section */}
       <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
         <div className="container mx-auto px-4 py-8">
@@ -330,7 +330,7 @@ export default function ProfilePage() {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <span className="text-4xl font-bold text-white">
+                  <span className="text-4xl font-bold text-white uppercase">
                     {profile?.first_name?.[0]}
                     {profile?.last_name?.[0]}
                   </span>
@@ -346,7 +346,7 @@ export default function ProfilePage() {
                 disabled={uploading}
               >
                 {uploading ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-700"></div>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                 ) : (
                   <Camera className="h-4 w-4" />
                 )}
@@ -426,7 +426,7 @@ export default function ProfilePage() {
       </div>
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 py-8">
+      <div className="containe mx-auto px-4 bg-gray-900 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="mb-6">
             <TabsTrigger value="profile">Profile</TabsTrigger>
@@ -447,7 +447,7 @@ export default function ProfilePage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-gray-700 leading-relaxed">
+                    <p className="text-white leading-relaxed">
                       {profile?.profile?.bio ||
                         "No bio available. Add one to your profile!"}
                     </p>
@@ -467,7 +467,7 @@ export default function ProfilePage() {
                           profile.profile.service_category.length > 0 && (
                             <>
                               <div>
-                                <h4 className="font-semibold text-gray-800 mb-2">
+                                <h4 className="font-semibold text-white mb-2">
                                   Professional Categories
                                 </h4>
                                 <div className="flex flex-wrap gap-2">
@@ -492,7 +492,7 @@ export default function ProfilePage() {
                           profile.profile.dance_style.length > 0 && (
                             <>
                               <div>
-                                <h4 className="font-semibold text-gray-800 mb-2">
+                                <h4 className="font-semibold text-white mb-2">
                                   Dance Styles
                                 </h4>
                                 <div className="flex flex-wrap gap-2">
@@ -516,7 +516,7 @@ export default function ProfilePage() {
                         {profile.profile.services &&
                           profile.profile.services.length > 0 && (
                             <div>
-                              <h4 className="font-semibold text-gray-800 mb-2">
+                              <h4 className="font-semibold text-white mb-2">
                                 Services Offered
                               </h4>
                               <div className="grid grid-cols-2 gap-2">
@@ -524,7 +524,7 @@ export default function ProfilePage() {
                                   (service: string, index: number) => (
                                     <div
                                       key={index}
-                                      className="flex items-center gap-2 text-sm text-gray-600"
+                                      className="flex items-center gap-2 text-sm text-white"
                                     >
                                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                                       {service}
@@ -567,7 +567,7 @@ export default function ProfilePage() {
                                       key={index}
                                       className="bg-gray-50 rounded-lg p-4"
                                     >
-                                      <div className="font-medium text-gray-800 mb-2">
+                                      <div className="font-medium text-white mb-2">
                                         {formatDateRange(
                                           range.start_date,
                                           range.end_date
@@ -613,7 +613,7 @@ export default function ProfilePage() {
                           <div className="text-3xl font-bold text-green-600 mb-2">
                             ${profile.profile.pricing.toLocaleString()}
                           </div>
-                          <p className="text-gray-600">per session</p>
+                          <p className="text-white">per session</p>
                         </div>
                       </CardContent>
                     </Card>
@@ -626,18 +626,18 @@ export default function ProfilePage() {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {profile?.profile?.phone_number && (
-                      <div className="flex items-center gap-3 text-gray-700">
-                        <Phone className="h-4 w-4 text-gray-500" />
+                      <div className="flex items-center gap-3 text-white">
+                        <Phone className="h-4 w-4 text-white" />
                         <span>{profile.profile.phone_number}</span>
                       </div>
                     )}
-                    <div className="flex items-center gap-3 text-gray-700">
-                      <Mail className="h-4 w-4 text-gray-500" />
+                    <div className="flex items-center gap-3 text-white">
+                      <Mail className="h-4 w-4 text-white" />
                       <span>{profile?.email}</span>
                     </div>
                     {profile?.profile?.portfolio && (
-                      <div className="flex items-center gap-3 text-gray-700">
-                        <Globe className="h-4 w-4 text-gray-500" />
+                      <div className="flex items-center gap-3 text-white">
+                        <Globe className="h-4 w-4 text-white" />
                         <a
                           href={profile.profile.portfolio}
                           target="_blank"
@@ -658,15 +658,15 @@ export default function ProfilePage() {
                       <CardTitle>Location</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="flex items-center gap-3 text-gray-700">
-                        <MapPin className="h-4 w-4 text-gray-500" />
+                      <div className="flex items-center gap-3 text-white">
+                        <MapPin className="h-4 w-4 text-white" />
                         <div>
                           <div>
                             {profile.location ||
                               `${profile.city}, ${profile.state}`}
                           </div>
                           {profile.zip_code && (
-                            <div className="text-sm text-gray-500">
+                            <div className="text-sm text-white">
                               {profile.zip_code}
                             </div>
                           )}
@@ -683,7 +683,7 @@ export default function ProfilePage() {
                   </CardHeader>
                   <CardContent className="space-y-3 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Member since:</span>
+                      <span className="text-white">Member since:</span>
                       <span className="font-medium">
                         {formatDate(
                           profile?.created_at || new Date().toISOString()
@@ -691,7 +691,7 @@ export default function ProfilePage() {
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Last updated:</span>
+                      <span className="text-white">Last updated:</span>
                       <span className="font-medium">
                         {formatDate(
                           profile?.updated_at || new Date().toISOString()
@@ -700,7 +700,7 @@ export default function ProfilePage() {
                     </div>
                     {profile?.years_experience && (
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Experience:</span>
+                        <span className="text-white">Experience:</span>
                         <span className="font-medium">
                           {profile.years_experience} years
                         </span>
@@ -708,7 +708,7 @@ export default function ProfilePage() {
                     )}
                     {profile?.is_verified && (
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Status:</span>
+                        <span className="text-white">Status:</span>
                         <Badge
                           variant="outline"
                           className="border-green-200 text-green-700"
@@ -719,7 +719,7 @@ export default function ProfilePage() {
                     )}
                     {profile?.is_professional && (
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Account Type:</span>
+                        <span className="text-white">Account Type:</span>
                         <Badge
                           variant="outline"
                           className="border-blue-200 text-blue-700"
@@ -741,16 +741,14 @@ export default function ProfilePage() {
               {bookingsLoading ? (
                 <div className="flex justify-center items-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                  <span className="ml-2 text-gray-600">
-                    Loading bookings...
-                  </span>
+                  <span className="ml-2 text-white">Loading bookings...</span>
                 </div>
               ) : bookingsError ? (
                 <div className="text-red-500 text-center py-8">
                   {bookingsError}
                 </div>
               ) : bookings.length === 0 ? (
-                <div className="text-center text-gray-500 py-8">
+                <div className="text-center text-white py-8">
                   No bookings found.
                 </div>
               ) : (
