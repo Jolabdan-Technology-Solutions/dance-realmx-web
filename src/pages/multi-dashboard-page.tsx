@@ -163,8 +163,8 @@ export default function MultiDashboardPage() {
   const [resourceType, setResourceType] = useState<string>("VIDEO");
   const [isMainFileUploading, setIsMainFileUploading] = useState(false);
   const [isThumbnailUploading, setIsThumbnailUploading] = useState(false);
-  // Add isFeatured state
-  const [isFeatured, setIsFeatured] = useState(false);
+  // Add is_featured state
+  const [is_featured, setis_featured] = useState(false);
 
   const resetCreateForm = () => {
     setUploadedFileUrl(null);
@@ -172,7 +172,7 @@ export default function MultiDashboardPage() {
     setResourceType("VIDEO");
     setIsMainFileUploading(false);
     setIsThumbnailUploading(false);
-    setIsFeatured(false); // Reset isFeatured
+    setis_featured(false); // Reset is_featured
   };
 
   const { data: categories = [] } = useQuery({
@@ -319,7 +319,7 @@ export default function MultiDashboardPage() {
       danceStyle: formData.get("danceStyle") as string,
       difficultyLevel: formData.get("difficultyLevel") as string,
       // status: formData.get("status") as string,
-      isFeatured: formData.has("isFeatured"),
+      is_featured: formData.has("is_featured"),
     };
 
     updateResourceMutation.mutate({
@@ -390,7 +390,7 @@ export default function MultiDashboardPage() {
       thumbnailUrl: string;
       type: ResourceType;
       url: string;
-      isFeatured: boolean; // Add isFeatured to the payload
+      is_featured: boolean; // Add is_featured to the payload
     } = {
       title,
       description,
@@ -402,7 +402,7 @@ export default function MultiDashboardPage() {
       thumbnailUrl: uploadedThumbnailUrl || "",
       type: resourceType as ResourceType,
       url: uploadedFileUrl!,
-      isFeatured, // Include isFeatured in the payload
+      is_featured, // Include is_featured in the payload
     };
 
     console.log("Sending resource payload:", resourcePayload);
@@ -2188,14 +2188,14 @@ export default function MultiDashboardPage() {
                 </div>
               </div>
 
-              {/* Add isFeatured checkbox to the form */}
+              {/* Add is_featured checkbox to the form */}
               <div className="space-y-4">
                 <label className="flex items-center space-x-2">
                   <input
                     type="checkbox"
-                    checked={isFeatured}
-                    onChange={(e) => setIsFeatured(e.target.checked)}
-                    name="isFeatured"
+                    checked={is_featured}
+                    onChange={(e) => setis_featured(e.target.checked)}
+                    name="is_featured"
                   />
                   <span>Featured Resource</span>
                 </label>
@@ -2389,11 +2389,11 @@ export default function MultiDashboardPage() {
 
                     <div className="flex items-center space-x-2 pt-6">
                       <Checkbox
-                        id="isFeatured"
-                        name="isFeatured"
-                        defaultChecked={selectedResource.isFeatured}
+                        id="is_featured"
+                        name="is_featured"
+                        defaultChecked={selectedResource.is_featured}
                       />
-                      <Label htmlFor="isFeatured">Featured Resource</Label>
+                      <Label htmlFor="is_featured">Featured Resource</Label>
                     </div>
                   </div>
                 </div>

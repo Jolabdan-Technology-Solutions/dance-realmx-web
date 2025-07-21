@@ -150,8 +150,8 @@ export default function AdminResourcesPage() {
   const [resourceType, setResourceType] = useState<string>("VIDEO");
   const [isMainFileUploading, setIsMainFileUploading] = useState(false);
   const [isThumbnailUploading, setIsThumbnailUploading] = useState(false);
-  // Add isFeatured state
-  const [isFeatured, setIsFeatured] = useState(false);
+  // Add is_featured state
+  const [is_featured, setis_featured] = useState(false);
 
   // Fetch resources from the new API
   const { data: resources = [], isLoading } = useQuery({
@@ -297,7 +297,7 @@ export default function AdminResourcesPage() {
     setResourceType("VIDEO");
     setIsMainFileUploading(false);
     setIsThumbnailUploading(false);
-    setIsFeatured(false); // Reset isFeatured
+    setis_featured(false); // Reset is_featured
   };
 
   // Calculate counts for each category
@@ -326,7 +326,7 @@ export default function AdminResourcesPage() {
   }).length;
 
   const featuredCount = resources.filter(
-    (r: any) => r.isFeatured === true
+    (r: any) => r.is_featured === true
   ).length;
 
   // Filter resources based on search and tab
@@ -350,7 +350,7 @@ export default function AdminResourcesPage() {
       resource.isApproved === true;
 
     const isResourceRejected = resourceStatus === "rejected";
-    const isResourceFeatured = resource.isFeatured === true;
+    const isResourceFeatured = resource.is_featured === true;
 
     if (selectedTab === "all") return matchesSearch;
     if (selectedTab === "pending") return matchesSearch && isResourcePending;
@@ -423,7 +423,7 @@ export default function AdminResourcesPage() {
       thumbnailUrl: string;
       type: ResourceType;
       url: string;
-      isFeatured: boolean; // Add isFeatured to the payload
+      is_featured: boolean; // Add is_featured to the payload
     } = {
       title,
       description,
@@ -435,7 +435,7 @@ export default function AdminResourcesPage() {
       thumbnailUrl: uploadedThumbnailUrl || "",
       type: resourceType as ResourceType,
       url: uploadedFileUrl!,
-      isFeatured, // Include isFeatured in the payload
+      is_featured, // Include is_featured in the payload
     };
 
     console.log("Sending resource payload:", resourcePayload);
@@ -464,7 +464,7 @@ export default function AdminResourcesPage() {
       danceStyle: formData.get("danceStyle") as string,
       difficultyLevel: formData.get("difficultyLevel") as string,
       // status: formData.get("status") as string,
-      isFeatured: formData.has("isFeatured"),
+      is_featured: formData.has("is_featured"),
     };
 
     updateResourceMutation.mutate({
@@ -488,10 +488,10 @@ export default function AdminResourcesPage() {
   };
 
   // Handle featured toggle
-  const handleFeaturedToggle = (id: number, isFeatured: boolean) => {
+  const handleFeaturedToggle = (id: number, is_featured: boolean) => {
     updateResourceMutation.mutate({
       id,
-      data: { isFeatured: !isFeatured },
+      data: { is_featured: !is_featured },
     });
   };
 
@@ -1474,14 +1474,14 @@ export default function AdminResourcesPage() {
                 </div>
               </div>
 
-              {/* Add isFeatured checkbox to the form */}
+              {/* Add is_featured checkbox to the form */}
               <div className="space-y-4">
                 <label className="flex items-center space-x-2">
                   <input
                     type="checkbox"
-                    checked={isFeatured}
-                    onChange={(e) => setIsFeatured(e.target.checked)}
-                    name="isFeatured"
+                    checked={is_featured}
+                    onChange={(e) => setis_featured(e.target.checked)}
+                    name="is_featured"
                   />
                   <span>Featured Resource</span>
                 </label>
@@ -1675,11 +1675,11 @@ export default function AdminResourcesPage() {
 
                     <div className="flex items-center space-x-2 pt-6">
                       <Checkbox
-                        id="isFeatured"
-                        name="isFeatured"
-                        defaultChecked={selectedResource.isFeatured}
+                        id="is_featured"
+                        name="is_featured"
+                        defaultChecked={selectedResource.is_featured}
                       />
-                      <Label htmlFor="isFeatured">Featured Resource</Label>
+                      <Label htmlFor="is_featured">Featured Resource</Label>
                     </div>
                   </div>
                 </div>
