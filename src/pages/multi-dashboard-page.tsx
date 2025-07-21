@@ -318,7 +318,7 @@ export default function MultiDashboardPage() {
       ageRange: formData.get("ageRange") as string,
       danceStyle: formData.get("danceStyle") as string,
       difficultyLevel: formData.get("difficultyLevel") as string,
-      status: formData.get("status") as string,
+      // status: formData.get("status") as string,
       isFeatured: formData.has("isFeatured"),
     };
 
@@ -390,7 +390,7 @@ export default function MultiDashboardPage() {
       thumbnailUrl: string;
       type: ResourceType;
       url: string;
-      // isFeatured: boolean; // Add isFeatured to the payload
+      isFeatured: boolean; // Add isFeatured to the payload
     } = {
       title,
       description,
@@ -402,7 +402,7 @@ export default function MultiDashboardPage() {
       thumbnailUrl: uploadedThumbnailUrl || "",
       type: resourceType as ResourceType,
       url: uploadedFileUrl!,
-      // isFeatured, // Include isFeatured in the payload
+      isFeatured, // Include isFeatured in the payload
     };
 
     console.log("Sending resource payload:", resourcePayload);

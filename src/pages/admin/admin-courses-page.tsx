@@ -370,7 +370,7 @@ export default function AdminCoursesPage() {
     isLoadingCourses || isLoadingCategories || isLoadingInstructors;
 
   return (
-    <AdminLayout>
+    <>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
@@ -685,6 +685,6 @@ export default function AdminCoursesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </AdminLayout>
+    </>
   );
 }

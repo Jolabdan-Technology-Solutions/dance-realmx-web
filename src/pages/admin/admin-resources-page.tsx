@@ -463,7 +463,7 @@ export default function AdminResourcesPage() {
       ageRange: formData.get("ageRange") as string,
       danceStyle: formData.get("danceStyle") as string,
       difficultyLevel: formData.get("difficultyLevel") as string,
-      status: formData.get("status") as string,
+      // status: formData.get("status") as string,
       isFeatured: formData.has("isFeatured"),
     };
 

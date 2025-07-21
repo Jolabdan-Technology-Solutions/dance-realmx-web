@@ -296,10 +296,6 @@ export const ComprehensiveRecommendations: React.FC<
 
           {/* Action Buttons */}
           <div className="flex gap-2 pt-4 border-t">
-            <Button className="flex-1">
-              <Phone className="w-4 h-4 mr-2" />
-              Contact
-            </Button>
             <Button
               variant="outline"
               className="flex-1"

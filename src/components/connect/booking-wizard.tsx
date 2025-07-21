@@ -34,6 +34,14 @@ import {
   ProfessionalProfile,
 } from "@/lib/professional-service";
 import { ComprehensiveRecommendations } from "./comprehensive-recommendations";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 
 // Custom styles for full-width date picker
 const datePickerStyles = `
@@ -202,6 +210,10 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
   const [favorites, setFavorites] = useState<number[]>([]);
   const [showRecommendations, setShowRecommendations] = useState(false);
   const [selectedProfessional, setSelectedProfessional] = useState<any>(null);
+  const [favoriteModalOpen, setFavoriteModalOpen] = useState(false);
+  const [favoriteNote, setFavoriteNote] = useState("");
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const [favoriteProfessional, setFavoriteProfessional] = useState<any>(null);
 
   // State for professional recommendations data
   const [professionalData, setProfessionalData] = useState<{
@@ -570,10 +582,14 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     });
   };
 
-  // Add a function to handle favorite API call
-  const handleFavorite = async (profileId: number, isFav: boolean) => {
+  // Add a function to handle favorite API call (with note)
+  const handleFavorite = async (
+    profileId: number,
+    isFav: boolean,
+    note?: string
+  ) => {
     try {
-      await professionalService.toggleFavorite(profileId);
+      await professionalService.toggleFavorite(profileId, note);
       setFavorites((prev) =>
         isFav ? prev.filter((id) => id !== profileId) : [...prev, profileId]
       );
@@ -589,6 +605,31 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         description: "Failed to update favorite. Please try again.",
         variant: "destructive",
       });
+    }
+  };
+
+  // New: handle favorite button click to open modal
+  const handleFavoriteClick = (professional: any, isFav: boolean) => {
+    setFavoriteProfessional({ professional, isFav });
+    setFavoriteNote("");
+    setFavoriteModalOpen(true);
+  };
+
+  // New: handle confirm in modal
+  const handleConfirmFavorite = async () => {
+    if (!favoriteProfessional) return;
+    setFavoriteLoading(true);
+    try {
+      await handleFavorite(
+        favoriteProfessional.professional.user?.id,
+        favoriteProfessional.isFav,
+        favoriteNote
+      );
+    } finally {
+      setFavoriteLoading(false);
+      setFavoriteModalOpen(false);
+      setFavoriteNote("");
+      setFavoriteProfessional(null);
     }
   };
 
@@ -1384,14 +1425,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                         {/* Favorite Button */}
                         <button
                           className="absolute top-4 right-4 z-10 text-white hover:text-pink-400 transition-colors"
-                          onClick={() => {
-                            handleFavorite(d?.user?.id, isFav);
-                            setFavorites((prev) =>
-                              isFav
-                                ? prev.filter((id) => id !== d.id)
-                                : [...prev, d.id]
-                            );
-                          }}
+                          onClick={() => handleFavoriteClick(d, isFav)}
                           aria-label={
                             isFav ? "Remove from favorites" : "Add to favorites"
                           }
@@ -1873,6 +1907,53 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
           </div>
         </div>
       </div>
+      {/* Favorite Modal */}
+      <Dialog
+        open={favoriteModalOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setFavoriteModalOpen(false);
+            setFavoriteNote("");
+            setFavoriteProfessional(null);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              Add {favoriteProfessional?.professional?.user?.first_name}{" "}
+              {favoriteProfessional?.professional?.user?.last_name} to Favorites
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Optionally add a note or tag for this favorite.
+            </p>
+            <Textarea
+              placeholder="e.g. Great for hip hop classes, very punctual..."
+              value={favoriteNote}
+              onChange={(e) => setFavoriteNote(e.target.value)}
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setFavoriteModalOpen(false);
+                setFavoriteNote("");
+                setFavoriteProfessional(null);
+              }}
+              disabled={favoriteLoading}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmFavorite} disabled={favoriteLoading}>
+              {favoriteLoading ? "Saving..." : "Add to Favorites"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
