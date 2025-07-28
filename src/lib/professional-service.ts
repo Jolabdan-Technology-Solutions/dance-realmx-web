@@ -71,11 +71,11 @@ export interface ProfessionalSearchResponse {
 }
 
 class ProfessionalService {
-  private baseUrl = "https://api.livetestdomain.com/api/profiles/professionals";
+  private baseUrl = "/api/profiles/professionals";
 
   // Get professionals by category
   async getByCategory(category: string): Promise<ProfessionalSearchResponse> {
-    const url = `${this.baseUrl}/by-category?category=${encodeURIComponent(category)}`;
+    const url = `/api/profiles/professionals/by-category?category=${encodeURIComponent(category)}`;
     const response = await apiRequest(url, {
       method: "GET",
       requireAuth: true,
@@ -86,7 +86,7 @@ class ProfessionalService {
 
   // Get professionals by city
   async getByCity(city: string): Promise<ProfessionalSearchResponse> {
-    const url = `${this.baseUrl}/by-city?city=${encodeURIComponent(city)}`;
+    const url = `/api/profiles/professionals/by-city?city=${encodeURIComponent(city)}`;
     const response = await apiRequest(url, {
       method: "GET",
       requireAuth: true,
@@ -99,7 +99,7 @@ class ProfessionalService {
   async getByDanceStyle(
     danceStyle: string
   ): Promise<ProfessionalSearchResponse> {
-    const url = `${this.baseUrl}/by-dance-style?danceStyle=${encodeURIComponent(danceStyle)}`;
+    const url = `/api/profiles/professionals/by-dance-style?danceStyle=${encodeURIComponent(danceStyle)}`;
     const response = await apiRequest(url, {
       method: "GET",
       requireAuth: true,
@@ -110,7 +110,7 @@ class ProfessionalService {
 
   // Get professionals by date
   async getByDate(date: string): Promise<ProfessionalSearchResponse> {
-    const url = `${this.baseUrl}/by-date?date=${encodeURIComponent(date)}`;
+    const url = `/api/profiles/professionals/by-date?date=${encodeURIComponent(date)}`;
     const response = await apiRequest(url, {
       method: "GET",
       requireAuth: true,
@@ -121,7 +121,7 @@ class ProfessionalService {
 
   // Get professionals by location
   async getByLocation(location: string): Promise<ProfessionalSearchResponse> {
-    const url = `${this.baseUrl}/by-location?location=${encodeURIComponent(location)}`;
+    const url = `/api/profiles/professionals/by-location?location=${encodeURIComponent(location)}`;
     const response = await apiRequest(url, {
       method: "GET",
       requireAuth: true,
@@ -139,7 +139,7 @@ class ProfessionalService {
     if (minPrice !== undefined) params.append("price_min", minPrice.toString());
     if (maxPrice !== undefined) params.append("price_max", maxPrice.toString());
 
-    const url = `${this.baseUrl}/by-pricing?${params.toString()}`;
+    const url = `/api/profiles/professionals/by-pricing?${params.toString()}`;
     const response = await apiRequest(url, {
       method: "GET",
       requireAuth: true,
@@ -150,7 +150,7 @@ class ProfessionalService {
 
   // Get professionals by state
   async getByState(state: string): Promise<ProfessionalSearchResponse> {
-    const url = `${this.baseUrl}/by-state?state=${encodeURIComponent(state)}`;
+    const url = `/api/profiles/professionals/by-state?state=${encodeURIComponent(state)}`;
     const response = await apiRequest(url, {
       method: "GET",
       requireAuth: true,
@@ -165,7 +165,7 @@ class ProfessionalService {
   ): Promise<ProfessionalSearchResponse> {
     delete params.availability_dates;
 
-    return await apiRequest(`${this.baseUrl}/search`, {
+    return await apiRequest(`/api/profiles/professionals/search`, {
       method: "POST",
       requireAuth: true,
       data: params,
@@ -182,7 +182,7 @@ class ProfessionalService {
   // Book a professional
   async bookProfessional(profileId: number, bookingData: any): Promise<any> {
     return await apiRequest(
-      `https://api.livetestdomain.com/api/profiles/${profileId}/book`,
+      `/api/profiles/${profileId}/book`,
       {
         method: "POST",
         data: bookingData,
@@ -194,7 +194,7 @@ class ProfessionalService {
   // Add/remove professional from favorites
   async toggleFavorite(profileId: number): Promise<any> {
     return await apiRequest(
-      `https://api.livetestdomain.com/api/profiles/${profileId}/book`,
+      `/api/profiles/${profileId}/favorite`,
       {
         method: "POST",
         requireAuth: true,
@@ -206,7 +206,7 @@ class ProfessionalService {
   async getProfessionalDetails(
     profileId: number
   ): Promise<ProfessionalProfile> {
-    const url = `https://api.livetestdomain.com/api/profiles/${profileId}`;
+    const url = `/api/profiles/${profileId}`;
     const response = await apiRequest(url, {
       method: "GET",
       requireAuth: true,

@@ -5,7 +5,7 @@ import fetch from 'node-fetch';
 global.fetch = fetch as any;
 
 // Mock environment variables
-process.env.VITE_API_URL = 'https://api.livetestdomain.com';
+process.env.VITE_API_URL = '/api';
 process.env.VITE_FRONTEND_URL = 'https://livetestdomain.com';
 
 // Mock getApiBaseUrl to avoid import.meta in tests

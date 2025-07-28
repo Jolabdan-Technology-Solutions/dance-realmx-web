@@ -26,7 +26,7 @@ export default function MultiDashboardPage() {
   const instructorCourses = useQuery({
     queryKey: ['instructor-courses'],
     queryFn: async () => {
-      const response = await fetch('https://api.livetestdomain.com/api/courses', {
+      const response = await fetch('/api/courses', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`, // Adjust based on your auth setup
           'Content-Type': 'application/json',

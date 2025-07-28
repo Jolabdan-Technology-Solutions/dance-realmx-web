@@ -202,8 +202,6 @@ export default function CoursesPage() {
     return category ? category.name : "Uncategorized";
   };
 
-  console.log(courses);
-
   // Filter and sort courses with improved logic
   const filteredCourses = Array.isArray(courses)
     ? courses
@@ -334,7 +332,10 @@ export default function CoursesPage() {
       );
 
       // Try to use a fallback based on category
-      const fallbackImg = `/images/thumbnails/${getCategoryName(course.category_id).toLowerCase()}-techniques.jpg`;
+      const categoryName = getCategoryName(course.category_id).toLowerCase();
+      const fallbackImg = categoryName === 'uncategorized' 
+        ? `/images/thumbnails/ballet-techniques.jpg` // Use ballet as default for uncategorized
+        : `/images/thumbnails/${categoryName}-techniques.jpg`;
       target.src = fallbackImg;
 
       // Set up secondary error handler for fallback
@@ -366,23 +367,37 @@ export default function CoursesPage() {
   // Show error state
   if (hasError) {
     return (
-      <div className="w-full px-4 py-12">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center max-w-md mx-auto">
-          <h2 className="text-xl font-semibold text-red-800 mb-2">
-            Error Loading Data
-          </h2>
-          <p className="text-red-600">
-            {coursesError?.message ||
-              categoriesError?.message ||
-              "An error occurred"}
-          </p>
-          <Button
-            onClick={() => window.location.reload()}
-            className="mt-4"
-            variant="outline"
-          >
-            Retry
-          </Button>
+      <div className="w-full px-4 py-12 bg-gray-900 min-h-screen">
+        <div className="bg-gray-800 border border-gray-600 rounded-lg p-8 text-center max-w-lg mx-auto">
+          <div className="mb-4">
+            <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h2 className="text-2xl font-semibold text-white mb-3">
+              Oops! Something went wrong
+            </h2>
+            <p className="text-gray-300 mb-2">
+              We're having trouble loading the courses right now.
+            </p>
+            <p className="text-gray-400 text-sm mb-6">
+              {coursesError?.message ||
+                categoriesError?.message ||
+                "Please check your internet connection and try again."}
+            </p>
+          </div>
+          <div className="space-y-3">
+            <Button
+              onClick={() => window.location.reload()}
+              className="w-full bg-blue-600 hover:bg-blue-700"
+            >
+              Try Again
+            </Button>
+            <Button
+              onClick={() => navigate("/")}
+              variant="outline"
+              className="w-full border-gray-600 text-gray-300 hover:bg-gray-700"
+            >
+              Go Home
+            </Button>
+          </div>
         </div>
       </div>
     );

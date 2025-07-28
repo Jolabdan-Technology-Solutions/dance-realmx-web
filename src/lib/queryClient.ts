@@ -122,7 +122,6 @@ export const apiRequest = async <T = any>(
       const currentPath = window.location.pathname;
       window.location.href = `/auth?redirect=${encodeURIComponent(currentPath)}`;
     }
-    console.error("API request error:", error);
     throw error.response.data;
   }
 };

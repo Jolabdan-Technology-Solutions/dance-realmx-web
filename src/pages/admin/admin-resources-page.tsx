@@ -48,8 +48,8 @@ import { Label } from "@/components/ui/label";
 import { ResourceType } from "./ResourceType";
 
 // API Configuration
-const API_BASE_URL = "https://api.livetestdomain.com";
-const UPLOAD_ENDPOINT = "https://api.livetestdomain.com/api/upload";
+const API_BASE_URL = "/api";
+const UPLOAD_ENDPOINT = "/api/upload";
 
 // Helper for price formatting
 const formatPrice = (price: string | number | null) => {

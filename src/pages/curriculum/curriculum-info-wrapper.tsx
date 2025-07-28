@@ -79,9 +79,9 @@ export default function CurriculumInfoPage() {
         setLoading(true)
         setError(null)
         
-        console.log(`Fetching resource from: https://api.livetestdomain.com/api/resources/${resourceId}`)
+        console.log(`Fetching resource from: /api/resources/${resourceId}`)
         
-        const res = await fetch(`https://api.livetestdomain.com/api/resources/${resourceId}`, {
+        const res = await fetch(`/api/resources/${resourceId}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',

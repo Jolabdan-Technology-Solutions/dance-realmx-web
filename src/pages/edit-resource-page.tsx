@@ -635,36 +635,65 @@ export default function EditResourcePage() {
                         />
                       </div>
                     )}
-                    <div className="flex-1 space-y-2">
-                      <Input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            setImageFile(file);
-                          }
-                        }}
-                      />
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        onClick={handleImageUpload}
-                        disabled={!imageFile || uploadingImage}
-                        className="w-full md:w-auto"
-                      >
-                        {uploadingImage ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Uploading...
-                          </>
-                        ) : (
-                          <>
-                            <Upload className="mr-2 h-4 w-4" />
-                            Upload Image
-                          </>
-                        )}
-                      </Button>
+                    <div className="flex-1 space-y-4">
+                      {/* File Upload Option */}
+                      <div>
+                        <label className="text-sm font-medium">Upload Image File</label>
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              setImageFile(file);
+                            }
+                          }}
+                          className="mt-2"
+                        />
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          onClick={handleImageUpload}
+                          disabled={!imageFile || uploadingImage}
+                          className="w-full md:w-auto mt-2"
+                        >
+                          {uploadingImage ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Uploading...
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="mr-2 h-4 w-4" />
+                              Upload Image
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                      
+                      {/* URL Input Option */}
+                      <div>
+                        <label className="text-sm font-medium">Or Enter Image URL</label>
+                        <Input
+                          type="url"
+                          placeholder="https://example.com/image.jpg"
+                          value={imagePreview || ""}
+                          onChange={(e) => {
+                            setImagePreview(e.target.value);
+                            // Update the resource immediately with the new URL
+                            if (e.target.value) {
+                              updateResourceMutation.mutate({
+                                ...form.getValues(),
+                                imageUrl: e.target.value
+                              });
+                            }
+                          }}
+                          className="mt-2"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          You can either upload a file above or paste an image URL here
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>

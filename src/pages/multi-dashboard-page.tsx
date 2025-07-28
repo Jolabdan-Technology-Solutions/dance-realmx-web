@@ -55,8 +55,8 @@ import {
 import { ResourceType } from "./admin/ResourceType";
 import { Checkbox } from "@/components/ui/checkbox";
 
-const API_BASE_URL = "https://api.livetestdomain.com";
-const UPLOAD_ENDPOINT = "https://api.livetestdomain.com/api/upload";
+const API_BASE_URL = "/api";
+const UPLOAD_ENDPOINT = "/api/upload";
 
 // Helper for price formatting
 const formatPrice = (price: string | number | null) => {
@@ -181,7 +181,6 @@ export default function MultiDashboardPage() {
       const res = await apiRequest("/api/resource-categories", {
         method: "GET",
       });
-      console.log("Resource categories", res);
       return await res;
     },
   });
@@ -192,12 +191,9 @@ export default function MultiDashboardPage() {
       const res = await apiRequest(`/api/resources/seller/${user?.id}`, {
         method: "GET",
       });
-      console.log("Resource", res);
       return await res;
     },
   });
-
-  console.log("resource", resourceCourses);
 
   const createResourceMutation = useMutation({
     mutationFn: async (resourceData: any) => {
@@ -438,7 +434,7 @@ export default function MultiDashboardPage() {
     queryKey: ["instructor-courses"],
     queryFn: async () => {
       const response = await fetch(
-        `https://api.livetestdomain.com/api/courses/instructor/${user?.id}`,
+        `/api/courses/instructor/${user?.id}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`, // Adjust based on your auth setup

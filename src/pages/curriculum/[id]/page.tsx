@@ -77,7 +77,7 @@ const ResourceDetails = ({ resourceId }: ResourceDetailsProps) => {
     queryKey: ["/api/curriculum", resourceId],
     queryFn: async ({ queryKey }) => {
       const response = await fetch(
-        `https://api.livetestdomain.com/api/resources/${id}`
+        `/api/resources/${id}`
       );
       if (!response.ok) throw new Error("Failed to fetch resource");
       const data = await response.json();
@@ -160,7 +160,7 @@ const ResourceDetails = ({ resourceId }: ResourceDetailsProps) => {
     queryKey: ["/api/curriculum", resourceId, "reviews"],
     queryFn: async ({ queryKey }) => {
       const response = await fetch(
-        `https://api.livetestdomain.com/api/curriculum/${resourceId}/reviews`
+        `/api/curriculum/${resourceId}/reviews`
       );
       if (!response.ok) throw new Error("Failed to fetch reviews");
       return response.json();
@@ -173,7 +173,7 @@ const ResourceDetails = ({ resourceId }: ResourceDetailsProps) => {
     enabled: !!resource?.seller?.id,
     queryFn: async ({ queryKey }) => {
       const response = await fetch(
-        `https://api.livetestdomain.com/api/users/${resource?.seller?.id}`
+        `/api/users/${resource?.seller?.id}`
       );
       if (!response.ok) throw new Error("Failed to fetch seller details");
       return response.json();
@@ -186,7 +186,7 @@ const ResourceDetails = ({ resourceId }: ResourceDetailsProps) => {
     enabled: !!user,
     queryFn: async () => {
       const response = await fetch(
-        "https://api.livetestdomain.com/api/resource-orders"
+        "/api/resource-orders"
       );
       if (!response.ok) throw new Error("Failed to fetch purchases");
       return response.json();
@@ -205,7 +205,7 @@ const ResourceDetails = ({ resourceId }: ResourceDetailsProps) => {
       enabled: !!resource?.sellerId,
       queryFn: async () => {
         const response = await fetch(
-          `https://api.livetestdomain.com/api/resources/seller/${resource.sellerId}`
+          `/api/resources/seller/${resource.sellerId}`
         );
         if (!response.ok) throw new Error("Failed to fetch seller resources");
         const data = await response.json();
@@ -238,7 +238,7 @@ const ResourceDetails = ({ resourceId }: ResourceDetailsProps) => {
     try {
       setIsDownloading(true);
       const response = await fetch(
-        `https://api.livetestdomain.com/api/resources/${resourceId}/download`
+        `/api/resources/${resourceId}/download`
       );
 
       if (!response.ok) {

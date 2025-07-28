@@ -86,12 +86,20 @@ export default function HomePage() {
   } = useQuery({
     queryKey: ["/api/testimonials"],
     queryFn: async () => {
-      const response = await fetch("/api/testimonials");
-      if (!response.ok) {
-        throw new Error("Failed to fetch testimonials");
+      try {
+        const response = await fetch("/api/testimonials");
+        if (!response.ok) {
+          // Return empty array if API doesn't exist
+          return [];
+        }
+        return response.json();
+      } catch (error) {
+        // Return empty array on error
+        return [];
       }
-      return response.json();
     },
+    retry: false, // Don't retry failed requests
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
   console.log(isTestimonialsLoading);

@@ -1,5 +1,6 @@
 import { Course } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
+import { useSubscription } from "@/hooks/use-subscription";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Redirect, Link } from "wouter";
@@ -16,6 +17,8 @@ import {
   Plus,
   Edit,
   Loader2,
+  TrendingUp,
+  Crown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +31,7 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { RequireSubscription } from "@/components/subscription/require-subscription";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -48,6 +52,19 @@ import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 
 export default function InstructorDashboardPage() {
+  return (
+    <RequireSubscription 
+      requiredLevel={10} 
+      featureName="Instructor Dashboard"
+      description="Access your instructor tools, manage courses, track student progress, and view analytics."
+      upgradePrompt="Upgrade to Educator or higher to access the instructor dashboard."
+    >
+      <InstructorDashboardPageContent />
+    </RequireSubscription>
+  );
+}
+
+function InstructorDashboardPageContent() {
   const { user, isLoading: authLoading } = useAuth();
 
   // Redirect if not authenticated or not instructor/admin

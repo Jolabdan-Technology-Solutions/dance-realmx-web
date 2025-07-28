@@ -96,7 +96,7 @@ export default function ProfilePage() {
       try {
         setLoading(true);
         const result = await apiRequest(
-          `https://api.livetestdomain.com/api/me`,
+          `/api/me`,
           {
             method: "GET",
             requireAuth: true,
@@ -135,7 +135,7 @@ export default function ProfilePage() {
       setBookingsLoading(true);
       setBookingsError(null);
       apiRequest(
-        `https://api.livetestdomain.com/api/bookings?userId=${user.id}`,
+        `/api/bookings?userId=${user.id}`,
         {
           method: "GET",
           requireAuth: true,
@@ -164,7 +164,7 @@ export default function ProfilePage() {
       const token = localStorage.getItem("access_token");
 
       const response = await fetch(
-        `https://api.livetestdomain.com/api/profiles/upload`,
+        `/api/profiles/upload`,
         {
           method: "POST",
           headers: {

@@ -58,8 +58,8 @@ export function DashboardPage() {
         new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
     );
 
-  // Get subscription status
-  const subscriptionLevel = user?.subscription_plan || "free";
+  // Get subscription status using subscription_tier
+  const subscriptionLevel = user?.subscription_tier?.toLowerCase() || "free";
 
   return (
     <>

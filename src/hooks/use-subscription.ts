@@ -4,9 +4,9 @@ import { SUBSCRIPTION_LEVELS, SUBSCRIPTION_LEVEL_MAP } from "@/components/subscr
 export function useSubscription() {
   const { user } = useAuth();
 
-  // Get the user's subscription level
-  const userSubscriptionLevel = user?.subscription_plan 
-    ? SUBSCRIPTION_LEVEL_MAP[user.subscription_plan] || SUBSCRIPTION_LEVELS.FREE
+  // Get the user's subscription level using subscription_tier (not subscription_plan)
+  const userSubscriptionLevel = user?.subscription_tier 
+    ? SUBSCRIPTION_LEVEL_MAP[user.subscription_tier.toLowerCase()] || SUBSCRIPTION_LEVELS.FREE
     : SUBSCRIPTION_LEVELS.FREE;
   
   // Check if the user has access to a specific feature level
@@ -14,8 +14,8 @@ export function useSubscription() {
     return userSubscriptionLevel >= SUBSCRIPTION_LEVELS[requiredLevel];
   };
 
-  // Get user's current plan name
-  const currentPlanName = user?.subscription_plan 
+  // Get user's current plan name using subscription_tier
+  const currentPlanName = user?.subscription_tier 
     ? Object.entries(SUBSCRIPTION_LEVEL_MAP).find(
         ([, level]) => level === userSubscriptionLevel
       )?.[0] || "free"
@@ -28,9 +28,9 @@ export function useSubscription() {
     userSubscriptionLevel,
     planName: currentPlanName,
     hasAccess,
-    isEducator: hasAccess("EDUCATOR"),
-    isPremium: hasAccess("PREMIUM"),
+    isNobility: hasAccess("NOBILITY"),
     isRoyalty: hasAccess("ROYALTY"),
+    isImperial: hasAccess("IMPERIAL"),
     subscriptionStatus,
     subscriptionExpiresAt
   };

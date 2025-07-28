@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import {
   Form,
   FormControl,
@@ -36,6 +37,7 @@ const editCourseFormSchema = z.object({
   imageUrl: z.string().nullable(),
   price: z.string().nullable(),
   categoryId: z.number().nullable(),
+  instructorId: z.number().nullable(),
   difficultyLevel: z.string().nullable(),
   estimatedDuration: z.string().nullable(),
   visible: z.boolean().nullable(),
@@ -44,6 +46,169 @@ const editCourseFormSchema = z.object({
 });
 
 type CourseFormValues = z.infer<typeof editCourseFormSchema>;
+
+// Custom FileUpload component
+interface FileUploadProps {
+  onUploadComplete: (url: string) => void;
+  defaultValue?: string;
+  acceptedTypes?: string;
+  label?: string;
+  buttonText?: string;
+  maxSizeMB?: number;
+}
+
+const FileUpload: React.FC<FileUploadProps> = ({
+  onUploadComplete,
+  defaultValue = "",
+  acceptedTypes = "image/*",
+  label = "Upload File",
+  buttonText = "Choose file",
+  maxSizeMB = 25,
+}) => {
+  const [file, setFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>(defaultValue);
+  const [uploadStatus, setUploadStatus] = useState<string>("");
+  const [isUploading, setIsUploading] = useState<boolean>(false);
+  const { toast } = useToast();
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile) return;
+
+    // Validate file size
+    const maxSizeBytes = maxSizeMB * 1024 * 1024;
+    if (selectedFile.size > maxSizeBytes) {
+      toast({
+        title: "File Too Large",
+        description: `File size exceeds ${maxSizeMB}MB limit.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setFile(selectedFile);
+    setPreviewUrl(URL.createObjectURL(selectedFile));
+    setUploadStatus("");
+  };
+
+  const handleUpload = async () => {
+    if (!file) {
+      toast({
+        title: "No File Selected",
+        description: "Please select a file to upload.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadStatus("Uploading...");
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("resource_type", "image");
+      formData.append("folder", "images");
+
+      // Get auth token for the request
+      const token = localStorage.getItem("access_token");
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        headers,
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorMessage;
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.message || errorData.error || "Upload failed";
+        } catch (e) {
+          errorMessage = `Upload failed: ${response.status} ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      const data = await response.json();
+      if (data.url || data.image_url || data.file_url) {
+        const imageUrl = data.url || data.image_url || data.file_url;
+        setUploadStatus("Upload successful!");
+        setPreviewUrl(imageUrl);
+        onUploadComplete(imageUrl);
+        toast({
+          title: "Image Uploaded",
+          description: "The course image has been successfully uploaded.",
+        });
+      } else {
+        throw new Error("No URL found in upload response");
+      }
+    } catch (error: any) {
+      setUploadStatus("Upload failed");
+      toast({
+        title: "Upload Failed",
+        description: error.message || "An error occurred during upload.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      <label className="text-sm font-medium">{label}</label>
+      <div className="flex items-center gap-2">
+        <input
+          type="file"
+          accept={acceptedTypes}
+          onChange={handleFileChange}
+          className="block w-full text-sm text-gray-500
+            file:mr-4 file:py-2 file:px-4
+            file:rounded-md file:border-0
+            file:text-sm file:font-semibold
+            file:bg-primary file:text-primary-foreground
+            hover:file:bg-primary/90"
+        />
+        <Button
+          type="button"
+          onClick={handleUpload}
+          disabled={isUploading || !file}
+        >
+          {isUploading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Uploading...
+            </>
+          ) : (
+            buttonText
+          )}
+        </Button>
+      </div>
+      {previewUrl && (
+        <img
+          src={previewUrl}
+          alt="Preview"
+          className="mt-2 max-w-xs rounded-md"
+        />
+      )}
+      {uploadStatus && (
+        <p
+          className={`text-sm ${
+            uploadStatus.includes("success") ? "text-green-600" : "text-red-600"
+          }`}
+        >
+          {uploadStatus}
+        </p>
+      )}
+    </div>
+  );
+};
 
 export default function AdminCoursesEditPage() {
   const params = useParams<{ id: string }>();
@@ -101,6 +266,7 @@ export default function AdminCoursesEditPage() {
       imageUrl: course?.image_url || "",
       price: course?.price ? String(course.price) : "",
       categoryId: course?.category_id || null,
+      instructorId: course?.instructor_id || null,
       difficultyLevel: course?.difficulty_level || "beginner",
       estimatedDuration: course?.duration || "",
       visible: course?.visible ?? false,
@@ -116,6 +282,7 @@ export default function AdminCoursesEditPage() {
           imageUrl: course.image_url || "",
           price: course.price ? String(course.price) : "",
           categoryId: course.category_id || null,
+          instructorId: course.instructor_id || null,
           difficultyLevel: course.difficulty_level || "beginner",
           estimatedDuration: course.duration || "",
           visible: course.visible ?? false,
@@ -135,6 +302,7 @@ export default function AdminCoursesEditPage() {
         image_url: values.imageUrl,
         price: values.price,
         category_id: values.categoryId,
+        instructor_id: values.instructorId,
         difficulty_level: values.difficultyLevel,
         duration: values.estimatedDuration,
         visible: values.visible,
@@ -142,7 +310,7 @@ export default function AdminCoursesEditPage() {
         preview_video_url: values.previewVideoUrl,
       };
       const res = await apiRequest(`/api/courses/${courseId}`, {
-        method: "PATCH",
+        method: "PUT",
         data: payload,
       });
       return res;
@@ -247,9 +415,52 @@ export default function AdminCoursesEditPage() {
               name="imageUrl"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Image URL</FormLabel>
+                  <FormLabel>Course Image</FormLabel>
                   <FormControl>
-                    <Input {...field} value={field.value ?? ""} />
+                    <div className="space-y-4">
+                      {/* File Upload Option */}
+                      <div>
+                        <Label className="text-sm font-medium">Upload Image File</Label>
+                        <FileUpload
+                          onUploadComplete={(url: string) => {
+                            field.onChange(url);
+                          }}
+                          defaultValue={field.value || ""}
+                          label=""
+                          buttonText="Upload Image"
+                          acceptedTypes="image/*"
+                        />
+                      </div>
+                      
+                      {/* URL Input Option */}
+                      <div>
+                        <Label className="text-sm font-medium">Or Enter Image URL</Label>
+                        <Input
+                          placeholder="https://example.com/image.jpg"
+                          value={field.value || ""}
+                          onChange={(e) => field.onChange(e.target.value)}
+                          className="mt-2"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          You can either upload a file above or paste an image URL here
+                        </p>
+                      </div>
+                      
+                      {/* Preview */}
+                      {field.value && (
+                        <div className="mt-4">
+                          <Label className="text-sm font-medium">Preview</Label>
+                          <img
+                            src={field.value}
+                            alt="Course preview"
+                            className="mt-2 max-w-xs rounded-md border"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>

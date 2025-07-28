@@ -29,6 +29,7 @@ import {
 import { Switch } from "../../components/ui/switch";
 import { Category } from "@/shared/schema";
 import { useToast } from "../../hooks/use-toast";
+import { RequireSubscription } from "../../components/subscription/require-subscription";
 
 // Define the expected response type for course creation
 type CourseCreateResponse = {
@@ -146,16 +147,14 @@ const FileUpload: React.FC<FileUploadProps> = ({
       const response = await apiRequest("/api/upload", {
         method: "POST",
         data: formData,
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
+        requireAuth: true,
       });
 
-      const data = response.data;
-      if (data.url) {
+      const data = response;
+      if (data.data?.url) {
         setUploadStatus("Upload successful!");
-        setPreviewUrl(data.url);
-        onUploadComplete(data.url);
+        setPreviewUrl(data.data.url);
+        onUploadComplete(data.data.url);
         toast({
           title: "Image Uploaded",
           description: "The course image has been successfully uploaded.",
@@ -226,6 +225,19 @@ const FileUpload: React.FC<FileUploadProps> = ({
 };
 
 export default function CourseCreatePage() {
+  return (
+    <RequireSubscription 
+      requiredLevel={10} 
+      featureName="Course Creation"
+      description="Create and publish courses to share your knowledge with students worldwide."
+      upgradePrompt="Upgrade to Educator or higher to start creating courses."
+    >
+      <CourseCreatePageContent />
+    </RequireSubscription>
+  );
+}
+
+function CourseCreatePageContent() {
   const { user, isLoading: authLoading } = useAuth();
   const [_, navigate] = useLocation();
   const { toast } = useToast();
@@ -644,21 +656,58 @@ export default function CourseCreatePage() {
                   <FormItem>
                     <FormLabel>Course Image</FormLabel>
                     <FormControl>
-                      <FileUpload
-                        onUploadComplete={(url) => {
-                          field.onChange(url);
-                          form.setValue("imageUrl", url);
-                        }}
-                        defaultValue={field.value || ""}
-                        // uploadEndpoint="/api/upload"
-                        acceptedTypes="image/*"
-                        label="Course Image"
-                        buttonText="Upload Image"
-                        maxSizeMB={25}
-                      />
+                      <div className="space-y-4">
+                        {/* File Upload Option */}
+                        <div>
+                          <label className="text-sm font-medium">Upload Image File</label>
+                          <FileUpload
+                            onUploadComplete={(url) => {
+                              field.onChange(url);
+                              form.setValue("imageUrl", url);
+                            }}
+                            defaultValue={field.value || ""}
+                            acceptedTypes="image/*"
+                            label=""
+                            buttonText="Upload Image"
+                            maxSizeMB={25}
+                          />
+                        </div>
+                        
+                        {/* URL Input Option */}
+                        <div>
+                          <label className="text-sm font-medium">Or Enter Image URL</label>
+                          <Input
+                            placeholder="https://example.com/image.jpg"
+                            value={field.value || ""}
+                            onChange={(e) => {
+                              field.onChange(e.target.value);
+                              form.setValue("imageUrl", e.target.value);
+                            }}
+                            className="mt-2"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">
+                            You can either upload a file above or paste an image URL here
+                          </p>
+                        </div>
+                        
+                        {/* Preview */}
+                        {field.value && (
+                          <div className="mt-4">
+                            <label className="text-sm font-medium">Preview</label>
+                            <img
+                              src={field.value}
+                              alt="Course preview"
+                              className="mt-2 max-w-xs rounded-md border"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
+                          </div>
+                        )}
+                      </div>
                     </FormControl>
                     <FormDescription>
-                      Select an image that represents your course (max 5MB).
+                      Select an image that represents your course (max 5MB) or paste an image URL.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

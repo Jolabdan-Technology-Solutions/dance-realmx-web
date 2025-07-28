@@ -134,45 +134,22 @@ export function FileUpload({
     setError("");
 
     try {
-      console.log("=== File Upload Started ===");
-      console.log(
-        "Files to upload:",
-        files.map((f) => ({
-          name: f.name,
-          size: f.size,
-          type: f.type,
-        }))
-      );
-      console.log("Upload endpoint:", uploadEndpoint);
-
       const formData = new FormData();
 
       if (multiple) {
         files.forEach((file, index) => {
-          console.log(`Adding file ${index + 1} to form data:`, {
-            name: file.name,
-            size: file.size,
-            type: file.type,
-          });
           formData.append("files", file);
         });
       } else {
-        console.log("Adding single file to form data:", {
-          name: files[0].name,
-          size: files[0].size,
-          type: files[0].type,
-        });
         formData.append("file", files[0]);
       }
 
       // Get auth token
       const token = localStorage.getItem("access_token");
       if (!token) {
-        console.error("Upload failed: No auth token found");
         throw new Error("Authentication required. Please log in again.");
       }
 
-      console.log("Making upload request...");
       const response = await fetch(uploadEndpoint, {
         method: "POST",
         headers: {
@@ -181,58 +158,44 @@ export function FileUpload({
         body: formData,
       });
 
-      console.log("Upload response status:", response.status);
-      console.log(
-        "Upload response headers:",
-        Object.fromEntries(response.headers.entries())
-      );
-
       if (!response.ok) {
         let errorMessage = `Upload failed: ${response.status} ${response.statusText}`;
 
         try {
           const errorData = await response.json();
-          console.error("Upload error response:", errorData);
           errorMessage = errorData.message || errorData.error || errorMessage;
         } catch (parseError) {
-          console.error("Failed to parse error response:", parseError);
           const errorText = await response.text();
-          console.error("Raw error response:", errorText);
         }
 
         throw new Error(errorMessage);
       }
 
       const data = await response.json();
-      console.log("Upload response data:", data);
 
       if (multiple) {
         // Handle multiple file upload response
-        if (!Array.isArray(data)) {
-          console.error(
-            "Expected array response for multiple files, got:",
-            typeof data
-          );
+        const uploadDataArray = data.data || data; // Handle nested response structure
+        
+        if (!Array.isArray(uploadDataArray)) {
           throw new Error("Invalid response format for multiple files");
         }
 
-        const urls = data.map((item, index) => {
+        const urls = uploadDataArray.map((item, index) => {
           const url = item.url || item.image_url || item.file_url;
           if (!url) {
-            console.error(`No URL found for file ${index + 1}:`, item);
             throw new Error(`No URL found for file ${index + 1}`);
           }
           return url;
         });
 
-        console.log("Multiple file URLs:", urls);
         setPreviews(urls);
 
-        const fileMetadataArray: FileMetadata[] = data.map((item, index) => ({
-          size: item.size || files[index]?.size || 0,
+        const fileMetadataArray: FileMetadata[] = uploadDataArray.map((item, index) => ({
+          size: item.bytes || item.size || files[index]?.size || 0,
           name: item.original_name || files[index]?.name || `file-${index + 1}`,
           type:
-            item.mimetype || files[index]?.type || "application/octet-stream",
+            item.format || item.mimetype || files[index]?.type || "application/octet-stream",
         }));
 
         onUploadComplete(urls, fileMetadataArray);
@@ -249,18 +212,24 @@ export function FileUpload({
         document.dispatchEvent(multiUploadEvent);
       } else {
         // Handle single file upload response
-        console.log("Processing single file upload response");
 
-        // Get the URL from the response (could be returned with various property names)
+        // Get the URL from the response - check nested data structure first
+        const uploadData = data.data || data; // Handle nested response structure
+        
         const responseUrl =
-          data.url || data.image_url || data.file_url || data.profile_image_url;
+          uploadData.url || 
+          uploadData.image_url || 
+          uploadData.file_url || 
+          uploadData.profile_image_url ||
+          data.url || 
+          data.image_url || 
+          data.file_url || 
+          data.profile_image_url;
 
         if (!responseUrl) {
-          console.error("No URL found in response:", data);
+          console.error('Upload response structure:', data);
           throw new Error("No URL found in upload response");
         }
-
-        console.log("Response URL from server:", responseUrl);
 
         // Ensure the URL is absolute
         let baseUrl = responseUrl.split("?")[0]; // Remove any query parameters
@@ -272,27 +241,27 @@ export function FileUpload({
           typeof window !== "undefined"
         ) {
           baseUrl = `${window.location.origin}${baseUrl}`;
-          console.log("Converted relative URL to absolute:", baseUrl);
         }
 
         // Add a cache-busting parameter for images
         const timestamp = Date.now();
         const cacheBustedUrl = `${baseUrl}?t=${timestamp}`;
 
-        console.log("Using URL with cache-busting:", cacheBustedUrl);
-
         // Set preview to the cache-busted URL
         setPreviews([cacheBustedUrl]);
 
         // Create file metadata
         const fileMetadata: FileMetadata = {
-          size: data.size || data.uploadInfo?.size || files[0]?.size || 0,
+          size: uploadData.bytes || uploadData.size || data.size || data.uploadInfo?.size || files[0]?.size || 0,
           name:
+            uploadData.original_name ||
             data.uploadInfo?.originalName ||
             data.original_name ||
             baseUrl.split("/").pop() ||
             "uploaded-file",
           type:
+            uploadData.format || 
+            uploadData.mimetype ||
             data.uploadInfo?.mimetype ||
             data.mimetype ||
             files[0]?.type ||
@@ -301,10 +270,6 @@ export function FileUpload({
 
         // Special handling for profile image uploads
         if (uploadEndpoint.includes("/profile")) {
-          console.log("=== Profile Image Upload Processing ===");
-          console.log("Profile image updated, refreshing user data");
-          console.log("User data from response:", data.user);
-
           // Dispatch an event to notify other components about the profile update
           const profileUpdateEvent = new CustomEvent("profile-image-updated", {
             detail: {
@@ -315,30 +280,18 @@ export function FileUpload({
               userData: data.user,
             },
           });
-          console.log(
-            "FileUpload - Dispatching profile-image-updated event:",
-            profileUpdateEvent.detail
-          );
           document.dispatchEvent(profileUpdateEvent);
 
           // Force refresh the Auth context by emitting another event
           const authRefreshEvent = new CustomEvent("auth-refresh-required");
-          console.log("FileUpload - Dispatching auth-refresh-required event");
           document.dispatchEvent(authRefreshEvent);
 
           // Add a slight delay to ensure the server has processed everything
           setTimeout(() => {
-            console.log("Calling onUploadComplete for profile image");
             onUploadComplete(baseUrl, fileMetadata);
           }, 200);
         } else {
           // For non-profile uploads
-          console.log(
-            "Sending URL to parent component:",
-            baseUrl,
-            "with metadata:",
-            fileMetadata
-          );
           onUploadComplete(baseUrl, fileMetadata);
         }
 
@@ -356,15 +309,7 @@ export function FileUpload({
         document.dispatchEvent(singleUploadEvent);
       }
 
-      console.log("=== File Upload Completed Successfully ===");
     } catch (err) {
-      console.error("=== File Upload Failed ===");
-      console.error("Upload error details:", {
-        message: (err as Error).message,
-        stack: (err as Error).stack,
-        name: (err as Error).name,
-      });
-
       const errorMessage = (err as Error).message || "Failed to upload file";
       setError(errorMessage);
 
@@ -448,16 +393,7 @@ export function FileUpload({
                     src={preview}
                     alt={`Preview ${index + 1}`}
                     className="h-full w-full object-cover"
-                    onLoad={() =>
-                      console.log(
-                        `Preview image ${index + 1} loaded successfully`
-                      )
-                    }
                     onError={(e) => {
-                      console.error(
-                        `Error loading preview image ${index + 1}:`,
-                        preview
-                      );
                       e.currentTarget.src =
                         "https://placehold.co/400x400/e2e8f0/a3afc3?text=Image+Error";
                     }}

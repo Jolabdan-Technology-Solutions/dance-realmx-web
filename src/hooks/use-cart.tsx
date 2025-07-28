@@ -57,15 +57,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
           requireAuth: true,
         });
         if (!response) {
-          console.error("Failed to fetch cart:", response.statusText);
           return [];
         }
 
-        console.log(response);
         const data = await response.items;
         return data;
       } catch (error) {
-        console.error("Error fetching cart:", error);
         return [];
       }
     },
@@ -258,7 +255,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
           },
         });
       } catch (error) {
-        console.error("Error removing item:", error);
         toast({
           title: "Error",
           description: "Failed to remove item from cart",

@@ -754,7 +754,7 @@ export default function AdminUsersPage() {
     queryKey: ["/api/users"],
     queryFn: async () => {
       // Temporary direct fetch - replace with fixed apiRequest later
-      const res = await fetch("https://api.livetestdomain.com/api/users", {
+      const res = await fetch("/api/users", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",

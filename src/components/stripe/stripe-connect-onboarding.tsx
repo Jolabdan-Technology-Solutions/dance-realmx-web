@@ -24,8 +24,21 @@ import {
 import { UserRole } from "@/constants/roles";
 import { StripeConnectModal } from "./stripe-connect-modal";
 import { StripeConnectGuideModal } from "./stripe-connect-guide-modal";
+import { RequireSubscription } from "@/components/subscription/require-subscription";
 
 export function StripeConnectOnboarding() {
+  return (
+    <RequireSubscription 
+      level={10} 
+      feature="Payment Processing Setup"
+      description="Set up Stripe Connect to receive payments from course sales and manage your instructor earnings"
+    >
+      <StripeConnectOnboardingContent />
+    </RequireSubscription>
+  );
+}
+
+function StripeConnectOnboardingContent() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [onboardingUrl, setOnboardingUrl] = useState<string | null>(null);

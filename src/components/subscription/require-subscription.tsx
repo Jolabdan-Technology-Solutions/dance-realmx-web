@@ -1,58 +1,71 @@
 import { ReactNode, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 
 // Define the subscription plan hierarchy
 export const SUBSCRIPTION_LEVELS = {
   FREE: 0,
-  EDUCATOR: 10,
-  PREMIUM: 20,
-  ROYALTY: 30
+  NOBILITY: 10,
+  ROYALTY: 20,
+  IMPERIAL: 30,
 };
 
 // Map subscription plan slugs to their level
 export const SUBSCRIPTION_LEVEL_MAP: Record<string, number> = {
-  "free": SUBSCRIPTION_LEVELS.FREE,
-  "educator": SUBSCRIPTION_LEVELS.EDUCATOR,
-  "premium": SUBSCRIPTION_LEVELS.PREMIUM,
-  "royalty": SUBSCRIPTION_LEVELS.ROYALTY,
-  
+  free: SUBSCRIPTION_LEVELS.FREE,
+  nobility: SUBSCRIPTION_LEVELS.NOBILITY,
+  royalty: SUBSCRIPTION_LEVELS.ROYALTY,
+  imperial: SUBSCRIPTION_LEVELS.IMPERIAL,
+
   // Legacy plan mappings
-  "basic_seller": SUBSCRIPTION_LEVELS.EDUCATOR,
-  "premium_seller": SUBSCRIPTION_LEVELS.EDUCATOR,
-  "basic_directory": SUBSCRIPTION_LEVELS.FREE,
-  "premium_directory": SUBSCRIPTION_LEVELS.PREMIUM,
-  "annual_access": SUBSCRIPTION_LEVELS.PREMIUM,
-  "quarterly_access": SUBSCRIPTION_LEVELS.PREMIUM,
-  "monthly_access": SUBSCRIPTION_LEVELS.PREMIUM,
+  educator: SUBSCRIPTION_LEVELS.NOBILITY,
+  premium: SUBSCRIPTION_LEVELS.ROYALTY,
+  basic_seller: SUBSCRIPTION_LEVELS.NOBILITY,
+  premium_seller: SUBSCRIPTION_LEVELS.NOBILITY,
+  basic_directory: SUBSCRIPTION_LEVELS.FREE,
+  premium_directory: SUBSCRIPTION_LEVELS.ROYALTY,
+  annual_access: SUBSCRIPTION_LEVELS.ROYALTY,
+  quarterly_access: SUBSCRIPTION_LEVELS.ROYALTY,
+  monthly_access: SUBSCRIPTION_LEVELS.ROYALTY,
 };
 
 interface RequireSubscriptionProps {
   children: ReactNode;
-  requiredPlan: keyof typeof SUBSCRIPTION_LEVELS;
+  level: number;
+  feature?: string;
+  description?: string;
   fallback?: ReactNode;
   message?: string;
 }
 
 export default function RequireSubscription({
   children,
-  requiredPlan,
+  level,
+  feature,
+  description,
   fallback,
-  message = "This feature requires a higher subscription level."
+  message = "This feature requires a higher subscription level.",
 }: RequireSubscriptionProps) {
   const { user } = useAuth();
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
   const [, navigate] = useLocation();
 
-  // Get the user's subscription level
-  const userSubscriptionLevel = user?.subscription_plan
-    ? SUBSCRIPTION_LEVEL_MAP[user.subscription_plan] || SUBSCRIPTION_LEVELS.FREE
+  // Get the user's subscription level using subscription_tier
+  const userSubscriptionLevel = user?.subscription_tier
+    ? SUBSCRIPTION_LEVEL_MAP[user.subscription_tier.toLowerCase()] || SUBSCRIPTION_LEVELS.FREE
     : SUBSCRIPTION_LEVELS.FREE;
-  
+
   // Check if the user has sufficient access
-  const hasAccess = userSubscriptionLevel >= SUBSCRIPTION_LEVELS[requiredPlan];
+  const hasAccess = userSubscriptionLevel >= level;
 
   // If the user has access, render the children
   if (hasAccess) {
@@ -69,7 +82,10 @@ export default function RequireSubscription({
     <>
       <div className="p-4 border rounded-lg bg-gray-800 text-center">
         <p className="mb-4">{message}</p>
-        <Button onClick={() => setUpgradeModalOpen(true)} className="bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90">
+        <Button
+          onClick={() => setUpgradeModalOpen(true)}
+          className="bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90"
+        >
           Upgrade Subscription
         </Button>
       </div>
@@ -79,15 +95,24 @@ export default function RequireSubscription({
           <DialogHeader>
             <DialogTitle>Subscription Upgrade Required</DialogTitle>
             <DialogDescription className="text-gray-300">
-              This feature requires a {requiredPlan.toLowerCase()} subscription or higher.
-              Would you like to upgrade your subscription now?
+              {feature ? `${feature} requires` : 'This feature requires'} a {
+                level >= SUBSCRIPTION_LEVELS.IMPERIAL ? 'Imperial' :
+                level >= SUBSCRIPTION_LEVELS.ROYALTY ? 'Royalty' :
+                level >= SUBSCRIPTION_LEVELS.NOBILITY ? 'Nobility' : 'Free'
+              } subscription or higher. {description && `${description}.`} Would you like to upgrade your subscription now?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setUpgradeModalOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setUpgradeModalOpen(false)}
+            >
               Not Now
             </Button>
-            <Button onClick={() => navigate("/subscription")} className="bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90">
+            <Button
+              onClick={() => navigate("/subscription/upgrade")}
+              className="bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90"
+            >
               View Subscription Options
             </Button>
           </DialogFooter>
@@ -96,3 +121,6 @@ export default function RequireSubscription({
     </>
   );
 }
+
+// Export both as default and named export for flexibility
+export { RequireSubscription };

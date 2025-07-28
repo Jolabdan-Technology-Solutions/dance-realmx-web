@@ -27,6 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { RequireSubscription } from "@/components/subscription/require-subscription";
 import {
   Dialog,
   DialogContent,
@@ -178,6 +179,19 @@ const quizQuestionSchema = z.object({
 });
 
 export default function CourseAdminDashboard() {
+  return (
+    <RequireSubscription 
+      requiredLevel={10} 
+      featureName="Course Administration"
+      description="Manage your courses, modules, lessons, and student progress with advanced administration tools."
+      upgradePrompt="Upgrade to Educator or higher to access course administration features."
+    >
+      <CourseAdminDashboardContent />
+    </RequireSubscription>
+  );
+}
+
+function CourseAdminDashboardContent() {
   const { user, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);

@@ -9,18 +9,18 @@ interface FeatureGuardProps {
   fallback?: React.ReactNode;
 }
 
-export function FeatureGuard({ 
-  featureKey, 
-  featureName, 
-  children, 
-  fallback 
+export function FeatureGuard({
+  featureKey,
+  featureName,
+  children,
+  fallback,
 }: FeatureGuardProps) {
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
-  const { 
-    isUpgradeModalOpen, 
-    openUpgradeModal, 
-    closeUpgradeModal, 
-    checkFeatureAccess 
+  const {
+    isUpgradeModalOpen,
+    openUpgradeModal,
+    closeUpgradeModal,
+    checkFeatureAccess,
   } = useUpgradeModal();
 
   useEffect(() => {
@@ -39,13 +39,13 @@ export function FeatureGuard({
     return (
       <>
         {fallback ? (
-          <div onClick={() => openUpgradeModal(featureName)}>
+          <div onClick={() => (window.location.href = "/subscription/upgrade")}>
             {fallback}
           </div>
         ) : (
-          <div 
+          <div
             className="p-4 rounded-lg border border-gray-800 bg-black/50 cursor-pointer hover:bg-black/70 transition-colors"
-            onClick={() => openUpgradeModal(featureName)}
+            onClick={() => (window.location.href = "/subscription/upgrade")}
           >
             <div className="flex items-center justify-between">
               <div>
@@ -72,14 +72,9 @@ export function FeatureGuard({
             </div>
           </div>
         )}
-        <UpgradeModal
-          isOpen={isUpgradeModalOpen}
-          onClose={closeUpgradeModal}
-          featureName={featureName}
-        />
       </>
     );
   }
 
   return <>{children}</>;
-} 
+}

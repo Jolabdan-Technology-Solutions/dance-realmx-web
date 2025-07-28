@@ -209,9 +209,9 @@ export default function InstructorCoursesPage() {
         setLoading(true)
         setError(null)
         
-        console.log(`Fetching instructor from: https://api.livetestdomain.com/api/users/${instructorId}`)
+        console.log(`Fetching instructor from: /api/users/${instructorId}`)
         
-        const res = await fetch(`https://api.livetestdomain.com/api/users/${instructorId}`, {
+        const res = await fetch(`/api/users/${instructorId}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -245,9 +245,9 @@ export default function InstructorCoursesPage() {
         setCoursesLoading(true)
         setCoursesError(null)
         
-        console.log(`Fetching courses from: https://api.livetestdomain.com/api/courses/instructor/${instructorId}`)
+        console.log(`Fetching courses from: /api/courses/instructor/${instructorId}`)
         
-        const res = await fetch(`https://api.livetestdomain.com/api/courses/instructor/${instructorId}`, {
+        const res = await fetch(`/api/courses/instructor/${instructorId}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',

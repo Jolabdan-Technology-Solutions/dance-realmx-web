@@ -9,8 +9,6 @@ export function DashboardRedirect() {
   const { user } = useAuth();
   const [location] = useLocation();
 
-  console.log("User:", user);
-
   // Allow access to login page even when logged in
   if (location === "/auth") {
     return null;

@@ -2,7 +2,7 @@ import { useState, useContext, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AuthContext } from "@/hooks/use-auth";
 import { SubscriptionPlan } from "@/shared/schema";
-import { Check, Loader2, Star, CheckCircle } from "lucide-react";
+import { Check, Loader2, Star, CheckCircle, Tag } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -13,13 +13,16 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { apiClient, apiRequest } from "@/lib/queryClient";
+import { SubscriptionManagement } from "@/components/subscription/subscription-management";
 
 interface CheckoutRequest {
   planSlug: string;
   frequency: "MONTHLY" | "YEARLY";
   email: string;
+  couponCode?: string;
 }
 
 interface Subscription {
@@ -41,7 +44,7 @@ interface Subscription {
 type CurrentSubscription = Subscription[];
 
 // Constants
-const API_BASE_URL = "https://api.livetestdomain.com/api";
+const API_BASE_URL = "/api";
 const ACTIVE_STATUSES = ["ACTIVE", "TRIALING"]; // Add other valid active statuses if needed
 
 // Helper function to get URL parameters
@@ -67,6 +70,15 @@ export default function SubscriptionPage() {
     isLoading: false,
     selectedPlan: null,
   });
+
+  const [couponCode, setCouponCode] = useState<string>("");
+  const [showCouponInput, setShowCouponInput] = useState<boolean>(false);
+  const [validatedCoupon, setValidatedCoupon] = useState<{
+    code: string;
+    description: string;
+    planSlug: string;
+    planName: string;
+  } | null>(null);
 
   // Fetch subscription plans
   const {
@@ -104,8 +116,53 @@ export default function SubscriptionPage() {
   });
 
   const redirectToAuth = useCallback(() => {
-    window.location.href = "/auth?redirect=/subscription";
+    const params = new URLSearchParams();
+    params.set("redirect", "/subscription");
+    if (validatedCoupon) {
+      params.set("coupon", validatedCoupon.code);
+      params.set("plan", validatedCoupon.planSlug);
+    }
+    window.location.href = `/auth?${params.toString()}`;
+  }, [validatedCoupon]);
+
+  const validateCoupon = useCallback((code: string) => {
+    const upperCode = code.toUpperCase();
+    
+    // Define available coupons and their benefits
+    const coupons = {
+      "DRX2025": {
+        code: "DRX2025",
+        description: "Get 6 months FREE on the Nobility plan! Perfect for new users to try all premium features. First-time users only. Cancel anytime during or after the free period.",
+        planSlug: "nobility",
+        planName: "Nobility"
+      },
+      "DANCEREALMX2025": {
+        code: "DANCEREALMX2025",
+        description: "Get 6 months FREE on the Nobility plan! Perfect for new users to try all premium features. First-time users only. Cancel anytime during or after the free period.",
+        planSlug: "nobility",
+        planName: "Nobility"
+      }
+      // Add more coupons here as needed
+    };
+
+    const coupon = coupons[upperCode as keyof typeof coupons];
+    if (coupon) {
+      setValidatedCoupon(coupon);
+      return coupon;
+    } else {
+      setValidatedCoupon(null);
+      return null;
+    }
   }, []);
+
+  const handleCouponChange = useCallback((code: string) => {
+    setCouponCode(code.toUpperCase());
+    if (code.length >= 3) {
+      validateCoupon(code);
+    } else {
+      setValidatedCoupon(null);
+    }
+  }, [validateCoupon]);
 
   const showError = useCallback(
     (message: string) => {
@@ -145,8 +202,14 @@ export default function SubscriptionPage() {
     }
 
     if (!user?.email) {
-      showError("Please log in to subscribe");
-      redirectToAuth();
+      // If user is not logged in, redirect to auth with plan and coupon info
+      const params = new URLSearchParams();
+      params.set("redirect", "/subscription");
+      params.set("plan", plan.slug);
+      if (validatedCoupon) {
+        params.set("coupon", validatedCoupon.code);
+      }
+      window.location.href = `/auth?${params.toString()}`;
       return;
     }
 
@@ -160,6 +223,7 @@ export default function SubscriptionPage() {
         planSlug: plan.slug, // Don't convert to uppercase - use as-is from API
         frequency: "MONTHLY",
         email: user.email,
+        couponCode: validatedCoupon?.code || couponCode || undefined, // Include coupon if provided
       });
 
       window.location.href = checkoutUrl;
@@ -216,7 +280,12 @@ export default function SubscriptionPage() {
       return "Payment Pending";
     }
 
-    return user ? "Subscribe" : "Login to Subscribe";
+    // If there's a validated coupon for this plan
+    if (validatedCoupon && validatedCoupon.planSlug === plan.slug) {
+      return user ? "Apply Coupon & Subscribe" : "Register & Apply Coupon";
+    }
+
+    return user ? "Subscribe" : "Register & Subscribe";
   };
 
   const renderPlanCard = (plan: SubscriptionPlan) => {
@@ -224,32 +293,70 @@ export default function SubscriptionPage() {
     const isLoadingThisPlan =
       checkoutState.isLoading && checkoutState.selectedPlan === plan.slug;
     const buttonText = getButtonText(plan, isCurrentPlan);
+    const isCouponPlan = validatedCoupon && validatedCoupon.planSlug === plan.slug;
 
     return (
       <Card
         key={plan.id}
         className={`flex flex-col relative ${
-          isPopular ? "border-blue-500 shadow-lg" : ""
+          isPopular || isCouponPlan ? "border-blue-500 shadow-lg" : ""
         }`}
       >
-        {isPopular && (
+        {isPopular && !isCouponPlan && (
           <Badge className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-blue-500">
             <Star className="h-3 w-3 mr-1" />
             Most Popular
           </Badge>
         )}
 
+        {isCouponPlan && (
+          <Badge className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-green-500">
+            <Tag className="h-3 w-3 mr-1" />
+            Coupon Applied!
+          </Badge>
+        )}
+
         <CardHeader>
           <CardTitle className="text-2xl">{plan.name}</CardTitle>
           <CardDescription>
-            <span className="font-bold text-lg">
-              ${Number(plan.priceMonthly).toFixed(2)}
-            </span>{" "}
-            per month
+            {isCouponPlan ? (
+              <>
+                <div className="line-through text-gray-500">
+                  <span className="font-bold text-lg">
+                    ${Number(plan.priceMonthly).toFixed(2)}
+                  </span>{" "}
+                  per month
+                </div>
+                <div className="text-green-400 font-bold text-xl">
+                  FREE for 6 months!
+                </div>
+                <div className="text-green-400 text-sm mt-1 font-semibold">
+                  🎉 100% FREE for 6 months with {validatedCoupon.code}!
+                </div>
+                <div className="text-gray-400 text-xs mt-1">
+                  Then ${Number(plan.priceMonthly).toFixed(2)}/month (cancel anytime)
+                </div>
+              </>
+            ) : (
+              <>
+                <span className="font-bold text-lg">
+                  ${Number(plan.priceMonthly).toFixed(2)}
+                </span>{" "}
+                per month
+              </>
+            )}
           </CardDescription>
         </CardHeader>
 
         <CardContent className="flex-grow">
+          {isCouponPlan && (
+            <div className="bg-green-900/20 border border-green-500/30 rounded-lg p-3 mb-4">
+              <p className="text-green-400 text-sm font-medium">
+                ✅ {validatedCoupon.description}
+              </p>
+            </div>
+          )}
+
           {plan.description && (
             <p className="text-sm text-gray-300 mb-4">{plan.description}</p>
           )}
@@ -268,14 +375,10 @@ export default function SubscriptionPage() {
           <Button
             className="w-full"
             variant={
-              isCurrentPlan ? "outline" : isPopular ? "default" : "secondary"
+              isCurrentPlan ? "outline" : (isPopular || isCouponPlan) ? "default" : "secondary"
             }
             disabled={isCurrentPlan || isLoadingThisPlan}
             onClick={() => {
-              if (!user) {
-                redirectToAuth();
-                return;
-              }
               handleSubscribe(plan);
             }}
           >
@@ -327,6 +430,13 @@ export default function SubscriptionPage() {
 
   return (
     <div className="container mx-auto px-4 py-12 bg-gray-900 text-white min-h-screen">
+      {/* Show subscription management for logged-in users */}
+      {user && (
+        <div className="mb-12">
+          <SubscriptionManagement />
+        </div>
+      )}
+
       {/* Membership Plans Section */}
       <section className="py-20 bg-black">
         <div className="container mx-auto px-4 max-w-[80%]">
@@ -337,6 +447,57 @@ export default function SubscriptionPage() {
             Browse Dance Professionals, Certifications, and Purchase Curriculum
             with a free membership
           </p>
+
+          {/* Coupon Code Section - Only show input, no promotional banner */}
+          <div className="max-w-md mx-auto mb-8">
+            {!showCouponInput ? (
+              <Button
+                variant="outline"
+                onClick={() => setShowCouponInput(true)}
+                className="w-full border-gray-500 text-gray-400 hover:bg-gray-500 hover:text-white"
+              >
+                <Tag className="h-4 w-4 mr-2" />
+                I have a coupon code
+              </Button>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Enter coupon code"
+                    value={couponCode}
+                    onChange={(e) => handleCouponChange(e.target.value)}
+                    className="bg-gray-800 border-gray-600 text-white"
+                  />
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowCouponInput(false);
+                      setCouponCode("");
+                      setValidatedCoupon(null);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+                {validatedCoupon && (
+                  <div className="bg-green-900/20 border border-green-500/30 rounded-lg p-3 mt-3">
+                    <div className="text-center text-green-400 text-sm font-medium">
+                      ✅ {validatedCoupon.description}
+                    </div>
+                    <div className="text-center text-green-300 text-xs mt-1">
+                      Code: {validatedCoupon.code} • Plan: {validatedCoupon.planName}
+                    </div>
+                  </div>
+                )}
+                {couponCode && !validatedCoupon && couponCode.length >= 3 && (
+                  <div className="text-center text-red-400 text-sm font-medium">
+                    ❌ Invalid coupon code. Please check and try again.
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
           <h3 className="text-2xl font-bold mb-8 text-center text-white">
             Which Plan is Right for Me?
           </h3>
@@ -352,21 +513,21 @@ export default function SubscriptionPage() {
                     Nobility
                     <br />
                     <span className="text-[#00d4ff] text-base font-semibold">
-                      $9.99/mo
+                      $19.99/mo
                     </span>
                   </th>
                   <th className="bg-gray-900 text-white text-lg font-bold py-4 px-6">
                     Royalty
                     <br />
                     <span className="text-[#00d4ff] text-base font-semibold">
-                      $19.99/mo
+                      $49.99/mo
                     </span>
                   </th>
                   <th className="bg-gray-900 text-white text-lg font-bold py-4 px-6 rounded-tr-xl">
                     Imperial
                     <br />
                     <span className="text-[#00d4ff] text-base font-semibold">
-                      $29.99/mo
+                      $99.99/mo
                     </span>
                   </th>
                 </tr>

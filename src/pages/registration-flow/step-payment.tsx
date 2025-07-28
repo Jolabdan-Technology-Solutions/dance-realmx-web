@@ -64,6 +64,7 @@ export function StepPayment({
             planSlug: registrationData.recommendedPlan.slug,
             frequency: "month",
             email: registrationData.accountData.email,
+            // Remove automatic coupon application - only for people with the code
           },
         });
 

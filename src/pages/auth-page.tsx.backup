@@ -3,6 +3,7 @@ import { useAuth, AuthContext } from "../hooks/use-auth";
 import { Redirect, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+// import { useEffect, useState } from "react";
 import { z } from "zod";
 import { Button } from "../components/ui/button";
 import { ErrorDisplay } from '@/components/ui/error-display';
@@ -14,6 +15,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "../components/ui/form";
 import { Input } from "../components/ui/input";
 import {
@@ -34,8 +36,9 @@ import {
   CardFooter,
 } from "../components/ui/card";
 import { HeroSlider } from "@/components/heroSlider";
+import { ErrorDisplay, useErrorHandler } from "@/components/ui/error-display";
 
-// Define form schemas
+// Define form schemas for login only
 const loginSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
   password: z.string().min(6, "Password must be at least 6 characters"),
@@ -43,14 +46,14 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
-// SubscriptionPlan interface
+// Add SubscriptionPlan type to match actual API response
 interface SubscriptionPlan {
   id: number;
   name: string;
   slug: string;
   description: string;
   features: string[];
-  priceMonthly: string;
+  priceMonthly: string; // API returns string, not number
   priceYearly: string;
   stripePriceIdMonthly: string | null;
   stripePriceIdYearly: string | null;
@@ -67,7 +70,7 @@ interface SubscriptionPlan {
 
 // Auth page with auth context
 function AuthPageWithAuth() {
-  // Auth context
+  // Safely access auth context with fallback
   const authContext = useContext(AuthContext);
   const user = authContext?.user || null;
   const loginMutation = authContext?.loginMutation;
@@ -75,41 +78,17 @@ function AuthPageWithAuth() {
 
   // Error handling
   const { parseError, getFieldError } = useErrorHandler();
-  const [parsedError, setParsedError] = useState<any>(null);
 
-  // Navigation state
+  // Get location and return URL parameters
   const [, setLocation] = useLocation();
   const [returnUrl, setReturnUrl] = useState<string>("/dashboard");
   const [connectMode, setConnectMode] = useState<string | null>(null);
 
-  // Form state
-  const [activeTab, setActiveTab] = useState<string>("login");
-  const [authError, setAuthError] = useState<any | null>(null);
-  const [selectedPlan, setSelectedPlan] = useState<string>("free");
-  const [isRegistering, setIsRegistering] = useState(false);
-  const [couponCode, setCouponCode] = useState<string>("");
-  const [preSelectedPlan, setPreSelectedPlan] = useState<string>("");
-
-  // Registration form state
-  const [form, setForm] = useState({
-    username: "",
-    password: "",
-    first_name: "",
-    last_name: "",
-    email: "",
-    subscription_plan: "free",
-  });
-
-  // Form validation errors
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-
-  // Extract URL parameters
+  // Extract return URL from query parameters
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
-    const returnToParam = searchParams.get("returnTo") || searchParams.get("redirect");
+    const returnToParam = searchParams.get("returnTo");
     const modeParam = searchParams.get("mode");
-    const couponParam = searchParams.get("coupon");
-    const planParam = searchParams.get("plan");
 
     if (returnToParam) {
       setReturnUrl(returnToParam);
@@ -118,22 +97,11 @@ function AuthPageWithAuth() {
     if (modeParam) {
       setConnectMode(modeParam);
     }
-
-    // Handle coupon and plan parameters - set register tab as default
-    if (couponParam || planParam) {
-      setActiveTab("register");
-      if (couponParam) {
-        setCouponCode(couponParam);
-      }
-      if (planParam) {
-        setPreSelectedPlan(planParam);
-        setSelectedPlan(planParam);
-        setForm(prev => ({ ...prev, subscription_plan: planParam }));
-      }
-    }
   }, []);
 
-  // Handle auth errors
+  const [activeTab, setActiveTab] = useState<string>("login");
+  const [authError, setAuthError] = useState<any | null>(null);
+  // Handle auth errors and update parsed error state
   useEffect(() => {
     const currentError = loginMutation?.error || registerMutation?.error;
     if (currentError !== authError) {
@@ -147,13 +115,7 @@ function AuthPageWithAuth() {
     }
   }, [loginMutation?.error, registerMutation?.error, authError, parseError]);
 
-  // Clear errors when switching tabs
-  useEffect(() => {
-    setAuthError(null);
-    setParsedError(null);
-  }, [activeTab]);
-
-  // Login form setup
+  // Login form (keep react-hook-form for login)
   const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -162,8 +124,31 @@ function AuthPageWithAuth() {
     },
   });
 
-  // Handle registration form input changes
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Registration form - simple useState
+  const [form, setForm] = useState({
+    username: "",
+    password: "",
+    first_name: "",
+    last_name: "",
+    email: "",
+    subscription_plan: "free",
+  });
+
+  
+const backgroundImages = [
+  "/images/bg1.jpg",
+  "/images/bg2.jpg",
+  "/images/bg3.jpg",
+];
+
+  const [selectedPlan, setSelectedPlan] = useState<string>("free");
+
+  // Form validation state for registration
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [isRegistering, setIsRegistering] = useState(false);
+
+  // Handle form input changes
+  const handleChange = (e: any) => {
     const { name, value } = e.target;
     setForm({ ...form, [name]: value });
     // Clear error for this field when user starts typing
@@ -172,7 +157,7 @@ function AuthPageWithAuth() {
     }
   };
 
-  // Validate registration form
+  // Simple validation function
   const validateForm = () => {
     const errors: Record<string, string> = {};
 
@@ -200,10 +185,22 @@ function AuthPageWithAuth() {
     return Object.keys(errors).length === 0;
   };
 
-  // Login form submission
-  const onLoginSubmit = (data: LoginFormValues) => {
+  // Track mutation states to update the UI accordingly
+  useEffect(() => {
     setAuthError(null);
 
+  // Clear errors when switching tabs
+  useEffect(() => {
+    setAuthError(null);
+    setParsedError(null);
+  }, [activeTab]);
+
+  // Form submission handlers
+  const onLoginSubmit = (data: LoginFormValues) => {
+    // Clear any previous errors
+    setAuthError(null);
+
+    // Trim username and password to prevent spaces from causing authentication issues
     const trimmedData = {
       username: data.username.trim(),
       password: data.password.trim(),
@@ -211,6 +208,7 @@ function AuthPageWithAuth() {
 
     console.log("Login form submission:", trimmedData);
 
+    // Use the mutation for login
     if (loginMutation) {
       loginMutation.mutate(trimmedData);
     } else {
@@ -238,7 +236,133 @@ function AuthPageWithAuth() {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Create checkout session with token
+  const onRegisterSubmit = async (e: any) => {
+    e.preventDefault();
+
+    // Validate form
+    if (!validateForm()) {
+      return;
+    }
+
+    // Clear any previous errors and set loading
+    setAuthError(null);
+    setIsRegistering(true);
+
+    try {
+      // Step 1: Create user with exact payload structure that works
+      const registrationPayload = {
+        first_name: form.first_name.trim(),
+        last_name: form.last_name.trim(),
+        email: form.email.trim(),
+        username: form.username.trim(),
+        password: form.password.trim(),
+        subscription_tier: form.subscription_plan.toUpperCase(),
+      };
+
+      console.log("Registration payload:", {
+        ...registrationPayload,
+        password: "***",
+      });
+
+      const registrationResponse = await apiRequest("/api/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        data: registrationPayload,
+        requireAuth: false,
+      });
+
+      console.log("User created successfully:", {
+        user: registrationResponse.user,
+        hasToken: !!registrationResponse.access_token,
+      });
+
+      // Step 2: Extract access token for subsequent calls
+      const accessToken = registrationResponse.access_token;
+
+      localStorage.setItem("access_token", accessToken);
+
+      if (!accessToken) {
+        throw new Error("No access token received from registration");
+      }
+
+      // Step 3: Check if we need to handle payment - DYNAMIC for any plan
+      const selectedPlanData = plans.find((p) => p.slug === selectedPlan);
+
+      if (!selectedPlanData) {
+        throw new Error(`Selected plan not found: ${selectedPlan}`);
+      }
+
+      const planPrice = Number(selectedPlanData.priceMonthly);
+      const isFreeplan = planPrice === 0 || selectedPlan === "free";
+
+      console.log("Plan analysis:", {
+        planSlug: selectedPlan,
+        planName: selectedPlanData.name,
+        tier: selectedPlanData.tier,
+        priceMonthly: selectedPlanData.priceMonthly,
+        parsedPrice: planPrice,
+        isFreeplan: isFreeplan,
+      });
+
+      if (!isFreeplan) {
+        console.log("Creating checkout session for plan:", selectedPlan);
+
+        // Step 4: Create checkout session - works for ANY selected plan
+        const selectedPlanData = plans.find((p) => p.slug === selectedPlan);
+
+        if (!selectedPlanData) {
+          throw new Error(`Selected plan not found: ${selectedPlan}`);
+        }
+
+        const checkoutRequest = {
+          planSlug: selectedPlan.toUpperCase(), // e.g., "free", "nobility", "royal", "imperial"
+          tier: selectedPlanData.tier, // e.g., "FREE", "NOBILITY", "ROYAL", "IMPERIAL"
+          frequency: "MONTHLY" as const, // Default to monthly since it's not in the plan data
+          email: form.email.trim(),
+        };
+
+        console.log("Dynamic checkout request for plan:", {
+          selectedPlan,
+          planName: selectedPlanData.name,
+          tier: selectedPlanData.tier,
+          price: selectedPlanData.priceMonthly,
+        });
+
+        console.log("Checkout request payload:", checkoutRequest);
+
+        try {
+          const checkoutUrl = await createCheckoutSessionWithToken(
+            checkoutRequest,
+            accessToken
+          );
+          console.log("Checkout URL received:", checkoutUrl);
+
+          // Redirect to payment
+          window.location.href = checkoutUrl;
+        } catch (checkoutError: any) {
+          console.error("Checkout failed:", checkoutError);
+          // If checkout fails, show error but user is still created
+          setAuthError(
+            `Payment setup failed: ${checkoutError.message}. Account created successfully. You can upgrade later.`
+          );
+        }
+      } else {
+        console.log("Free plan selected, registration complete");
+        // For free plan, redirect to dashboard
+        window.location.href = "/dashboard";
+      }
+    } catch (err: any) {
+      console.error("Registration error:", err);
+      setAuthError(
+        err?.response?.data?.message || err?.message || "Registration failed"
+      );
+    } finally {
+      setIsRegistering(false);
+    }
+  };
+
   const createCheckoutSessionWithToken = async (
     request: {
       planSlug: string;
@@ -262,7 +386,7 @@ function AuthPageWithAuth() {
           Authorization: `Bearer ${accessToken}`,
         },
         data: request,
-        requireAuth: false,
+        requireAuth: false, // We're manually adding the auth header
       });
 
       console.log("Checkout response:", response);
@@ -293,115 +417,9 @@ function AuthPageWithAuth() {
     }
   };
 
-  // Registration form submission
-  const onRegisterSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!validateForm()) {
-      return;
-    }
-
-    setAuthError(null);
-    setIsRegistering(true);
-
-    try {
-      // Create user
-      const registrationPayload = {
-        first_name: form.first_name.trim(),
-        last_name: form.last_name.trim(),
-        email: form.email.trim(),
-        username: form.username.trim(),
-        password: form.password.trim(),
-        subscription_tier: form.subscription_plan.toUpperCase(),
-      };
-
-      console.log("Registration payload:", {
-        ...registrationPayload,
-        password: "***",
-      });
-
-      const registrationResponse = await apiRequest("/api/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        data: registrationPayload,
-        requireAuth: false,
-      });
-
-      console.log("User created successfully:", {
-        user: registrationResponse.user,
-        hasToken: !!registrationResponse.access_token,
-      });
-
-      const accessToken = registrationResponse.access_token;
-      localStorage.setItem("access_token", accessToken);
-
-      if (!accessToken) {
-        throw new Error("No access token received from registration");
-      }
-
-      // Handle payment if needed
-      const selectedPlanData = plans.find((p) => p.slug === selectedPlan);
-
-      if (!selectedPlanData) {
-        throw new Error(`Selected plan not found: ${selectedPlan}`);
-      }
-
-      const planPrice = Number(selectedPlanData.priceMonthly);
-      const isFreeplan = planPrice === 0 || selectedPlan === "free";
-
-      console.log("Plan analysis:", {
-        planSlug: selectedPlan,
-        planName: selectedPlanData.name,
-        tier: selectedPlanData.tier,
-        priceMonthly: selectedPlanData.priceMonthly,
-        parsedPrice: planPrice,
-        isFreeplan: isFreeplan,
-      });
-
-      if (!isFreeplan) {
-        console.log("Creating checkout session for plan:", selectedPlan);
-
-        const checkoutRequest = {
-          planSlug: selectedPlan.toUpperCase(),
-          tier: selectedPlanData.tier,
-          frequency: "MONTHLY" as const,
-          email: form.email.trim(),
-          couponCode: couponCode || undefined, // Include coupon if provided
-        };
-
-        console.log("Checkout request payload:", checkoutRequest);
-
-        try {
-          const checkoutUrl = await createCheckoutSessionWithToken(
-            checkoutRequest,
-            accessToken
-          );
-          console.log("Checkout URL received:", checkoutUrl);
-          window.location.href = checkoutUrl;
-        } catch (checkoutError: any) {
-          console.error("Checkout failed:", checkoutError);
-          setAuthError(
-            `Payment setup failed: ${checkoutError.message}. Account created successfully. You can upgrade later.`
-          );
-        }
-      } else {
-        console.log("Free plan selected, registration complete");
-        window.location.href = "/dashboard";
-      }
-    } catch (err: any) {
-      console.error("Registration error:", err);
-      setAuthError(
-        err?.response?.data?.message || err?.message || "Registration failed"
-      );
-    } finally {
-      setIsRegistering(false);
-    }
-  };
-
   // Redirect if already authenticated
   if (user) {
+    // If connecting, redirect back to connect page with mode parameter
     if (returnUrl.includes("/connect") && connectMode) {
       console.log(
         "User authenticated, redirecting to connect flow:",
@@ -410,15 +428,18 @@ function AuthPageWithAuth() {
       return <Redirect to={`${returnUrl}?mode=${connectMode}`} />;
     }
 
+    // Prevent redirect if in registration workflow
     const isRegistrationFlow =
       returnUrl.includes("/registration-flow") ||
       returnUrl.includes("/register");
 
+    // Only redirect if not in registration flow
     if (returnUrl && !isRegistrationFlow) {
       console.log("User authenticated, redirecting to:", returnUrl);
       return <Redirect to={returnUrl} />;
     }
 
+    // If in registration flow, don't redirect - let the parent component handle the flow
     console.log("In registration flow, not redirecting");
     return null;
   }
@@ -449,15 +470,15 @@ function AuthPageWithAuth() {
                       </p>
                     </div>
 
-                    {parsedError && activeTab === "login" && (
-                      <ErrorDisplay
-                        error={parsedError}
-                        onRetry={() => {
-                          setAuthError(null);
-                          setParsedError(null);
-                        }}
-                        context="login"
-                      />
+                    {authError && activeTab === "login" && (
+                      <div
+                        className="bg-red-900/30 border border-red-500 text-red-200 px-4 py-3 rounded-md relative mb-4"
+                        role="alert"
+                      >
+                        <span className="block sm:inline">
+                          {authError?.message || authError}
+                        </span>
+                      </div>
                     )}
 
                     <Form {...loginForm}>
@@ -527,34 +548,15 @@ function AuthPageWithAuth() {
                       </p>
                     </div>
 
-                    {/* Coupon Display */}
-                    {couponCode && (
-                      <div className="bg-green-900/20 border border-green-500/30 rounded-lg p-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Tag className="h-4 w-4 text-green-400" />
-                          <h3 className="font-semibold text-green-400">Coupon Applied!</h3>
-                        </div>
-                        <p className="text-green-300 text-sm mb-2">
-                          Coupon Code: <span className="font-mono font-bold">{couponCode}</span>
-                        </p>
-                        <p className="text-green-300 text-sm">
-                          🎉 Get 6 months FREE on the Nobility plan! Perfect for new users to try all premium features.
-                        </p>
-                        <p className="text-green-200 text-xs mt-1">
-                          Complete your registration to activate this offer.
-                        </p>
+                    {authError && activeTab === "register" && (
+                      <div
+                        className="bg-red-900/30 border border-red-500 text-red-200 px-4 py-3 rounded-md relative mb-4"
+                        role="alert"
+                      >
+                        <span className="block sm:inline">
+                          {authError?.message || authError}
+                        </span>
                       </div>
-                    )}
-
-                    {parsedError && activeTab === "register" && (
-                      <ErrorDisplay
-                        error={parsedError}
-                        onRetry={() => {
-                          setAuthError(null);
-                          setParsedError(null);
-                        }}
-                        context="registration"
-                      />
                     )}
 
                     <form onSubmit={onRegisterSubmit} className="space-y-4">
@@ -663,7 +665,6 @@ function AuthPageWithAuth() {
                             {plans.map((plan) => {
                               const isSelected = selectedPlan === plan.slug;
                               const isPopular = plan.isPopular;
-                              const isCouponPlan = couponCode && plan.slug === "nobility";
                               return (
                                 <Card
                                   key={plan.id}
@@ -671,7 +672,7 @@ function AuthPageWithAuth() {
                                     isSelected
                                       ? "border-blue-500 shadow-lg"
                                       : "border-gray-700"
-                                  } ${isPopular || isCouponPlan ? "ring-2 ring-blue-400" : ""}`}
+                                  } ${isPopular ? "ring-2 ring-blue-400" : ""}`}
                                   onClick={() => {
                                     setSelectedPlan(plan.slug);
                                     setForm({
@@ -680,15 +681,10 @@ function AuthPageWithAuth() {
                                     });
                                   }}
                                 >
-                                  {isPopular && !isCouponPlan && (
+                                  {isPopular && (
                                     <div className="absolute top-2 right-2 bg-blue-500 text-white px-2 py-1 rounded text-xs flex items-center">
                                       <Star className="h-3 w-3 mr-1" /> Most
                                       Popular
-                                    </div>
-                                  )}
-                                  {isCouponPlan && (
-                                    <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded text-xs flex items-center">
-                                      <Tag className="h-3 w-3 mr-1" /> 6 Months FREE!
                                     </div>
                                   )}
                                   <CardHeader>
@@ -696,29 +692,10 @@ function AuthPageWithAuth() {
                                       {plan.name}
                                     </CardTitle>
                                     <CardDescription>
-                                      {isCouponPlan ? (
-                                        <>
-                                          <div className="line-through text-gray-500">
-                                            <span className="font-bold text-lg">
-                                              ${Number(plan.priceMonthly).toFixed(2)}
-                                            </span>{" "}
-                                            per month
-                                          </div>
-                                          <div className="text-green-400 font-bold text-lg">
-                                            FREE for 6 months!
-                                          </div>
-                                          <div className="text-gray-400 text-xs mt-1">
-                                            Then ${Number(plan.priceMonthly).toFixed(2)}/month (cancel anytime)
-                                          </div>
-                                        </>
-                                      ) : (
-                                        <>
-                                          <span className="font-bold text-lg">
-                                            ${Number(plan.priceMonthly).toFixed(2)}
-                                          </span>{" "}
-                                          per month
-                                        </>
-                                      )}
+                                      <span className="font-bold text-lg">
+                                        ${Number(plan.priceMonthly).toFixed(2)}
+                                      </span>{" "}
+                                      per month
                                     </CardDescription>
                                   </CardHeader>
                                   <CardContent>
@@ -773,7 +750,7 @@ function AuthPageWithAuth() {
 
             {/* Hero Section */}
             <div className="lg:w-1/2">
-              <HeroSlider />
+              <HeroSlider/>
             </div>
           </div>
         </div>
@@ -784,7 +761,12 @@ function AuthPageWithAuth() {
 
 // Main export component with auth wrapper
 export default function AuthPage() {
+  // Use the hook directly to ensure we get the latest auth state
   const { user, isLoading } = useAuth();
+  
+
+
+  // Get return URL from query parameters
   const [returnUrl, setReturnUrl] = useState<string>("/dashboard");
   const [connectMode, setConnectMode] = useState<string | null>(null);
 
@@ -805,14 +787,17 @@ export default function AuthPage() {
 
   // If user is logged in, redirect to correct page
   if (user) {
+    // If connecting, redirect back to connect page with mode parameter
     if (returnUrl.includes("/connect") && connectMode) {
       return <Redirect to={`${returnUrl}?mode=${connectMode}`} />;
     }
 
+    // Prevent redirect if in registration workflow
     const isRegistrationFlow =
       returnUrl.includes("/registration-flow") ||
       returnUrl.includes("/register");
 
+    // Only redirect if not in registration flow
     if (returnUrl && !isRegistrationFlow) {
       return <Redirect to={returnUrl} />;
     }
@@ -834,5 +819,6 @@ export default function AuthPage() {
     );
   }
 
+  // Otherwise, show the auth page
   return <AuthPageWithAuth />;
 }

@@ -10,6 +10,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { insertSubscriptionPlanSchema } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
+import { RequireSubscription } from "@/components/subscription/require-subscription";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -70,6 +71,18 @@ const formSchema = insertSubscriptionPlanSchema.extend({
 });
 
 export default function AdminSubscriptionsPage() {
+  return (
+    <RequireSubscription 
+      level={30} 
+      feature="Subscription Plan Administration"
+      description="Manage subscription plans, pricing, and plan features with ROYALTY level administrative access"
+    >
+      <AdminSubscriptionsPageContent />
+    </RequireSubscription>
+  );
+}
+
+function AdminSubscriptionsPageContent() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isCreating, setIsCreating] = useState(false);

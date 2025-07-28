@@ -30,6 +30,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { apiRequest, queryClient } from "../../lib/queryClient";
+import { RequireSubscription } from "../../components/subscription/require-subscription";
 import { Button } from "../../components/ui/button";
 import {
   Form,
@@ -170,6 +171,18 @@ type LessonFormValues = {
 };
 
 export function CourseDetailPage() {
+  return (
+    <RequireSubscription 
+      level={10} 
+      feature="Course Detail Management"
+      description="Access detailed course management, student tracking, and advanced course administration tools"
+    >
+      <CourseDetailPageContent />
+    </RequireSubscription>
+  );
+}
+
+function CourseDetailPageContent() {
   const { user, isLoading: authLoading } = useAuth();
   const params = useParams<{ id: string }>();
   const [location, setLocation] = useLocation();
@@ -293,7 +306,7 @@ export function CourseDetailPage() {
   // Update course mutation
   const updateCourseMutation = useMutation({
     mutationFn: async (values: CourseFormValues) => {
-      const res = await apiRequest("PATCH", `/api/courses/${courseId}`, values);
+      const res = await apiRequest("PUT", `/api/courses/${courseId}`, values);
       return res.json();
     },
     onSuccess: () => {

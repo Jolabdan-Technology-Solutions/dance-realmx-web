@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { useSubscription } from "@/hooks/use-subscription";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link, useParams } from "wouter";
 import {
@@ -23,9 +24,13 @@ import {
   Mail,
   PenTool,
   Server,
+  Upload,
+  X,
+  Crown,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { RequireSubscription } from "@/components/subscription/require-subscription";
 import { z } from "zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -166,6 +171,7 @@ type CourseFormValues = {
   visible: boolean | null;
   fullVideoUrl: string | null;
   previewVideoUrl: string | null;
+  instructorId?: number | null;
 };
 
 // Type for module form - updated to match DTO
@@ -186,6 +192,18 @@ type LessonFormValues = {
 };
 
 export default function CourseDetailPage() {
+  return (
+    <RequireSubscription 
+      level={10} 
+      feature="Course Management"
+      description="Create, edit, and manage course content, modules, lessons, and student enrollments"
+    >
+      <CourseDetailPageContent />
+    </RequireSubscription>
+  );
+}
+
+function CourseDetailPageContent() {
   const { user, isLoading: authLoading } = useAuth();
   const params = useParams<{ id: string }>();
   const courseId = parseInt(params.id);
@@ -195,17 +213,31 @@ export default function CourseDetailPage() {
   // Fetch course data
   const { data: course, isLoading: courseLoading } = useQuery<Course>({
     queryKey: ["/api/courses", courseId],
-    queryFn: () =>
-      apiRequest<Course>(`/api/courses/${courseId}`, { method: "GET" }),
+    queryFn: async () => {
+      try {
+        return await apiRequest<Course>(`/api/courses/${courseId}`, { method: "GET" });
+      } catch (error) {
+        console.warn(`Course ${courseId} not found or unavailable`);
+        return null;
+      }
+    },
+    retry: false,
   });
 
   // Fetch modules for this course
   const { data: modules, isLoading: modulesLoading } = useQuery<Module[]>({
     queryKey: ["/api/modules", { courseId }],
-    queryFn: () =>
-      apiRequest<Module[]>(`/api/courses/${courseId}/modules`, {
-        method: "GET",
-      }),
+    queryFn: async () => {
+      try {
+        return await apiRequest<Module[]>(`/api/courses/${courseId}/modules`, {
+          method: "GET",
+        });
+      } catch (error) {
+        console.warn(`Modules for course ${courseId} not found`);
+        return [];
+      }
+    },
+    retry: false,
   });
 
   // Fetch categories for the dropdown
@@ -271,14 +303,64 @@ export default function CourseDetailPage() {
     }
   }, [course, form]);
 
-  // Update course mutation - fixed to use PUT instead of PATCH
+  // Update course mutation - uses FormData for file upload
   const updateCourseMutation = useMutation({
     mutationFn: async (values: CourseFormValues) => {
-      const res = await apiRequest(`/api/courses/${courseId}`, {
+      const formData = new FormData();
+
+      // Transform camelCase to snake_case for backend
+      formData.append('title', values.title);
+      formData.append('short_name', values.shortName);
+      formData.append('description', values.description);
+      if (values.detailedDescription) {
+        formData.append('detailed_description', values.detailedDescription);
+      }
+      if (values.price) {
+        formData.append('price', values.price);
+      }
+      if (values.categoryId) {
+        formData.append('category_id', values.categoryId.toString());
+      }
+      if (values.difficultyLevel) {
+        formData.append('difficulty_level', values.difficultyLevel);
+      }
+      if (values.estimatedDuration) {
+        formData.append('duration', values.estimatedDuration);
+      }
+      formData.append('visible', values.visible ? 'true' : 'false');
+      if (values.previewVideoUrl) {
+        formData.append('preview_video_url', values.previewVideoUrl);
+      }
+      if (values.fullVideoUrl) {
+        formData.append('video_url', values.fullVideoUrl);
+      }
+      if (values.imageUrl) {
+        formData.append('image_url', values.imageUrl);
+      }
+      if (values.instructorId) {
+        formData.append('instructor_id', values.instructorId.toString());
+      }
+
+      // Use direct fetch for FormData
+      const token = localStorage.getItem("access_token");
+      if (!token) {
+        throw new Error("Authentication required. Please log in again.");
+      }
+
+      const response = await fetch(`/api/courses/${courseId}`, {
         method: "PUT",
-        data: values,
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
       });
-      return res;
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Update failed: ${response.status}`);
+      }
+
+      return response.json();
     },
     onSuccess: () => {
       // Invalidate course data
@@ -516,23 +598,59 @@ export default function CourseDetailPage() {
                       <FormItem>
                         <FormLabel>Course Image</FormLabel>
                         <FormControl>
-                          <FileUpload
-                            onUploadComplete={(url) => field.onChange(url)}
-                            defaultValue={field.value || ""}
-                            uploadEndpoint="/api/upload"
-                            acceptedTypes="image/*"
-                            label="Course Image"
-                            buttonText="Choose course image"
-                            maxSizeMB={5}
-                          />
+                          <div className="space-y-4">
+                            {/* File Upload Option */}
+                            <div>
+                              <label className="text-sm font-medium">Upload Image File</label>
+                              <FileUpload
+                                onUploadComplete={(url) => {
+                                  field.onChange(url);
+                                  form.setValue("imageUrl", url as string);
+                                }}
+                                defaultValue={field.value || ""}
+                                acceptedTypes="image/*"
+                                label=""
+                                buttonText="Upload Image"
+                                maxSizeMB={25}
+                              />
+                            </div>
+                            
+                            {/* URL Input Option */}
+                            <div>
+                              <label className="text-sm font-medium">Or Enter Image URL</label>
+                              <Input
+                                placeholder="https://example.com/image.jpg"
+                                value={field.value || ""}
+                                onChange={(e) => {
+                                  field.onChange(e.target.value);
+                                  form.setValue("imageUrl", e.target.value);
+                                }}
+                                className="mt-2"
+                              />
+                              <p className="text-xs text-gray-500 mt-1">
+                                You can either upload a file above or paste an image URL here
+                              </p>
+                            </div>
+                            
+                            {/* Preview */}
+                            {field.value && (
+                              <div className="mt-4">
+                                <label className="text-sm font-medium">Preview</label>
+                                <img
+                                  src={field.value}
+                                  alt="Course preview"
+                                  className="mt-2 max-w-xs rounded-md border"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                  }}
+                                />
+                              </div>
+                            )}
+                          </div>
                         </FormControl>
-                        {field.value && !field.value.startsWith("data:") && (
-                          // <div className="text-sm text-muted-foreground">
-                          //   Current URL: {field.value}
-                          // </div>
-
-                          <img src={`${field.value}`} />
-                        )}
+                        <FormDescription>
+                          Select an image that represents your course (max 25MB) or paste an image URL.
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -651,7 +769,7 @@ export default function CourseDetailPage() {
                           onValueChange={(value) =>
                             field.onChange(parseInt(value) || null)
                           }
-                          value={field.value?.toString() || "default"}
+                          value={field.value?.toString() || ""}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -689,7 +807,7 @@ export default function CourseDetailPage() {
                         <FormLabel>Difficulty Level</FormLabel>
                         <Select
                           onValueChange={field.onChange}
-                          value={field.value || "default"}
+                          value={field.value || ""}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -867,12 +985,19 @@ function StudentsList({ courseId }: { courseId: number }) {
   const { toast } = useToast();
 
   // Fetch enrollments for this course
-  const { data: enrollments, isLoading } = useQuery<Enrollment[]>({
+  const { data: enrollments = [], isLoading } = useQuery<Enrollment[]>({
     queryKey: ["/api/enrollments", { courseId }],
-    queryFn: () =>
-      apiRequest<Enrollment[]>(`/api/courses/${courseId}/enrollments`, {
-        method: "GET",
-      }),
+    queryFn: async () => {
+      try {
+        return await apiRequest<Enrollment[]>(`/api/courses/${courseId}/enrollments`, {
+          method: "GET",
+        });
+      } catch (error) {
+        console.warn(`Enrollments API not available for course ${courseId}`);
+        return [];
+      }
+    },
+    retry: false, // Don't retry failed requests
   });
 
   // Fetch user details for each enrolled student
@@ -1847,7 +1972,7 @@ function QuizList({ courseId }: { courseId: number }) {
   const { toast } = useToast();
 
   // Fetch quizzes for this course
-  const { data: quizzes, isLoading } = useQuery<Quiz[]>({
+  const { data: quizzes = [], isLoading } = useQuery<Quiz[]>({
     queryKey: ["/api/quizzes", { courseId }],
     queryFn: () =>
       apiRequest<Quiz[]>(`/api/courses/${courseId}/quizzes`, {

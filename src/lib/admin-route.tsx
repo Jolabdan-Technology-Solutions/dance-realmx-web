@@ -12,8 +12,6 @@ export function AdminRoute({
 }) {
   const { user, isLoading } = useAuth();
 
-  console.log(user);
-
   if (isLoading) {
     return (
       <Route path={path}>

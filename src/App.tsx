@@ -128,6 +128,15 @@ const SubscriptionPage = createLazyComponent(
 const SubscriptionSuccessPage = createLazyComponent(
   () => import("./pages/subscription-success-page")
 );
+const SubscriptionUpgradePage = createLazyComponent(
+  () => import("./pages/subscription-upgrade")
+);
+const SubscriptionUpgradeSuccessPage = createLazyComponent(
+  () => import("./pages/subscription-upgrade-success")
+);
+const SubscriptionUpgradeCancelPage = createLazyComponent(
+  () => import("./pages/subscription-upgrade-cancel")
+);
 
 // Shopping Cart and Checkout Module
 const CartPage = createLazyComponent(() => import("./pages/cart-page"));
@@ -209,6 +218,8 @@ const InstructorCoursesPage = lazy(
 );
 
 // Admin Pages
+import AdminCoursesCreatePage from './pages/admin/admin-courses-create-page';
+import AdminCoursesEditPage from './pages/admin/admin-courses-edit-page';
 const AdminDashboardPage = createLazyComponent(
   () => import("./pages/admin/admin-dashboard-page")
 );
@@ -329,6 +340,9 @@ const Pages = {
   // Subscription Module
   Subscription: withLayout(SubscriptionPage),
   SubscriptionSuccess: withLayout(SubscriptionSuccessPage),
+  SubscriptionUpgrade: withLayout(SubscriptionUpgradePage),
+  SubscriptionUpgradeSuccess: withLayout(SubscriptionUpgradeSuccessPage),
+  SubscriptionUpgradeCancel: withLayout(SubscriptionUpgradeCancelPage),
 
   // Shopping Cart and Checkout Module
   Cart: withLayout(CartPage),
@@ -550,6 +564,18 @@ function Router() {
           path="/subscription/success"
           component={Pages.SubscriptionSuccess}
         />
+        <Route
+          path="/subscription/upgrade"
+          component={Pages.SubscriptionUpgrade}
+        />
+        <Route
+          path="/subscription/upgrade/success"
+          component={Pages.SubscriptionUpgradeSuccess}
+        />
+        <Route
+          path="/subscription/upgrade/cancel"
+          component={Pages.SubscriptionUpgradeCancel}
+        />
 
         {/* Redirect /pricing to /subscription */}
         <Route path="/pricing">
@@ -660,6 +686,8 @@ function Router() {
         <AdminRoute path="/admin/users/:id" component={Pages.AdminUserEdit} />
         <AdminRoute path="/admin/roles" component={Pages.AdminRoles} />
         <ProtectedRoute path="/admin/courses" component={Pages.AdminCourses} />
+        <AdminRoute path="/admin/courses/create" component={withAdminLayout(AdminCoursesCreatePage)} />
+        <AdminRoute path="/admin/courses/:id/edit" component={withAdminLayout(AdminCoursesEditPage)} />
         <AdminRoute
           path="/admin/course-categories"
           component={Pages.AdminCourseCategories}

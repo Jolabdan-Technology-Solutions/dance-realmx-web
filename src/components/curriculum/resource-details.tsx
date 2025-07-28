@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
+import { useSubscription } from "@/hooks/use-subscription";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import {
@@ -46,6 +47,7 @@ import { DEFAULT_RESOURCE_IMAGE } from "@/lib/constants";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { convertToYouTubeEmbedUrl } from "@/lib/utils";
 import { VideoPreviewModal } from "@/components/curriculum/video-preview-modal";
+import { RequireSubscription } from "@/components/subscription/require-subscription";
 
 // Helper function to format dates in a consistent way
 const formatDate = (date: Date): string => {
@@ -76,7 +78,7 @@ const ResourceDetails = ({ resourceId }: ResourceDetailsProps) => {
     queryKey: ["/api/curriculum", resourceId],
     queryFn: async ({ queryKey }) => {
       const response = await fetch(
-        `https://api.livetestdomain.com/api/resources/${resourceId}`
+        `/api/resources/${resourceId}`
       );
       if (!response.ok) throw new Error("Failed to fetch resource");
       const data = await response;
@@ -159,7 +161,7 @@ const ResourceDetails = ({ resourceId }: ResourceDetailsProps) => {
     queryKey: ["/api/curriculum", resourceId, "reviews"],
     queryFn: async ({ queryKey }) => {
       const response = await fetch(
-        `https://api.livetestdomain.com/api/curriculum/${resourceId}/reviews`
+        `/api/curriculum/${resourceId}/reviews`
       );
       if (!response.ok) throw new Error("Failed to fetch reviews");
       return response;
@@ -172,7 +174,7 @@ const ResourceDetails = ({ resourceId }: ResourceDetailsProps) => {
     enabled: !!resource?.seller?.id,
     queryFn: async ({ queryKey }) => {
       const response = await fetch(
-        `https://api.livetestdomain.com/api/users/${resource?.seller?.id}`
+        `/api/users/${resource?.seller?.id}`
       );
       if (!response.ok) throw new Error("Failed to fetch seller details");
       return response;
@@ -185,7 +187,7 @@ const ResourceDetails = ({ resourceId }: ResourceDetailsProps) => {
     enabled: !!user,
     queryFn: async () => {
       const response = await fetch(
-        "https://api.livetestdomain.com/api/resource-orders"
+        "/api/resource-orders"
       );
       if (!response.ok) throw new Error("Failed to fetch purchases");
       return response;
@@ -223,7 +225,7 @@ const ResourceDetails = ({ resourceId }: ResourceDetailsProps) => {
     try {
       setIsDownloading(true);
       const response = await fetch(
-        `https://api.livetestdomain.com/api/resources/${resourceId}/download`
+        `/api/resources/${resourceId}/download`
       );
 
       if (!response.ok) {
@@ -579,23 +581,29 @@ const ResourceDetails = ({ resourceId }: ResourceDetailsProps) => {
                     )}
 
                   {hasPurchased ? (
-                    <Button
-                      onClick={handleDownload}
-                      disabled={isDownloading}
-                      className="w-full"
+                    <RequireSubscription 
+                      level={10} 
+                      feature="Resource Downloads"
+                      description="Download premium curriculum resources and learning materials with an EDUCATOR subscription or higher"
                     >
-                      {isDownloading ? (
-                        <span className="flex items-center">
-                          <Skeleton className="h-4 w-4 rounded-full mr-2 animate-spin" />
-                          Downloading...
-                        </span>
-                      ) : (
-                        <span className="flex items-center">
-                          <Download className="h-4 w-4 mr-2" />
-                          Download
-                        </span>
-                      )}
-                    </Button>
+                      <Button
+                        onClick={handleDownload}
+                        disabled={isDownloading}
+                        className="w-full"
+                      >
+                        {isDownloading ? (
+                          <span className="flex items-center">
+                            <Skeleton className="h-4 w-4 rounded-full mr-2 animate-spin" />
+                            Downloading...
+                          </span>
+                        ) : (
+                          <span className="flex items-center">
+                            <Download className="h-4 w-4 mr-2" />
+                            Download
+                          </span>
+                        )}
+                      </Button>
+                    </RequireSubscription>
                   ) : (
                     <PurchaseButton
                       resourceId={resource.id}

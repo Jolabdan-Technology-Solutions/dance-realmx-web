@@ -150,7 +150,7 @@ function ProfileEditContent() {
 
       try {
         const result = await apiRequest(
-          `https://api.livetestdomain.com/api/me`,
+          `/api/me`,
           {
             method: "GET",
             requireAuth: true,
@@ -205,7 +205,7 @@ function ProfileEditContent() {
   const updateUserDetailsMutation = useMutation({
     mutationFn: async (data: z.infer<typeof userDetailsSchema>) => {
       return await apiRequest(
-        `https://api.livetestdomain.com/api/users/${user?.id}`,
+        `/api/users/${user?.id}`,
         {
           method: "PATCH",
           data,
@@ -232,7 +232,7 @@ function ProfileEditContent() {
   const updateProfileDetailsMutation = useMutation({
     mutationFn: async (data: z.infer<typeof profileDetailsSchema>) => {
       return await apiRequest(
-        `https://api.livetestdomain.com/api/profiles/me`,
+        `/api/profiles/me`,
         {
           method: "PATCH",
           data,
@@ -262,7 +262,7 @@ function ProfileEditContent() {
       newPassword: string;
     }) => {
       return await apiRequest(
-        `https://api.livetestdomain.com/api/change-password`,
+        `/api/change-password`,
         {
           method: "POST",
           data,

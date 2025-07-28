@@ -273,6 +273,27 @@ export const ROUTE_REGISTRY: RouteConfig[] = [
     description: "Subscription success page",
   },
   {
+    path: "/subscription/upgrade",
+    component: "SubscriptionUpgrade",
+    isProtected: true,
+    module: "subscription",
+    description: "Subscription upgrade page",
+  },
+  {
+    path: "/subscription/upgrade/success",
+    component: "SubscriptionUpgradeSuccess",
+    isProtected: false,
+    module: "subscription",
+    description: "Subscription upgrade success page",
+  },
+  {
+    path: "/subscription/upgrade/cancel",
+    component: "SubscriptionUpgradeCancel",
+    isProtected: false,
+    module: "subscription",
+    description: "Subscription upgrade cancellation page",
+  },
+  {
     path: "/pricing",
     component: "Pricing",
     isProtected: false,

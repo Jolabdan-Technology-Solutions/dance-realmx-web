@@ -196,9 +196,10 @@ export default function SimpleUploadResourcePage() {
             priceValue = numValue.toFixed(2);
           }
         } catch (e) {
-          console.error("Error formatting price:", e);
+          // Error formatting price
         }
       }
+      
       
       console.log("Uploading resource with price:", priceValue);
       submitData.append("price", priceValue);
@@ -211,39 +212,32 @@ export default function SimpleUploadResourcePage() {
       }
 
       // Enhanced debugging for file upload
-      console.log("Simple Upload - Starting submission process");
-      console.log("Simple Upload - Selected file:", selectedFile.name, 
-                 "type:", selectedFile.type, 
-                 "size:", selectedFile.size);
-      console.log("Simple Upload - Form data keys:", Array.from(submitData.keys()));
-      
-      // Log form data for debugging
-      console.log("Simple Upload - Form data contents:");
-      console.log(`- File: ${selectedFile.name} (${selectedFile.size} bytes)`);
+      const entries = Array.from(submitData.keys());
       try {
         const entries = Array.from(submitData.entries());
-        entries.forEach(pair => {
-          // @ts-ignore - Type issues with FormData entries
-          console.log(`- ${pair[0]}: ${pair[1] instanceof File ? `File[${pair[1].name}, ${pair[1].size} bytes]` : pair[1]}`);
-        });
       } catch (err) {
-        console.log("Could not iterate form data entries:", err);
+        // Could not iterate form data entries
       }
 
       // Direct submission to the server endpoint that handles both file and resource data
-      console.log("Simple Upload - Sending to /api/resources/upload-simple");
+      
+      // Get auth token for the request
+      const token = localStorage.getItem("access_token");      
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
       const response = await fetch("/api/resources/upload-simple", {
         method: "POST",
+        headers,
         body: submitData,
         // Don't set Content-Type header, browser will set it with boundary for multipart/form-data
         credentials: 'same-origin' // Include session cookies
       });
 
-      console.log("Simple Upload - Received response status:", response.status, response.statusText);
-      
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Simple Upload - Error response:", errorText);
         
         let errorMessage;
         try {
@@ -258,7 +252,6 @@ export default function SimpleUploadResourcePage() {
 
       // Success!
       const result = await response.json();
-      console.log("Simple Upload - Success response:", result);
       
       toast({
         title: "Upload Successful",
@@ -271,11 +264,9 @@ export default function SimpleUploadResourcePage() {
       queryClient.invalidateQueries({ queryKey: ["/api/resources/seller"] });
       queryClient.invalidateQueries({ queryKey: ["/api/curriculum"] });
       
-      console.log("Resource upload successful, redirecting to curriculum page");
       // Redirect to curriculum page instead of my-resources
       navigate("/curriculum");
     } catch (error) {
-      console.error("Upload error:", error);
       toast({
         title: "Upload Failed",
         description: error instanceof Error ? error.message : "Failed to upload resource",

@@ -23,6 +23,7 @@ import {
   Heart,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { CachedAvatar } from "@/components/ui/cached-avatar";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { apiRequest } from "@/lib/queryClient";
@@ -190,7 +191,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     availabilityDates: [] as Array<{ date: Date; timeSlots: string[] }>,
     bio: "",
     portfolio: "",
-    pricing: 0,
+    pricing: 25,
     phone_number: "",
   });
 
@@ -427,7 +428,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
       if (mode === "get-booked") {
         // POST to become professional
         result = await apiRequest(
-          "https://api.livetestdomain.com/api/profiles/become-professional",
+          "/api/profiles/become-professional",
           {
             method: "POST",
             data: payload,
@@ -500,7 +501,7 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
         console.log("Complete submission data (POST):", searchPayload);
 
         result = await apiRequest(
-          `https://api.livetestdomain.com/api/profiles/professionals/search`,
+          `/api/profiles/professionals/search`,
           {
             method: "POST",
             data: searchPayload,
@@ -1016,14 +1017,18 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
     // Step 3: Date
     if (currentStep === 3) {
       const timeSlots = [
-        "09:00-10:00",
-        "10:00-11:00",
-        "11:00-12:00",
-        "14:00-15:00",
-        "15:00-16:00",
-        "16:00-17:00",
-        "18:00-19:00",
-        "19:00-20:00",
+        "All Day",
+        "9:00 AM - 10:00 AM",
+        "10:00 AM - 11:00 AM", 
+        "11:00 AM - 12:00 PM",
+        "12:00 PM - 1:00 PM",
+        "1:00 PM - 2:00 PM",
+        "2:00 PM - 3:00 PM",
+        "3:00 PM - 4:00 PM",
+        "4:00 PM - 5:00 PM",
+        "5:00 PM - 6:00 PM",
+        "6:00 PM - 7:00 PM",
+        "7:00 PM - 8:00 PM",
       ];
 
       const addAvailabilityDate = (date: Date | null) => {
@@ -1279,9 +1284,9 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                 {mode === "get-booked" ? (
                   <Slider
                     min={10}
-                    max={100000}
+                    max={200}
                     step={5}
-                    value={[Number(formData.pricing) || 50]}
+                    value={[Number(formData.pricing) || 25]}
                     onValueChange={([value]) =>
                       updateFormData("pricing", value)
                     }
@@ -1403,17 +1408,15 @@ export const BookingWizard: React.FC<BookingWizardProps> = ({
                         </button>
                         {/* Profile Image */}
                         <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-blue-400 to-purple-400 flex items-center justify-center mb-4 overflow-hidden border-4 border-white/20 shadow-lg">
-                          {d.user?.profile_image_url ? (
-                            <img
-                              src={d.user.profile_image_url}
-                              alt={d.user.first_name + " " + d.user.last_name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <span className="text-3xl font-bold text-white">
-                              {d.user?.first_name?.[0] || "?"}
-                            </span>
-                          )}
+                          <CachedAvatar
+                            src={d.user?.profile_image_url}
+                            alt={`${d.user?.first_name || ''} ${d.user?.last_name || ''}`.trim()}
+                            fallbackText={d.user?.first_name?.[0] || d.user?.last_name?.[0] || "?"}
+                            className="w-full h-full object-cover"
+                            first_name={d.user?.first_name}
+                            last_name={d.user?.last_name}
+                            username={d.user?.username}
+                          />
                         </div>
                         {/* Name & Bio */}
                         <h3 className="text-xl font-semibold text-white text-center mb-1">

@@ -1,9 +1,9 @@
-import React from 'react';
-import { Dialog, Transition } from '@headlessui/react';
-import { Fragment } from 'react';
-import { UserRole } from '@/types/user';
-import { useSubscription } from '@/hooks/useSubscription';
-import { useRouter } from 'next/router';
+import React from "react";
+import { Dialog, Transition } from "@headlessui/react";
+import { Fragment } from "react";
+import { UserRole } from "@/types/user";
+import { useSubscription } from "@/hooks/useSubscription";
+import { useRouter } from "next/router";
 
 interface UpgradeModalProps {
   isOpen: boolean;
@@ -21,14 +21,9 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
   const router = useRouter();
   const { plans, loading, error } = useSubscription();
 
-  const handleUpgrade = async (planId: number) => {
-    try {
-      // Redirect to payment page with the selected plan
-      router.push(`/subscription/checkout?planId=${planId}`);
-      onClose();
-    } catch (error) {
-      console.error('Error initiating upgrade:', error);
-    }
+  const handleUpgrade = () => {
+    window.location.href = "/subscription/upgrade";
+    onClose();
   };
 
   return (
@@ -68,17 +63,19 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
                 <div className="mt-4">
                   <p className="text-sm text-gray-500">
                     {requiredSubscription && !requiredRoles.length
-                      ? 'This feature requires an active subscription.'
+                      ? "This feature requires an active subscription."
                       : requiredRoles.length
-                      ? `This feature requires the following roles: ${requiredRoles.join(', ')}`
-                      : 'This feature requires an upgrade.'}
+                        ? `This feature requires the following roles: ${requiredRoles.join(", ")}`
+                        : "This feature requires an upgrade."}
                   </p>
                 </div>
 
                 {loading ? (
                   <div className="mt-4">Loading subscription plans...</div>
                 ) : error ? (
-                  <div className="mt-4 text-red-500">Error loading plans. Please try again.</div>
+                  <div className="mt-4 text-red-500">
+                    Error loading plans. Please try again.
+                  </div>
                 ) : (
                   <div className="mt-4 space-y-4">
                     {plans?.map((plan) => (
@@ -88,7 +85,9 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
                         onClick={() => handleUpgrade(plan.id)}
                       >
                         <h4 className="font-medium">{plan.name}</h4>
-                        <p className="text-sm text-gray-500">{plan.description}</p>
+                        <p className="text-sm text-gray-500">
+                          {plan.description}
+                        </p>
                         <div className="mt-2">
                           <span className="text-lg font-bold">
                             ${plan.priceMonthly}/month
@@ -104,13 +103,13 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
                   </div>
                 )}
 
-                <div className="mt-6">
+                <div className="mt-6 flex justify-end">
                   <button
                     type="button"
-                    className="inline-flex justify-center rounded-md border border-transparent bg-blue-100 px-4 py-2 text-sm font-medium text-blue-900 hover:bg-blue-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
-                    onClick={onClose}
+                    className="inline-flex justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                    onClick={handleUpgrade}
                   >
-                    Maybe Later
+                    Upgrade Now
                   </button>
                 </div>
               </Dialog.Panel>
@@ -120,4 +119,4 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
       </Dialog>
     </Transition>
   );
-}; 
+};

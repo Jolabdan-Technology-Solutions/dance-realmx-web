@@ -4,6 +4,7 @@ import { Link } from "wouter";
 import { Package, Plus, Loader2, User, Award, ThumbsUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
+import { useSubscription } from "@/hooks/use-subscription";
 import { API_ENDPOINTS, DEFAULT_RESOURCE_IMAGE } from "@/lib/constants";
 import {
   Card,
@@ -15,10 +16,12 @@ import {
 } from "@/components/ui/card";
 import { CachedImage } from "@/components/ui/cached-image";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { RequireSubscription } from "@/components/subscription/require-subscription";
 
 // Simple curriculum page that focuses on directly fetching and displaying resources
 export default function CurriculumPageNew() {
   const { toast } = useToast();
+  const { hasAccess } = useSubscription();
   const [resources, setResources] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -191,12 +194,19 @@ export default function CurriculumPageNew() {
       {/* Upload Button */}
       <div className="flex justify-end mb-8">
         {user && (
-          <Link href="/curriculum/upload">
-            <Button className="bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90">
-              <Plus className="mr-2 h-4 w-4" />
-              Upload Resource
-            </Button>
-          </Link>
+          <RequireSubscription 
+            requiredLevel={10} 
+            featureName="Resource Upload"
+            description="Upload your curriculum resources to share with the dance education community and earn income."
+            upgradePrompt="Upgrade to Educator or higher to start uploading resources."
+          >
+            <Link href="/curriculum/upload">
+              <Button className="bg-[#00d4ff] text-black hover:bg-[#00d4ff]/90">
+                <Plus className="mr-2 h-4 w-4" />
+                Upload Resource
+              </Button>
+            </Link>
+          </RequireSubscription>
         )}
       </div>
 

@@ -67,7 +67,7 @@ export default function ProfessionalProfilePage() {
       try {
         setLoading(true);
         const result = await apiRequest(
-          `https://api.livetestdomain.com/api/profiles/${params.id}`,
+          `/api/profiles/${params.id}`,
           {
             method: "GET",
             requireAuth: true,
@@ -89,7 +89,7 @@ export default function ProfessionalProfilePage() {
   const handleFavorite = async () => {
     try {
       await apiRequest(
-        `https://api.livetestdomain.com/api/profiles/${params.id}/book`,
+        `/api/profiles/${params.id}/book`,
         { method: "POST", requireAuth: true }
       );
       setIsFavorite(!isFavorite);

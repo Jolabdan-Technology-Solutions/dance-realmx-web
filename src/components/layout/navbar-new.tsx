@@ -12,18 +12,41 @@ import {
 import CartIcon from "@/components/cart/cart-icon";
 import { AuthWrapper } from "@/lib/auth-wrapper";
 import { useAuth } from "@/hooks/use-auth";
+import { useSubscription } from "@/hooks/use-subscription";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 
 // User session menu component - uses the useAuth hook directly
 function UserSessionMenu() {
   // Use the hook directly instead of context for better reliability
   const { user, logoutMutation } = useAuth();
+  const { planName, userSubscriptionLevel } = useSubscription();
+
+  const getBadgeVariant = () => {
+    switch (userSubscriptionLevel) {
+      case 0: return "secondary";
+      case 10: return "default";
+      case 20: return "destructive";
+      case 30: return "outline";
+      default: return "secondary";
+    }
+  };
+
+  const getBadgeColor = () => {
+    switch (userSubscriptionLevel) {
+      case 0: return "bg-gray-500 text-white"; // FREE
+      case 10: return "bg-blue-500 text-white"; // NOBILITY
+      case 20: return "bg-purple-500 text-white"; // ROYALTY
+      case 30: return "bg-yellow-500 text-black"; // IMPERIAL
+      default: return "bg-gray-500 text-white";
+    }
+  };
 
   const handleLogout = async () => {
     console.log("Logout button clicked from dropdown");
     try {
       // Call the logout API endpoint
-      await fetch("https://api.livetestdomain.com/api/logout", {
+      await fetch("/api/logout", {
         method: "POST",
         credentials: "include",
       });
@@ -68,6 +91,18 @@ function UserSessionMenu() {
         <DropdownMenuContent align="end" className="w-48">
           {user ? (
             <>
+              <div className="px-2 py-1.5 text-sm">
+                <div className="font-medium">{displayName}</div>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge className={`text-xs ${getBadgeColor()}`}>
+                    {planName}
+                  </Badge>
+                  {userSubscriptionLevel === 30 && (
+                    <span className="text-xs">👑</span>
+                  )}
+                </div>
+              </div>
+              <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
                 <Link href="/dashboard" className="w-full cursor-pointer">
                   My Dashboard
@@ -81,6 +116,11 @@ function UserSessionMenu() {
               <DropdownMenuItem asChild>
                 <Link href="/my-purchases" className="w-full cursor-pointer">
                   My Purchases
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/subscription" className="w-full cursor-pointer">
+                  Manage Subscription
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>

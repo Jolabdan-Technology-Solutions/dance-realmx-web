@@ -1,8 +1,8 @@
-import React from 'react';
-import { useAuth } from '@/hooks/use-auth';
-import { useSubscription } from '@/hooks/useSubscription';
-import { UserRole } from '@/types/user';
-import { UpgradeModal } from '@/components/modals/UpgradeModal';
+import React from "react";
+import { useAuth } from "@/hooks/use-auth";
+import { useSubscription } from "@/hooks/useSubscription";
+import { UserRole } from "@/types/user";
+import { UpgradeModal } from "@/components/modals/UpgradeModal";
 
 interface FeatureGuardProps {
   children: React.ReactNode;
@@ -22,14 +22,14 @@ export const FeatureGuard: React.FC<FeatureGuardProps> = ({
   const hasRequiredRole = React.useMemo(() => {
     if (!requiredRoles.length) return true;
     if (!user?.role_mappings) return false;
-    return requiredRoles.some(role => 
-      user.role_mappings.some(mapping => mapping.role === role)
+    return requiredRoles.some((role) =>
+      user.role_mappings.some((mapping) => mapping.role === role)
     );
   }, [user?.role_mappings, requiredRoles]);
 
   const hasRequiredSubscription = React.useMemo(() => {
     if (!requiredSubscription) return true;
-    return subscription?.status === 'ACTIVE';
+    return subscription?.status === "ACTIVE";
   }, [subscription, requiredSubscription]);
 
   const handleUpgradeClick = () => {
@@ -39,21 +39,15 @@ export const FeatureGuard: React.FC<FeatureGuardProps> = ({
   if (!hasRequiredRole || !hasRequiredSubscription) {
     return (
       <>
-        <div 
-          onClick={handleUpgradeClick}
+        <div
+          onClick={() => (window.location.href = "/subscription/upgrade")}
           className="cursor-pointer"
         >
           {children}
         </div>
-        <UpgradeModal
-          isOpen={showUpgradeModal}
-          onClose={() => setShowUpgradeModal(false)}
-          requiredRoles={requiredRoles}
-          requiredSubscription={requiredSubscription}
-        />
       </>
     );
   }
 
   return <>{children}</>;
-}; 
+};

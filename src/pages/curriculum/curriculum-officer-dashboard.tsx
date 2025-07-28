@@ -18,6 +18,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { RequireSubscription } from "@/components/subscription/require-subscription";
 import {
   Table,
   TableBody,
@@ -109,6 +110,19 @@ const newSellerSchema = z.object({
 });
 
 export default function CurriculumOfficerDashboard() {
+  return (
+    <RequireSubscription 
+      requiredLevel={20} 
+      featureName="Curriculum Administration"
+      description="Access advanced curriculum management tools to approve resources, manage sellers, and oversee the platform's educational content."
+      upgradePrompt="Upgrade to Premium or higher to access curriculum administration features."
+    >
+      <CurriculumOfficerDashboardContent />
+    </RequireSubscription>
+  );
+}
+
+function CurriculumOfficerDashboardContent() {
   const { user, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
   const [selectedResource, setSelectedResource] = useState<Resource | null>(null);
