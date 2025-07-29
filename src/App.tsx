@@ -8,7 +8,6 @@ import { Suspense, lazy } from "react";
 import { Loader2 } from "lucide-react";
 import Layout from "./components/layout/layout";
 import AdminLayout from "./components/layout/admin-layout";
-import { AuthProvider } from "./hooks/use-auth";
 import { GuestModeProvider } from "./hooks/use-guest-mode";
 import { GuestCartProvider } from "./hooks/use-guest-cart";
 import { CartProvider } from "./hooks/use-cart";
@@ -61,6 +60,7 @@ const createLazyComponent = (
 const HomePage = lazy(() => import("@/pages/home-page"));
 const AboutPage = lazy(() => import("@/pages/about-page"));
 const AuthPage = lazy(() => import("@/pages/auth-page"));
+const FirebaseAuthPage = lazy(() => import("@/pages/firebase-auth-page"));
 const RegistrationFlowPage = lazy(() => import("@/pages/registration-flow"));
 const ProfileImageDebugPage = lazy(() => import("@/pages/profile-image-debug"));
 const NotFound = createLazyComponent(() => import("./pages/not-found"));
@@ -301,6 +301,7 @@ const Pages = {
   Home: withLayout(HomePage),
   About: withLayout(AboutPage),
   Auth: withLayout(AuthPage),
+  FirebaseAuth: withLayout(FirebaseAuthPage),
   RegistrationFlow: withLayout(RegistrationFlowPage),
   ProfileImageDebug: withLayout(ProfileImageDebugPage),
   NotFound: withLayout(NotFound),
@@ -410,6 +411,7 @@ function Router() {
         <Route path="/" component={Pages.Home} />
         <Route path="/about" component={Pages.About} />
         <Route path="/auth" component={Pages.Auth} />
+        <Route path="/firebase-auth" component={Pages.FirebaseAuth} />
         <Route path="/register" component={Pages.RegistrationFlow} />
 
         {/* Course Certification Module */}
@@ -755,16 +757,14 @@ function Router() {
 
 function App() {
   return (
-    <AuthProvider>
-      <GuestModeProvider>
-        <GuestCartProvider>
-          <CartProvider>
-            <Router />
-            <Toaster />
-          </CartProvider>
-        </GuestCartProvider>
-      </GuestModeProvider>
-    </AuthProvider>
+    <GuestModeProvider>
+      <GuestCartProvider>
+        <CartProvider>
+          <Router />
+          <Toaster />
+        </CartProvider>
+      </GuestCartProvider>
+    </GuestModeProvider>
   );
 }
 

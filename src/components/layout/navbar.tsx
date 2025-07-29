@@ -1,8 +1,8 @@
 import { Link } from "wouter";
-import { useState, useContext } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, Menu, X, LogOut, User, ChevronDown } from "lucide-react";
-import { AuthContext } from "@/hooks/use-auth";
+import { useFirebaseAuth } from "@/hooks/use-firebase-auth-new";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,21 +16,17 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   
-  // Try to access auth context directly without throwing errors
-  const authContext = useContext(AuthContext);
-  const user = authContext?.user ?? null;
-  const logoutMutation = authContext?.logoutMutation;
+  const { user, logout, isAuthenticated } = useFirebaseAuth();
   
-  // Admin users have access to all roles
-  const isInstructor = user?.role === "instructor" || user?.role === "admin";
-  const isAdmin = user?.role === "admin";
-  const isSeller = user?.role === "seller" || user?.role === "admin";
-  const isCurriculumOfficer = user?.role === "curriculum_officer" || user?.role === "admin";
+  // Check roles from profile
+  const userRoles = user?.profile?.role || [];
+  const isInstructor = userRoles.includes("INSTRUCTOR") || userRoles.includes("ADMIN");
+  const isAdmin = userRoles.includes("ADMIN");
+  const isSeller = userRoles.includes("SELLER") || userRoles.includes("ADMIN");
+  const isCurriculumOfficer = userRoles.includes("CURRICULUM_OFFICER") || userRoles.includes("ADMIN");
 
   const handleLogout = () => {
-    if (logoutMutation) {
-      logoutMutation.mutate();
-    }
+    logout();
   };
   
   // Get user initials for avatar fallback
@@ -276,9 +272,8 @@ export default function Navbar() {
                 <Button 
                   className="w-full bg-red-600 hover:bg-red-700 text-white"
                   onClick={handleLogout}
-                  disabled={logoutMutation?.isPending}
                 >
-                  {logoutMutation?.isPending ? "Logging out..." : "Sign Out"}
+                  Sign Out
                 </Button>
               </>
             ) : (

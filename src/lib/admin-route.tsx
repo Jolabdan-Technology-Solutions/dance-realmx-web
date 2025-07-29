@@ -1,4 +1,4 @@
-import { useAuth } from "@/hooks/use-auth";
+import { useFirebaseAuth } from "@/hooks/use-firebase-auth-new";
 import { Loader2 } from "lucide-react";
 import { Redirect, Route } from "wouter";
 import { UserRole } from "@/constants/roles";
@@ -10,7 +10,7 @@ export function AdminRoute({
   path: string;
   component: () => React.JSX.Element;
 }) {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading } = useFirebaseAuth();
 
   if (isLoading) {
     return (
@@ -31,7 +31,8 @@ export function AdminRoute({
   }
 
   const allowedRoles = UserRole.ADMIN;
-  if (!user.role.includes(allowedRoles)) {
+  const userRoles = user?.profile?.role || [];
+  if (!userRoles.includes(allowedRoles)) {
     return (
       <Route path={path}>
         <Redirect to="/" />

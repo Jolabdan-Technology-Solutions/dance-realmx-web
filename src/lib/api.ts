@@ -1,107 +1,90 @@
 /**
- * API utilities for making requests to the server
+ * LEAN API - Only essential Cloud Functions
+ * Everything else uses direct Firestore operations
  */
 
-import axios from "axios";
+import { getFunctions, httpsCallable, connectFunctionsEmulator } from 'firebase/functions';
+import { app } from './firebase';
 
-// Use a static API_BASE_URL instead of runtime import.meta.env
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5001/";
+// Initialize Functions (only for essential operations)
+export const functions = getFunctions(app);
 
-export const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
-  withCredentials: true,
-});
+// Connect to emulator in development
+if (import.meta.env.DEV) {
+  connectFunctionsEmulator(functions, 'localhost', 5001);
+}
 
-// Add request interceptor for auth token
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("access_token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  // Remove any existing CORS headers to prevent duplication
-  delete config.headers["Access-Control-Allow-Origin"];
-  delete config.headers["Access-Control-Allow-Methods"];
-  delete config.headers["Access-Control-Allow-Headers"];
-  delete config.headers["Access-Control-Allow-Credentials"];
-  return config;
-});
+// === CLOUD FUNCTIONS (Essential Only - 6 total) ===
 
-// Add response interceptor for error handling
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem("access_token");
-      // Don't redirect automatically - let components handle it
-    }
-    return Promise.reject(error);
-  }
-);
+// Auth Helpers (custom username logic)
+export const lookupUserByUsername = httpsCallable(functions, 'lookupUserByUsername');
+export const setUsername = httpsCallable(functions, 'setUsername');
 
-// Helper function to handle API errors
+// Payment Processing (Stripe API)
+export const createPaymentIntent = httpsCallable(functions, 'createPaymentIntent');
+
+// Complex Business Logic  
+export const enrollInCourseAdvanced = httpsCallable(functions, 'enrollInCourseAdvanced');
+
+// Email Services (SendGrid API)
+export const sendBulkNotification = httpsCallable(functions, 'sendBulkNotification');
+
+// Admin Operations (role changes)
+export const becomeProfessional = httpsCallable(functions, 'becomeProfessional');
+
+// Helper function to handle Firebase Functions errors
 export const handleApiError = (error: any) => {
-  if (error.response) {
-    // The request was made and the server responded with a status code
-    // that falls out of the range of 2xx
-    console.error("API Error:", error.response.data);
-    return error.response.data;
-  } else if (error.request) {
-    // The request was made but no response was received
-    console.error("API Request Error:", error.request);
-    return { message: "No response from server" };
-  } else {
-    // Something happened in setting up the request that triggered an Error
-    console.error("API Setup Error:", error.message);
-    return { message: error.message };
+  console.error('Firebase Functions Error:', error);
+  
+  if (error.code) {
+    switch (error.code) {
+      case 'functions/unauthenticated':
+        return { message: 'Authentication required' };
+      case 'functions/permission-denied':
+        return { message: 'Permission denied' };
+      case 'functions/not-found':
+        return { message: 'Resource not found' };
+      case 'functions/already-exists':
+        return { message: 'Resource already exists' };
+      case 'functions/invalid-argument':
+        return { message: error.message || 'Invalid request' };
+      case 'functions/internal':
+        return { message: 'Internal server error' };
+      default:
+        return { message: error.message || 'An error occurred' };
+    }
   }
+  
+  return { message: error.message || 'An error occurred' };
 };
 
-export async function apiRequest(
-  method: string,
-  path: string,
-  body?: any,
-  customHeaders?: Record<string, string>
-) {
-  const url = path.startsWith("http") ? path : path;
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    ...customHeaders,
-  };
+// === EVERYTHING ELSE USES DIRECT FIRESTORE ===
+// Import from ./firestore.ts for all CRUD operations:
+// - Courses: getCourses, createCourse, updateCourse
+// - Users: getUserProfile, updateUserProfile  
+// - Notifications: getNotifications, markNotificationRead, createNotification
+// - Messages: sendMessage, getMessages, markMessagesRead
+// - Cart: addToCart, getCart, removeFromCart
+// - Reviews: createReview, getReviews
+// - Bookings: createBooking, getBookings, updateBooking
+// - Enrollments: enrollInCourse, getUserEnrollments
+// - And all other basic CRUD operations
 
-  const options: RequestInit = {
-    method,
-    headers,
-    //credentials: 'include',
-  };
-
-  if (body && method !== "GET") {
-    options.body = JSON.stringify(body);
-  }
-
-  return fetch(url, options);
-}
-
-export async function fetchWithTimeout(
-  input: RequestInfo,
-  init?: RequestInit & { timeout?: number }
-) {
-  const { timeout = 8000, ...options } = init || {};
-
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeout);
-
-  try {
-    const response = await fetch(input, {
-      ...options,
-      signal: controller.signal,
-    });
-    clearTimeout(id);
-    return response;
-  } catch (error) {
-    clearTimeout(id);
-    throw error;
-  }
-}
+// DEPRECATED: Stub API object for backward compatibility
+export const api = {
+  get: () => {
+    throw new Error("DEPRECATED: api.get() not available. Use Firebase Functions or Firestore directly.");
+  },
+  post: () => {
+    throw new Error("DEPRECATED: api.post() not available. Use Firebase Functions or Firestore directly.");
+  },
+  put: () => {
+    throw new Error("DEPRECATED: api.put() not available. Use Firebase Functions or Firestore directly.");
+  },
+  delete: () => {
+    throw new Error("DEPRECATED: api.delete() not available. Use Firebase Functions or Firestore directly.");
+  },
+  patch: () => {
+    throw new Error("DEPRECATED: api.patch() not available. Use Firebase Functions or Firestore directly.");
+  },
+};

@@ -1,4 +1,4 @@
-import { useAuth } from "@/hooks/use-auth";
+import { useFirebaseAuth } from "@/hooks/use-firebase-auth-new";
 import { Redirect, useLocation } from "wouter";
 import { UserRole } from "@/constants/roles";
 
@@ -6,7 +6,7 @@ import { UserRole } from "@/constants/roles";
  * Component to redirect users to their appropriate dashboard based on role
  */
 export function DashboardRedirect() {
-  const { user } = useAuth();
+  const { user } = useFirebaseAuth();
   const [location] = useLocation();
 
   // Allow access to login page even when logged in
@@ -19,12 +19,11 @@ export function DashboardRedirect() {
     return <Redirect to="/auth" />;
   }
 
-  // Check if user has multiple roles
-  const hasRolesArray =
-    Array.isArray(user?.role) && user?.role && user?.role.length > 0;
-  const hasMultipleRoles = hasRolesArray && user?.role && user?.role.length > 1;
+  // Check if user has multiple roles from Firebase profile
+  const userRoles = user?.profile?.role || [];
+  const hasMultipleRoles = userRoles.length > 1;
 
-  if (user?.role.includes(UserRole.ADMIN)) {
+  if (userRoles.includes(UserRole.ADMIN)) {
     return <Redirect to="/admin" />;
   }
 
@@ -33,9 +32,9 @@ export function DashboardRedirect() {
     return <Redirect to="/multi-dashboard" />;
   }
 
-  // For users with a single role in the roles array
-  if (hasRolesArray && user?.role && user?.role.length === 1) {
-    switch (user?.role[0]) {
+  // For users with a single role
+  if (userRoles.length === 1) {
+    switch (userRoles[0]) {
       case UserRole.CURRICULUM_SELLER:
         return <Redirect to="/multi-dashboard" />;
       case UserRole.INSTRUCTOR_ADMIN:
@@ -44,22 +43,11 @@ export function DashboardRedirect() {
         return <Redirect to="/admin" />;
       case UserRole.CURRICULUM_ADMIN:
         return <Redirect to="/multi-dashboard" />;
+      default:
+        return <Redirect to="/dashboard/user" />;
     }
   }
 
-  // For legacy users without roles array or users with empty roles array
-  // Redirect based on the primary role
-  switch (user?.role) {
-    case UserRole.CURRICULUM_SELLER:
-      return <Redirect to="/multi-dashboard" />;
-    case UserRole.INSTRUCTOR_ADMIN:
-      return <Redirect to="/multi-dashboard" />;
-    case UserRole.ADMIN:
-      return <Redirect to="/admin" />;
-    case UserRole.CURRICULUM_ADMIN:
-      return <Redirect to="/multi-dashboard" />;
-    default:
-      // All other roles go to the regular dashboard
-      return <Redirect to="/dashboard/user" />;
-  }
+  // Default for users with no specific roles
+  return <Redirect to="/dashboard/user" />;
 }

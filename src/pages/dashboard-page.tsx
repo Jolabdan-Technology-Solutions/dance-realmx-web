@@ -2,7 +2,7 @@ import EnrolledCourses from "../components/dashboard/enrolled-courses";
 import CurriculumMaterials from "../components/dashboard/curriculum-materials"; // Updated component name and path
 import CourseAnalytics from "../components/dashboard/course-analytics"; // New analytics component
 import UpcomingEvents from "../components/dashboard/upcoming-events";
-import { useAuth } from "../hooks/use-auth";
+import { useFirebaseAuth } from "../hooks/use-firebase-auth-new";
 import { useQuery } from "@tanstack/react-query";
 import { Certificate, Event } from "../../../shared/schema";
 import {
@@ -36,7 +36,7 @@ import {
 } from "../components/ui/tabs";
 
 export function DashboardPage() {
-  const { user } = useAuth();
+  const { user } = useFirebaseAuth();
 
   // Fetch upcoming events
   const { data: rawEvents = [] } = useQuery<Event[]>({

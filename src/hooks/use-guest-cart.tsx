@@ -1,5 +1,5 @@
 import { createContext, ReactNode, useContext, useState, useEffect } from "react";
-import { useAuth } from "./use-auth";
+import { useFirebaseAuth } from "./use-firebase-auth-new";
 import { useToast } from "./use-toast";
 import { Button } from "@/components/ui/button";
 
@@ -28,7 +28,7 @@ const GuestCartContext = createContext<GuestCartContextType | null>(null);
 const GUEST_CART_STORAGE_KEY = 'drx_guest_cart';
 
 export function GuestCartProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user } = useFirebaseAuth();
   const { toast } = useToast();
   const [items, setItems] = useState<GuestCartItem[]>([]);
 

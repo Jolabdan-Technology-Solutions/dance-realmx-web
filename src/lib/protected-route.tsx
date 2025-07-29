@@ -1,4 +1,4 @@
-import { useAuth } from "../hooks/use-auth";
+import { useFirebaseAuth } from "../hooks/use-firebase-auth-new";
 import { Loader2 } from "lucide-react";
 import { Redirect, Route } from "wouter";
 
@@ -33,14 +33,14 @@ function ProtectedContent({
 
   try {
     // This will throw an error if the context is not available
-    const auth = useAuth();
+    const auth = useFirebaseAuth();
     user = auth.user;
     isLoading = auth.isLoading;
     error = auth.error;
   } catch (e) {
-    // If useAuth throws, we're not in the AuthProvider context yet
+    // If useFirebaseAuth throws, we're not in the FirebaseAuthProvider context yet
     console.log(
-      "Auth context not available in ProtectedRoute, redirecting to login"
+      "Firebase auth context not available in ProtectedRoute, redirecting to login"
     );
     return <Redirect to="/auth" />;
   }
